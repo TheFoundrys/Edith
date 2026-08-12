@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: edith
+      POSTGRES_PASSWORD: edith
+      POSTGRES_DB: edith_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - edith_pg:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      API_PORT: "3001"
+      WEB_ORIGIN: "http://localhost:5173"
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  edith_pg:

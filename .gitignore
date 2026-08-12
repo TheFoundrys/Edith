@@ -1,0 +1,17 @@
+
+*.db
+*.db-journal
+*.log
+*.tsbuildinfo
+.DS_Store
+.env
+.env.local
+.next
+.turbo
+.vercel
+_archive/
+coverage
+dist
+dist-server
+node_modules
+uploads

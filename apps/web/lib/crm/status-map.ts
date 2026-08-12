@@ -1,0 +1,37 @@
+/** Status maps between EDITH and CentraCRM (dev-crm.thefoundrys.com). */
+
+export const ATLAS_TO_CRM_APPLICATION_STATUS: Record<string, string> = {
+  DRAFT: "STARTED",
+  SUBMITTED: "SUBMITTED",
+  DOCUMENT_VERIFICATION: "UNDER_REVIEW",
+  UNDER_REVIEW: "UNDER_REVIEW",
+  INTERVIEW: "UNDER_REVIEW",
+  DECISION_PENDING: "UNDER_REVIEW",
+  OFFERED: "APPROVED",
+  REJECTED: "REJECTED",
+  WAITLISTED: "WAITLISTED",
+  FEE_REQUESTED: "APPROVED",
+  ENROLLED: "ENROLLED",
+};
+
+export const ATLAS_TO_CRM_LEAD_STAGE: Record<string, string> = {
+  DRAFT: "NEW",
+  SUBMITTED: "APPLICATION_SUBMITTED",
+  DOCUMENT_VERIFICATION: "DOCUMENT_VERIFICATION",
+  UNDER_REVIEW: "UNDER_REVIEW",
+  INTERVIEW: "INTERVIEW",
+  DECISION_PENDING: "DECISION_PENDING",
+  OFFERED: "OFFERED",
+  REJECTED: "REJECTED",
+  WAITLISTED: "WAITLISTED",
+  FEE_REQUESTED: "FEE_REQUESTED",
+  ENROLLED: "ENROLLED",
+};
+
+export function mapApplicationStatus(status: string) {
+  return ATLAS_TO_CRM_APPLICATION_STATUS[status] ?? status;
+}
+
+export function mapLeadStage(status: string) {
+  return ATLAS_TO_CRM_LEAD_STAGE[status] ?? status;
+}
