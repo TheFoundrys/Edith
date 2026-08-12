@@ -75,6 +75,7 @@ function feeLabel(
 }
 
 function catalogMeta(program: {
+  name: string;
   slug: string;
   category: ProgramCategory;
   degreeLevel: DegreeLevel;
@@ -173,22 +174,37 @@ export function serializeCatalogCourseDetail(
   };
 }
 
-export function serializeAdminCourse(
-  program: CatalogBase & {
-    _count?: { applications: number; enrollments: number };
-    formDefinitionId?: string | null;
-    crmCatalogId?: string | null;
-    requiresCrmCallback?: boolean;
-    capacity?: number | null;
-  },
-) {
+type AdminExtras = {
+  _count?: { applications: number; enrollments: number };
+  formDefinitionId?: string | null;
+  crmCatalogId?: string | null;
+  requiresCrmCallback?: boolean;
+  capacity?: number | null;
+};
+
+function adminFields(program: AdminExtras) {
   return {
-    ...serializeCatalogCourse(program),
     formDefinitionId: program.formDefinitionId ?? null,
     crmCatalogId: program.crmCatalogId ?? null,
     requiresCrmCallback: program.requiresCrmCallback ?? false,
     capacity: program.capacity ?? null,
     counts: program._count ?? { applications: 0, enrollments: 0 },
+  };
+}
+
+export function serializeAdminCourse(program: CatalogBase & AdminExtras) {
+  return {
+    ...serializeCatalogCourse(program),
+    ...adminFields(program),
+  };
+}
+
+export function serializeAdminCourseDetail(
+  program: CatalogBase & AdminExtras & { syllabus: SyllabusOutline | null },
+) {
+  return {
+    ...serializeCatalogCourseDetail(program),
+    ...adminFields(program),
   };
 }
 

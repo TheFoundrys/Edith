@@ -1,0 +1,355 @@
+/* Scoped to .logo-page so the light marketing theme is untouched. */
+
+.logo-page {
+  --lp-ink: #04060c;
+  --lp-panel: #080b14;
+  --lp-gold: #e8c86a;
+  --lp-gold-bright: #fbebbf;
+  --lp-gold-deep: #a8791f;
+  --lp-muted: #98917f;
+  --lp-line: rgba(232, 200, 106, 0.16);
+
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 78% 30%,
+      rgba(201, 154, 51, 0.1),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 10% 8%,
+      rgba(232, 200, 106, 0.06),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #06080f 0%, var(--lp-ink) 55%, #020307 100%);
+  color: #e9e4d8;
+}
+
+.logo-page h1,
+.logo-page h2,
+.logo-page h3,
+.logo-page .font-display {
+  color: var(--lp-gold);
+}
+
+.logo-page a {
+  color: inherit;
+}
+
+/* Header */
+.logo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 3.5rem;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--lp-line);
+}
+
+@media (min-width: 40rem) {
+  .logo-header {
+    padding: 0 2rem;
+  }
+}
+
+.logo-header-mark {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: 0.02em;
+  color: var(--lp-gold);
+}
+
+.logo-header-back {
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lp-muted);
+  transition: color 0.2s ease;
+}
+
+.logo-header-back:hover {
+  color: var(--lp-gold);
+}
+
+/* Hero */
+.logo-hero {
+  flex: 1;
+  width: 100%;
+  max-width: 82rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem;
+  display: grid;
+  gap: 2.5rem;
+  grid-template-columns: 1fr;
+  align-items: center;
+}
+
+@media (min-width: 40rem) {
+  .logo-hero {
+    padding: 4rem 2rem 5rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .logo-hero {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 4rem;
+  }
+}
+
+.logo-eyebrow {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--lp-gold-deep);
+}
+
+.logo-title {
+  margin: 1.25rem 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(2.5rem, 6vw, 4.25rem);
+  line-height: 1.03;
+  letter-spacing: -0.015em;
+  background: linear-gradient(
+    112deg,
+    #fbebbf 0%,
+    #e8c86a 34%,
+    #c99a33 58%,
+    #f0d68f 82%,
+    #a8791f 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.logo-rule {
+  width: 3rem;
+  height: 1px;
+  margin-top: 1.5rem;
+  background: linear-gradient(90deg, var(--lp-gold), transparent);
+}
+
+.logo-lede {
+  margin: 1.5rem 0 0;
+  max-width: 34rem;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #c4bdac;
+}
+
+.logo-pillars {
+  list-style: none;
+  margin: 2.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 1px;
+  grid-template-columns: 1fr;
+  background: var(--lp-line);
+  border-top: 1px solid var(--lp-line);
+  border-bottom: 1px solid var(--lp-line);
+}
+
+@media (min-width: 30rem) {
+  .logo-pillars {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.logo-pillar {
+  padding: 1rem 1.1rem;
+  background: rgba(8, 11, 20, 0.72);
+}
+
+.logo-pillar-name {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--lp-gold);
+}
+
+.logo-pillar-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--lp-muted);
+}
+
+/* Emblem stage */
+.logo-stage {
+  position: relative;
+}
+
+.logo-frame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--lp-line);
+  background: var(--lp-panel);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 50px 90px -50px rgba(232, 200, 106, 0.22);
+}
+
+.logo-frame > svg,
+.logo-frame > video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* WebGL stage: the canvas has no intrinsic size, so match the SVG framing. */
+.logo-canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 400 / 470;
+}
+
+.logo-canvas > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Textured dark stage behind the transparent canvas. */
+.logo-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.16'/></svg>");
+  background-size: 140px 140px;
+  mix-blend-mode: overlay;
+}
+
+.logo-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 82% 68% at 50% 42%,
+    transparent 55%,
+    rgba(2, 3, 7, 0.55) 100%
+  );
+}
+
+.logo-caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 1rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lp-muted);
+}
+
+/* Reference strip */
+.logo-reference {
+  border-top: 1px solid var(--lp-line);
+}
+
+.logo-reference-inner {
+  width: 100%;
+  max-width: 82rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem;
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+@media (min-width: 40rem) {
+  .logo-reference-inner {
+    padding: 3.5rem 2rem 4.5rem;
+  }
+}
+
+@media (min-width: 48rem) {
+  .logo-reference-inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .logo-reference-inner {
+    grid-template-columns: minmax(0, 15rem) minmax(0, 15rem) minmax(0, 1fr);
+    gap: 3rem;
+  }
+}
+
+.logo-frame-sm {
+  max-width: 15rem;
+}
+
+.logo-section-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+
+.logo-section-lede {
+  margin: 0.85rem 0 1.25rem;
+  max-width: 26rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--lp-muted);
+}
+
+.logo-reference-image {
+  width: 100%;
+  max-width: 18rem;
+  height: auto;
+  border: 1px solid var(--lp-line);
+}
+
+.logo-notes {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+  max-width: 44rem;
+}
+
+.logo-note {
+  display: grid;
+  grid-template-columns: 1.15rem minmax(0, 1fr);
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #bdb6a5;
+}
+
+.logo-note-index {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  padding-top: 0.28rem;
+  color: var(--lp-gold-deep);
+}
+
+.logo-note strong {
+  color: var(--lp-gold);
+  font-weight: 500;
+}
+
+.logo-footer {
+  border-top: 1px solid var(--lp-line);
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: #6f6a5d;
+}

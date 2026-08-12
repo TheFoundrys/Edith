@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Instrument_Serif, Manrope } from "next/font/google";
+import { Instrument_Serif, Manrope } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { APP_LOCKUP, APP_NAME } from "@/lib/brand";
 import "./globals.css";
@@ -15,15 +15,8 @@ const manrope = Manrope({
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   weight: "400",
-  variable: "--font-display",
-  display: "swap",
-  preload: false,
-  adjustFontFallback: true,
-});
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
   display: "swap",
   preload: false,
   adjustFontFallback: true,
@@ -53,7 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${instrumentSerif.variable} ${geistMono.variable} ${manrope.className} h-full antialiased`}
+      className={`${manrope.variable} ${instrumentSerif.variable} ${manrope.className} h-full antialiased`}
     >
       <body className="min-h-full bg-bg text-fg">
         <Providers>{children}</Providers>

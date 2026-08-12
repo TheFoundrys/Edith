@@ -95,23 +95,25 @@ export function ProgramCatalogCard({
             {displayProgramName(program.name, program.category)}
           </h2>
 
-          {program.summary ? (
-            <p className="courses-desc mt-[var(--grid-gap)] text-sm leading-relaxed">
-              {truncate(program.summary, 120)}
-            </p>
-          ) : null}
+          {/* Always rendered at a fixed three-line height so the rule below
+              lands at the same offset in every card of a row. */}
+          <p className="courses-desc mt-[var(--grid-gap)] line-clamp-3 min-h-[4.27rem] text-sm leading-relaxed">
+            {program.summary ? truncate(program.summary, 120) : ""}
+          </p>
 
-          <dl className="courses-detail mt-auto space-y-0 border-t border-border pt-[var(--grid-gap)]">
-            {rows.map((row) => (
-              <div
-                key={row.label}
-                className="grid grid-cols-[6.5rem_1fr] gap-x-3 py-1.5 text-[13px] leading-snug"
-              >
-                <dt>{row.label}</dt>
-                <dd>{row.value}</dd>
-              </div>
-            ))}
-          </dl>
+          <div className="mt-auto pt-[var(--grid-gap)]">
+            <dl className="courses-detail space-y-0 border-t border-border pt-[var(--grid-gap)]">
+              {rows.map((row) => (
+                <div
+                  key={row.label}
+                  className="grid grid-cols-[6.5rem_1fr] gap-x-3 py-1.5 text-[13px] leading-snug"
+                >
+                  <dt>{row.label}</dt>
+                  <dd className="min-w-0 truncate">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </Link>
 
         {action ? (

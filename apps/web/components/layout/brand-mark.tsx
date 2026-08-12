@@ -14,7 +14,7 @@ export function BrandMark({
 }) {
   return (
     <Link href={href} className={cn("inline-flex flex-col", className)}>
-      <span className="font-display text-lg tracking-tight text-brand">
+      <span className="font-display brand-wordmark text-lg tracking-tight text-brand">
         {APP_NAME}
       </span>
       {showTagline ? (

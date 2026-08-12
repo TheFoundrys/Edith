@@ -1,5 +1,21 @@
 # API routes
 
+## Next.js (primary) — Course Catalog
+
+Base: `/api/catalog`
+
+Full reference: [catalog.md](./catalog.md)
+
+- `GET /catalog/courses` — published list + finder filters, search, pagination
+- `GET /catalog/courses/:slug` — published detail + syllabus outline
+- `GET /catalog/filters` — available finder options
+- `GET /catalog/categories` — programme suites
+- `GET|POST /catalog/admin/courses` — org list / create (`managePrograms`)
+- `GET|PATCH /catalog/admin/courses/:id` — admin detail / update
+- `POST /catalog/admin/courses/:id/status` — draft / publish / archive
+
+## Express (SPA stack)
+
 Base: `/api`
 
 - `GET /health`

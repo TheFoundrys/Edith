@@ -4,9 +4,7 @@ import { getSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
-import { BrandMark } from "@/components/layout/brand-mark";
-import { SiteFooter } from "@/components/layout/site-footer";
-import { PeakArtBackdrop } from "@/components/layout/peak-art-backdrop";
+import { AuthShell } from "@/components/layout/auth-shell";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/input";
 import { resolveAuthRedirect } from "@/lib/auth/redirect";
@@ -108,23 +106,15 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-full flex flex-col peak-atmosphere">
-      <PeakArtBackdrop variant="marketing" />
-      <div className="flex-1 flex items-center justify-center px-4 py-16">
-        <div className="w-full max-w-sm peak-rise">
-          <BrandMark showTagline />
-          <h1 className="mt-10 font-display text-3xl tracking-tight">Sign in</h1>
-          <p className="mt-2 text-sm text-fg-muted leading-relaxed">
-            Use your institution or student credentials.
-          </p>
-          <div className="mt-8">
-            <Suspense>
-              <LoginForm />
-            </Suspense>
-          </div>
-        </div>
-      </div>
-      <SiteFooter />
-    </div>
+    <AuthShell
+      ctaHref="/register"
+      ctaLabel="Get started"
+      title="Sign in"
+      description="Use your institution or student credentials."
+    >
+      <Suspense>
+        <LoginForm />
+      </Suspense>
+    </AuthShell>
   );
 }

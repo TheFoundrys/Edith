@@ -1,0 +1,316 @@
+/* Foundry emblem motion — one 7s master cycle, every keyframe returns to its
+   start value so the loop has no visible seam. Percentages are shared timing:
+   book opens 4–24%, hammer strikes 38%, circuits pulse 39–59%, book closes
+   62–82%, globe turns across the whole cycle. */
+
+.fx-emblem {
+  --fx-loop: 7s;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.fx-ambient {
+  animation: fx-ambient var(--fx-loop) ease-in-out infinite;
+}
+
+@keyframes fx-ambient {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}
+
+/* 1 — Book: both leaves fold about the spine at x=135 */
+.fx-page-l,
+.fx-page-r {
+  transform-box: view-box;
+  transform-origin: 135px 112px;
+  animation: fx-book-fold var(--fx-loop) ease-in-out infinite;
+}
+
+@keyframes fx-book-fold {
+  0%,
+  4% {
+    transform: scaleX(0.12);
+  }
+  24%,
+  62% {
+    transform: scaleX(1);
+  }
+  82%,
+  100% {
+    transform: scaleX(0.12);
+  }
+}
+
+.fx-book-pages {
+  animation: fx-book-pages var(--fx-loop) linear infinite;
+}
+
+@keyframes fx-book-pages {
+  0%,
+  3% {
+    opacity: 0;
+  }
+  9%,
+  77% {
+    opacity: 1;
+  }
+  83%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.fx-book-closed {
+  opacity: 0;
+  animation: fx-book-closed var(--fx-loop) linear infinite;
+}
+
+@keyframes fx-book-closed {
+  0%,
+  4% {
+    opacity: 1;
+  }
+  10%,
+  76% {
+    opacity: 0;
+  }
+  82%,
+  100% {
+    opacity: 1;
+  }
+}
+
+.fx-book-sheen {
+  opacity: 0;
+  transform-box: view-box;
+  animation: fx-book-sheen var(--fx-loop) linear infinite;
+}
+
+@keyframes fx-book-sheen {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  13% {
+    opacity: 0.5;
+  }
+  26% {
+    opacity: 0;
+    transform: translateX(86px);
+  }
+  27%,
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+
+/* 2 — Hammer: pivots at the handle butt, one controlled strike */
+.fx-hammer {
+  transform-box: view-box;
+  transform-origin: 289px 74px;
+  animation: fx-hammer var(--fx-loop) ease-in-out infinite;
+}
+
+@keyframes fx-hammer {
+  0%,
+  28% {
+    transform: rotate(0deg);
+  }
+  34% {
+    transform: rotate(5deg);
+  }
+  38.5% {
+    transform: rotate(-11deg);
+  }
+  41.5% {
+    transform: rotate(-7.5deg);
+  }
+  50%,
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.fx-spark {
+  opacity: 0;
+  animation: fx-spark var(--fx-loop) ease-out infinite;
+}
+
+@keyframes fx-spark {
+  0%,
+  37.6% {
+    opacity: 0;
+  }
+  38.8% {
+    opacity: 1;
+  }
+  44% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.fx-spark-burst {
+  transform-box: view-box;
+  transform-origin: 262px 119px;
+  transform: scale(0.3);
+  animation: fx-spark-burst var(--fx-loop) ease-out infinite;
+}
+
+@keyframes fx-spark-burst {
+  0%,
+  37.6% {
+    transform: scale(0.3);
+  }
+  44% {
+    transform: scale(1.45);
+  }
+  44.01%,
+  100% {
+    transform: scale(0.3);
+  }
+}
+
+/* 3 — Innovation: pulses travel the circuit legs, chip breathes */
+.fx-pulse {
+  opacity: 0;
+  stroke-dasharray: 5 40;
+  animation: fx-pulse var(--fx-loop) linear infinite;
+}
+
+.fx-pulse-b {
+  animation-delay: -0.28s;
+}
+
+.fx-pulse-c {
+  animation-delay: -0.56s;
+}
+
+@keyframes fx-pulse {
+  0%,
+  43% {
+    opacity: 0;
+    stroke-dashoffset: 19;
+  }
+  46% {
+    opacity: 1;
+  }
+  57% {
+    opacity: 1;
+  }
+  59% {
+    opacity: 0;
+    stroke-dashoffset: -6;
+  }
+  60%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 19;
+  }
+}
+
+.fx-ai-core {
+  animation: fx-ai-core var(--fx-loop) ease-in-out infinite;
+}
+
+@keyframes fx-ai-core {
+  0%,
+  40% {
+    opacity: 0.86;
+  }
+  51% {
+    opacity: 1;
+  }
+  63%,
+  100% {
+    opacity: 0.86;
+  }
+}
+
+.fx-chip-glow {
+  opacity: 0;
+  animation: fx-chip-glow var(--fx-loop) ease-in-out infinite;
+}
+
+@keyframes fx-chip-glow {
+  0%,
+  41% {
+    opacity: 0;
+  }
+  51% {
+    opacity: 0.55;
+  }
+  62%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* 4 — Globe: meridian pattern repeats every 28px, so one tile per cycle reads
+   as a continuous turn with no jump at the loop point. */
+.fx-globe-spin {
+  animation: fx-globe-spin var(--fx-loop) linear infinite;
+}
+
+@keyframes fx-globe-spin {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(28px);
+  }
+}
+
+.fx-globe-sheen {
+  opacity: 0;
+  transform-box: view-box;
+  animation: fx-globe-sheen var(--fx-loop) linear infinite;
+}
+
+@keyframes fx-globe-sheen {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  20% {
+    opacity: 0.45;
+  }
+  46% {
+    opacity: 0;
+    transform: translateX(62px);
+  }
+  47%,
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-emblem .fx-ambient,
+  .fx-emblem .fx-page-l,
+  .fx-emblem .fx-page-r,
+  .fx-emblem .fx-book-pages,
+  .fx-emblem .fx-book-closed,
+  .fx-emblem .fx-book-sheen,
+  .fx-emblem .fx-hammer,
+  .fx-emblem .fx-spark,
+  .fx-emblem .fx-spark-burst,
+  .fx-emblem .fx-pulse,
+  .fx-emblem .fx-ai-core,
+  .fx-emblem .fx-chip-glow,
+  .fx-emblem .fx-globe-spin,
+  .fx-emblem .fx-globe-sheen {
+    animation: none;
+  }
+}

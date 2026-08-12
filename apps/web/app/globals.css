@@ -14,7 +14,10 @@
   --radius: 2px;
   --radius-sm: 2px;
   --shadow: none;
-  --font-display: var(--font-display), ui-serif, Georgia, serif;
+  --font-display: var(--font-sans-body), ui-sans-serif, system-ui, sans-serif;
+  /* Instrument Serif is reserved for the home hero. Keep it out of
+     --font-display, which every page's display type resolves through. */
+  --font-hero: var(--font-instrument-serif), ui-serif, Georgia, serif;
   /* Modular cm × cm grid */
   --grid-u: 1cm;
   --grid-gap: 0.5cm;
@@ -34,7 +37,9 @@
   --color-accent-fg: var(--accent-fg);
   --color-danger: var(--danger);
   --font-sans: var(--font-sans-body), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* No monospace face is loaded; the font-mono utility stays so its call sites
+     keep working, but it resolves to the body font. */
+  --font-mono: var(--font-sans-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-display);
   --text-13xl: 12rem;
   --text-13xl--line-height: 1;
@@ -83,6 +88,20 @@ body {
   color: var(--brand);
 }
 
+/* Wordmark: the hero serif in italic, set as "Edith" from the all-caps brand
+   constant, so the DOM text stays EDITH for titles and screen readers. */
+.brand-wordmark {
+  display: inline-block;
+  font-family: var(--font-hero);
+  font-style: italic;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.brand-wordmark::first-letter {
+  text-transform: uppercase;
+}
+
 /* Headings + brand wordmark use brand blue site-wide */
 h1,
 h2,
@@ -100,110 +119,133 @@ h6 {
   background-color: #f2f2f2;
 }
 
-/* Home — minimal depth + brand highlight without clutter */
+/* Home — flat paper. Layered washes sat over the emblem and read as haze. */
 .home-page .peak-atmosphere {
-  background:
-    radial-gradient(
-      ellipse 65% 55% at 18% 48%,
-      rgba(25, 40, 144, 0.06),
-      transparent 62%
-    ),
-    radial-gradient(
-      ellipse 55% 45% at 88% 12%,
-      rgba(25, 40, 144, 0.08),
-      transparent 58%
-    ),
-    linear-gradient(165deg, #f8f8f6 0%, #efefec 48%, #e8e8e4 100%);
+  background: #f4f4f2;
 }
 
 .home-page .home-header {
   background: transparent;
 }
 
-.home-page .home-depth {
+/* Auth panel — a solid paper card on the emblem field. Wide enough that the
+   form breathes, lifted by a brand-tinted shadow rather than a heavy border. */
+.auth-card {
+  max-width: 30rem;
+  padding: 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 24px 48px -34px rgba(25, 40, 144, 0.5);
+}
+
+@media (min-width: 640px) {
+  .auth-card {
+    padding: 2.5rem 2.75rem;
+  }
+}
+
+/* Same brand tick that opens the home hero, so the pages read as one family. */
+.auth-card-rule {
+  width: 2.75rem;
+  height: 2px;
+  margin: 1.75rem 0 1.5rem;
+  background: var(--brand);
+  opacity: 0.9;
+}
+
+.home-emblem-art {
+  z-index: 0;
+  opacity: 0.7;
+}
+
+/* Right edge lands on the hero container's content edge, not the viewport's,
+   so the mark shares a grid with the copy instead of hugging the screen.
+   Mirrors .home-hero: max-w-7xl with px-5 / sm:px-8 / lg:px-12. */
+.home-emblem-mark {
+  --hero-gutter: 1.25rem;
   position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      ellipse 42% 38% at 18% 48%,
-      rgba(255, 255, 255, 0.55) 0%,
-      transparent 70%
-    );
+  top: 50%;
+  right: calc(max(0px, (100% - 80rem) / 2) + var(--hero-gutter));
+  height: 72%;
+  width: auto;
+  translate: 0 -50%;
 }
 
-.home-topic-art {
-  z-index: 0;
-  opacity: 0.55;
+@media (min-width: 640px) {
+  .home-emblem-mark {
+    --hero-gutter: 2rem;
+  }
 }
 
-.home-topic-icon {
-  transform-box: fill-box;
-  transform-origin: center;
+@media (min-width: 1024px) {
+  .home-emblem-mark {
+    --hero-gutter: 3rem;
+  }
 }
 
-.home-topic-cyber {
-  animation: home-topic-float 16s ease-in-out infinite;
+.home-emblem-float {
+  animation: home-emblem-float 20s ease-in-out infinite;
 }
 
-.home-topic-data {
-  animation: home-topic-float 19s ease-in-out infinite reverse;
+.home-emblem-globe {
+  animation: home-emblem-globe 9s linear infinite;
 }
 
-.home-topic-quantum {
-  animation: home-topic-float 18s ease-in-out 0.6s infinite;
+.home-emblem-nodes {
+  animation: home-emblem-nodes 5.5s ease-in-out infinite;
 }
 
-.home-topic-quantum-b {
-  animation: home-topic-drift 21s ease-in-out infinite;
+/* SVG transforms need an explicit box before transform-origin can be given in
+   user units; both of these pivot on a specific point of the drawing. */
+.home-emblem-hammer,
+.home-emblem-page {
+  transform-box: view-box;
 }
 
-.home-topic-quantum-c {
-  animation: home-topic-float 15s ease-in-out 1.2s infinite reverse;
+/* Grip end of the handle. */
+.home-emblem-hammer {
+  transform-origin: 289px 74px;
+  animation: home-emblem-hammer 4.5s ease-in-out infinite;
 }
 
-.home-topic-quantum-d {
-  animation: home-topic-drift 26s ease-in-out 0.4s infinite reverse;
+/* Spine of the book. */
+.home-emblem-page {
+  transform-origin: 135px 114px;
+  animation: home-emblem-page 7s ease-in-out infinite;
 }
 
-.home-topic-node-pulse {
-  animation: home-topic-pulse 5.5s ease-in-out infinite;
+/* Still backdrop: the mark holds its pose behind forms like /login. */
+.home-emblem-art.is-static .home-emblem-float,
+.home-emblem-art.is-static .home-emblem-globe,
+.home-emblem-art.is-static .home-emblem-nodes,
+.home-emblem-art.is-static .home-emblem-hammer,
+.home-emblem-art.is-static .home-emblem-page {
+  animation: none;
 }
 
-.home-topic-lock-ring {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: home-topic-lock-glow 4.5s ease-in-out infinite;
-}
-
-.home-topic-orbit-spin {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: home-topic-spin 32s linear infinite;
-}
-
-@keyframes home-topic-float {
+@keyframes home-emblem-float {
   0%,
   100% {
     translate: 0 0;
   }
   50% {
-    translate: 0 -10px;
+    translate: 0 -12px;
   }
 }
 
-@keyframes home-topic-drift {
-  0%,
-  100% {
-    translate: 0 0;
+@keyframes home-emblem-globe {
+  from {
+    transform: translateX(0);
   }
-  50% {
-    translate: 8px -6px;
+  to {
+    transform: translateX(28px);
   }
 }
 
-@keyframes home-topic-pulse {
+@keyframes home-emblem-nodes {
   0%,
   100% {
     opacity: 0.55;
@@ -213,25 +255,87 @@ h6 {
   }
 }
 
-@keyframes home-topic-lock-glow {
+/* Rests through most of the cycle, then lifts, strikes toward the anvil, and
+   rebounds. Positive angles raise the head; negative bring it down. */
+@keyframes home-emblem-hammer {
   0%,
-  100% {
-    opacity: 0.18;
-    transform: scale(1);
+  46% {
+    transform: rotate(0deg);
   }
-  50% {
-    opacity: 0.42;
-    transform: scale(1.08);
+  62% {
+    transform: rotate(14deg);
+  }
+  72% {
+    transform: rotate(-9deg);
+  }
+  79% {
+    transform: rotate(3deg);
+  }
+  86%,
+  100% {
+    transform: rotate(0deg);
   }
 }
 
-@keyframes home-topic-spin {
-  from {
-    transform: rotate(0deg);
+/* The leaf foreshortens toward the spine and settles back, so it riffles. */
+@keyframes home-emblem-page {
+  0%,
+  58% {
+    transform: scaleX(1);
   }
-  to {
-    transform: rotate(360deg);
+  72% {
+    transform: scaleX(0.14);
   }
+  82% {
+    transform: scaleX(0.72);
+  }
+  92%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+/* The hero copy owns the narrow viewport; the mark pulls back to a hint. */
+@media (max-width: 767px) {
+  .home-emblem-art {
+    opacity: 0.24;
+  }
+
+  .home-emblem-mark {
+    height: 52%;
+  }
+}
+
+.home-page .home-wordmark {
+  margin: 0;
+  font-family: var(--font-hero);
+  font-size: clamp(3rem, 17vw, 14rem);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  /* Brand constant is all-caps; set it as a math variable instead. */
+  text-transform: lowercase;
+  /* One flat pass of brand blue. Offset shadow layers each carried their own
+     anti-aliased edge, and the stacked fringes read as a blurred glyph. */
+  color: var(--brand);
+  /* Grayscale AA: subpixel rendering fringes display type with color at this size. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.home-page .home-wordmark::first-letter {
+  text-transform: uppercase;
+}
+
+.home-page .home-tagline {
+  margin: 1.75rem 0 0;
+  font-family: var(--font-hero);
+  font-size: clamp(1.15rem, 3vw, 2rem);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--brand);
 }
 
 .home-page .home-hero-rule {
@@ -251,9 +355,7 @@ h6 {
 }
 
 .home-page .home-cta-secondary {
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 8px 22px -16px rgba(25, 40, 144, 0.28);
 }
 
@@ -311,7 +413,7 @@ h6 {
   );
 }
 
-.peak-atmosphere > *:not(.peak-art):not(.home-topic-art):not(.home-depth) {
+.peak-atmosphere > *:not(.peak-art):not(.home-emblem-art) {
   position: relative;
   z-index: 1;
 }
@@ -865,15 +967,11 @@ h6 {
   .peak-art-frame,
   .peak-art-square,
   .peak-art-ring,
-  .home-topic-cyber,
-  .home-topic-data,
-  .home-topic-quantum,
-  .home-topic-quantum-b,
-  .home-topic-quantum-c,
-  .home-topic-quantum-d,
-  .home-topic-node-pulse,
-  .home-topic-orbit-spin,
-  .home-topic-lock-ring {
+  .home-emblem-float,
+  .home-emblem-globe,
+  .home-emblem-nodes,
+  .home-emblem-hammer,
+  .home-emblem-page {
     animation: none;
   }
 

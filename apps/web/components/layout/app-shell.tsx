@@ -37,7 +37,10 @@ export function AppShell({
       </a>
       <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-border bg-bg-elevated">
         <div className="px-5 h-14 flex items-center border-b border-border">
-          <Link href="/" className="font-display text-lg tracking-tight text-brand">
+          <Link
+            href="/"
+            className="font-display brand-wordmark text-lg tracking-tight text-brand"
+          >
             {brand}
           </Link>
         </div>
@@ -88,7 +91,9 @@ export function AppShell({
       <div className="flex-1 min-w-0 min-h-full flex flex-col peak-atmosphere">
         <PeakArtBackdrop variant="workspace" />
         <header className="md:hidden h-14 border-b border-border bg-bg-elevated/85 backdrop-blur px-4 flex items-center justify-between">
-          <span className="font-display text-lg text-brand">{brand}</span>
+          <span className="font-display brand-wordmark text-lg text-brand">
+            {brand}
+          </span>
           <Button
             variant="ghost"
             size="sm"
