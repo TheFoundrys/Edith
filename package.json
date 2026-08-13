@@ -10,6 +10,7 @@
     "db:generate": "npm run db:generate --prefix apps/web",
     "db:push": "npm run db:push --prefix apps/web",
     "db:seed": "npm run db:seed --prefix apps/web",
+    "db:publish-catalog": "npm run db:publish-catalog --prefix apps/web --",
     "db:studio": "npm run db:studio --prefix apps/web"
   },
   "engines": {

@@ -22,12 +22,27 @@ is published on a single non-default port. Nothing runs on 3000, 5173, or 5432.
 ```bash
 cp apps/web/.env.example apps/web/.env    # fill in AUTH_SECRET, DATABASE_URL, CRM_*, RAZORPAY_*
 docker compose up -d --build              # app on http://localhost:3059
-docker compose run --rm prisma            # apply the schema (prisma db push)
+docker compose run --rm prisma            # BRAND-NEW EMPTY DB ONLY (prisma db push)
 docker compose run --rm --entrypoint npx prisma tsx prisma/seed.ts  # optional seed
 ```
 
-The runtime image ships no Prisma CLI, so schema work goes through the one-shot
-`prisma` service, which reuses the build stage.
+The runtime image ships no Prisma CLI, so schema work goes through one-shot
+services that reuse the build stage.
+
+> **On any database that already holds data, use `docker compose run --rm migrate`,
+> never `prisma db push`.** Push implements a column rename as DROP + ADD, so it
+> destroys every value in the renamed columns — password hashes included. The
+> `migrate` service applies the reviewed SQL in `database/migrations` in order,
+> using `ALTER TABLE ... RENAME COLUMN`. Both are idempotent.
+>
+> `npm run db:seed` is destructive and for development only: it opens by deleting
+> all users, organizations, programmes, applications and payments. To publish
+> courses to a server that has real users, use `npm run db:publish-catalog`,
+> which only ever creates what is missing. See
+> [the deployment runbook](docs/deploy/ubuntu-server.md#publishing-catalogue-content).
+
+Course content lives in `apps/web/prisma/catalog-data.ts`, read by both the
+development seeder and the production publisher so the two cannot drift.
 
 To use the bundled database, set `DATABASE_URL` in `apps/web/.env` to
 `postgresql://postgres:postgres@postgres:5439/edith_dev?schema=public` (the

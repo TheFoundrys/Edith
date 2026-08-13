@@ -156,8 +156,59 @@ docker compose run --rm prisma        # creates the schema (prisma db push)
 docker compose run --rm --entrypoint npx prisma tsx prisma/seed.ts   # optional
 ```
 
-The runtime image ships no Prisma CLI, so schema work goes through the one-shot
-`prisma` service, which reuses the build stage and exits when done.
+The runtime image ships no Prisma CLI, so schema work goes through one-shot
+services that reuse the build stage and exit when done.
+
+Both commands above are **first-deploy only**, against an empty database and
+before the server has real users. After that:
+
+| Situation | Command |
+| --- | --- |
+| Schema changed | `docker compose run --rm migrate` |
+| Brand-new empty database | `docker compose run --rm prisma` |
+| Never on a live server | `npm run db:seed` |
+
+`prisma db push` implements a column rename as DROP + ADD. On a database that is
+behind the schema it silently destroys every value in the renamed columns —
+`User.password`, `Program.title`, `Program.price` and the rest. The `migrate`
+service applies the reviewed SQL in `database/migrations` in filename order with
+`ALTER TABLE ... RENAME COLUMN`, which preserves the data. Every migration is
+idempotent, so re-running an applied one is a no-op.
+
+The seeder is equally emphatic: `main()` begins with `deleteMany()` across users,
+organizations, programmes, applications and payments. It is a development
+fixture, not a way to publish content.
+
+## Publishing catalogue content
+
+To get courses onto a server that already has real users, use the publisher. It
+issues no delete of any kind:
+
+```bash
+docker compose run --rm publish-catalog --dry-run   # report, write nothing
+docker compose run --rm publish-catalog             # create what is missing
+```
+
+It reads `apps/web/prisma/catalog-data.ts`, the file the development seeder also
+reads, so the two never drift. For each course it looks up `(organizationId,
+slug)`:
+
+- **missing** — created, with syllabus and intakes, status `PUBLISHED`
+- **present** — left exactly as it is
+
+That default is what makes it safe to re-run on every release. Missing campuses
+and departments are created too; existing ones are matched by code and reused.
+The organization comes from `--org=<slug>` or `DEFAULT_ORG_SLUG`.
+
+`--update` additionally refreshes descriptive fields (title, summary, tags,
+outcomes, duration) on courses that already exist. It deliberately does not
+touch `status` or `price`: an archived course stays archived rather than being
+silently republished, and pricing stays with whoever holds `managePricing`.
+Syllabi are only ever written when a course is first created, because rebuilding
+one would cascade-delete the lesson progress of enrolled students.
+
+The CD workflow exposes this as the **publish_catalog** input, which runs a dry
+run first and prints it to the job log before writing.
 
 ## 7. Verify
 

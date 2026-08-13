@@ -206,6 +206,12 @@ export async function getCatalogFilters() {
       degreeLevel: true,
       eligibilitySummary: true,
       campus: { select: { name: true } },
+      // Both are optional on CatalogMetaProgram, so omitting them compiles but
+      // makes catalogDurationKey fall back to the degree-level default instead
+      // of the authored duration — the offered options then disagree with what
+      // the course list actually returns.
+      duration: true,
+      isHybridOnly: true,
     },
   });
 
