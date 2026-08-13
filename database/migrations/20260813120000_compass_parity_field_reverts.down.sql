@@ -7,7 +7,7 @@
 -- any values written since the migration was applied.
 --
 -- If you roll back, also revert the matching field names in
--- apps/web/prisma/schema.prisma and database/schema/schema.prisma, then re-run
+-- apps/web/prisma/schema.prisma, then re-run
 -- `prisma generate`, or the client will no longer match the database.
 
 BEGIN;

@@ -6,13 +6,13 @@
     "build": "npm run build --prefix apps/web",
     "start": "npm run start --prefix apps/web",
     "lint": "npm run lint --prefix apps/web",
+    "typecheck": "npm run typecheck --prefix apps/web",
     "db:generate": "npm run db:generate --prefix apps/web",
     "db:push": "npm run db:push --prefix apps/web",
     "db:seed": "npm run db:seed --prefix apps/web",
-    "db:studio": "npm run db:studio --prefix apps/web",
-    "dev:spa": "concurrently -k -n api,web -c blue,green \"npm run dev:api\" \"npm run dev:web\"",
-    "dev:api": "tsx watch --env-file=.env src/backend/server.ts",
-    "dev:web": "vite"
+    "db:studio": "npm run db:studio --prefix apps/web"
   },
-  "packageManager": "pnpm@11.18.0"
+  "engines": {
+    "node": ">=22"
+  }
 }

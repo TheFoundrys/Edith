@@ -1,0 +1,166 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+# A newer push to the same branch makes the in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  NEXT_TELEMETRY_DISABLED: "1"
+  # Prisma resolves env("DATABASE_URL") when it generates the client and when
+  # `next build` evaluates server modules. Neither one opens a connection, so a
+  # syntactically valid placeholder is enough. Real credentials come from the
+  # deploy environment.
+  DATABASE_URL: postgresql://ci:ci@127.0.0.1:5439/ci?schema=public
+  AUTH_SECRET: ci-placeholder-secret-not-used-at-runtime
+
+jobs:
+  quality:
+    name: Lint & typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: quality
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('apps/web/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('apps/web/package-lock.json') }}-
+            next-${{ runner.os }}-
+
+      - name: Build
+        run: npm run build
+
+  smoke:
+    name: Docker image smoke test
+    runs-on: ubuntu-latest
+    needs: quality
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: edith_ci
+        ports:
+          - 5439:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d edith_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5439/edith_ci?schema=public
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # The build stage carries the Prisma CLI, which the runtime image omits.
+      # Building it first also warms the cache for the runtime stage below.
+      - name: Build tools image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          target: build
+          tags: edith-web:tools
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build runtime image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          target: runtime
+          tags: edith-web:ci
+          load: true
+          cache-from: type=gha
+
+      - name: Apply schema to the CI database
+        run: |
+          docker run --rm --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            edith-web:tools \
+            npx prisma db push --schema prisma/schema.prisma --skip-generate
+
+      - name: Start the container
+        run: |
+          docker run -d --name edith-ci --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e AUTH_SECRET="$AUTH_SECRET" \
+            -e AUTH_URL="http://127.0.0.1:3059" \
+            -e AUTH_TRUST_HOST=true \
+            edith-web:ci
+
+      - name: Wait for health
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3059/api/health; then
+              echo "healthy after ${attempt} attempt(s)"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::container never reported healthy"
+          exit 1
+
+      # A rendered page proves the app boots far enough to talk to Postgres,
+      # which /api/health alone does not exercise.
+      - name: Smoke the login page
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3059/login)
+          echo "GET /login -> $code"
+          [ "$code" = "200" ]
+
+      - name: Container logs
+        if: failure()
+        run: docker logs edith-ci || true

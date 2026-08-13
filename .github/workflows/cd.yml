@@ -1,0 +1,238 @@
+name: CD
+
+on:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        default: staging
+      run_migrations:
+        description: Apply the Prisma schema after deploying
+        type: boolean
+        default: false
+
+# Deploys are serialized per environment, and never cancelled midway: a killed
+# deploy leaves the stack in an unknown state.
+concurrency:
+  group: cd-${{ github.event.inputs.environment || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  target:
+    name: Resolve target
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.pick.outputs.environment }}
+      registry: ${{ steps.pick.outputs.registry }}
+    steps:
+      - name: Pick environment and registry namespace
+        id: pick
+        run: |
+          if [ -n "${{ github.event.inputs.environment }}" ]; then
+            environment="${{ github.event.inputs.environment }}"
+          elif [ "${{ github.ref_name }}" = "main" ]; then
+            environment=production
+          else
+            environment=staging
+          fi
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"
+          # GHCR rejects uppercase, and the repository is TheFoundrys/Atlas.
+          echo "registry=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish images
+    runs-on: ubuntu-latest
+    needs: target
+    outputs:
+      web: ${{ steps.digests.outputs.web }}
+      tools: ${{ steps.digests.outputs.tools }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push runtime image
+        id: web
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          target: runtime
+          push: true
+          tags: |
+            ${{ needs.target.outputs.registry }}/web:${{ github.sha }}
+            ${{ needs.target.outputs.registry }}/web:${{ needs.target.outputs.environment }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push tools image
+        id: tools
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          target: build
+          push: true
+          tags: |
+            ${{ needs.target.outputs.registry }}/web-tools:${{ github.sha }}
+            ${{ needs.target.outputs.registry }}/web-tools:${{ needs.target.outputs.environment }}
+          cache-from: type=gha
+
+      # Pin by digest, not tag: a tag can be moved between the smoke test and
+      # the rollout, a digest cannot.
+      - name: Collect digests
+        id: digests
+        run: |
+          echo "web=${{ needs.target.outputs.registry }}/web@${{ steps.web.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          echo "tools=${{ needs.target.outputs.registry }}/web-tools@${{ steps.tools.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy ${{ needs.target.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [target, publish]
+    # Attach required reviewers to the `production` environment in repo settings
+    # to make promotion a human decision.
+    environment:
+      name: ${{ needs.target.outputs.environment }}
+      url: ${{ vars.HEALTH_URL }}
+    steps:
+      - name: Check deploy configuration
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          HEALTH_URL: ${{ vars.HEALTH_URL }}
+        run: |
+          missing=""
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_PATH HEALTH_URL; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::missing environment configuration:$missing"
+            exit 1
+          fi
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          if [ -n "$KNOWN_HOSTS" ]; then
+            printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::DEPLOY_KNOWN_HOSTS is unset; trusting the host key on first use"
+            ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy, health check, roll back on failure
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER_NAME: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          HEALTH_URL: ${{ vars.HEALTH_URL }}
+          WEB_IMAGE: ${{ needs.publish.outputs.web }}
+          TOOLS_IMAGE: ${{ needs.publish.outputs.tools }}
+          RUN_MIGRATIONS: ${{ github.event.inputs.run_migrations || 'false' }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$PORT" "$USER_NAME@$HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' \
+             HEALTH_URL='$HEALTH_URL' \
+             WEB_IMAGE='$WEB_IMAGE' \
+             TOOLS_IMAGE='$TOOLS_IMAGE' \
+             RUN_MIGRATIONS='$RUN_MIGRATIONS' \
+             REGISTRY_USER='$REGISTRY_USER' \
+             REGISTRY_TOKEN='$REGISTRY_TOKEN' \
+             GIT_SHA='$GIT_SHA' \
+             bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+
+          # The images are pinned by digest, but Compose still reads its files
+          # from disk. Take just those two from the released commit so the
+          # topology matches the artifact; everything else on the box, .env
+          # above all, is left untouched.
+          if [ -d .git ]; then
+            git fetch --quiet origin
+            git checkout --quiet "$GIT_SHA" -- docker-compose.yml docker-compose.prod.yml
+          else
+            echo "::warning::$DEPLOY_PATH is not a git checkout; using the compose files already present"
+          fi
+
+          compose() { docker compose -f docker-compose.yml -f docker-compose.prod.yml "$@"; }
+
+          # The previous digest is the rollback target. Absent on a first deploy.
+          state=.deploy-image
+          previous="$(cat "$state" 2>/dev/null || true)"
+
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
+
+          export WEB_IMAGE TOOLS_IMAGE
+          compose pull web
+
+          if [ "$RUN_MIGRATIONS" = "true" ]; then
+            echo "--- applying Prisma schema"
+            compose run --rm prisma
+          fi
+
+          echo "--- rolling out $WEB_IMAGE"
+          compose up -d --no-build web
+
+          healthy() {
+            for _ in $(seq 1 30); do
+              if curl -fsS --max-time 10 "$HEALTH_URL" > /dev/null; then return 0; fi
+              sleep 5
+            done
+            return 1
+          }
+
+          if healthy; then
+            echo "--- healthy"
+            # Recorded only after the release proves itself, so the rollback
+            # target is always a version that actually served traffic.
+            echo "$WEB_IMAGE" > "$state"
+            docker logout ghcr.io > /dev/null 2>&1 || true
+            exit 0
+          fi
+
+          echo "--- UNHEALTHY"
+          compose logs --tail 100 web || true
+
+          if [ -z "$previous" ]; then
+            echo "no previous image recorded; leaving the failed release up for debugging"
+            docker logout ghcr.io > /dev/null 2>&1 || true
+            exit 1
+          fi
+
+          echo "--- rolling back to $previous"
+          WEB_IMAGE="$previous" compose up -d --no-build web
+          if healthy; then
+            echo "rollback healthy"
+          else
+            echo "rollback did NOT recover; manual intervention required"
+          fi
+          docker logout ghcr.io > /dev/null 2>&1 || true
+          exit 1
+          REMOTE

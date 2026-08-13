@@ -232,6 +232,62 @@ export function getCatalogCategories() {
   return { categories: serializeCategories() };
 }
 
+export type CatalogDumpQuery = {
+  includeSyllabus?: boolean;
+};
+
+/**
+ * Whole published catalogue in a single unpaginated payload, for consumers
+ * that want to mirror or index it rather than browse it.
+ */
+export async function dumpPublishedCatalog(query: CatalogDumpQuery = {}) {
+  const includeSyllabus = query.includeSyllabus ?? true;
+  const where = { status: ProgramStatus.PUBLISHED } satisfies Prisma.ProgramWhereInput;
+  const orderBy = [
+    { category: "asc" as const },
+    { title: "asc" as const },
+  ] satisfies Prisma.ProgramOrderByWithRelationInput[];
+
+  const courses = includeSyllabus
+    ? (
+        await prisma.program.findMany({
+          where,
+          orderBy,
+          include: catalogDetailInclude,
+        })
+      ).map(serializeCatalogCourseDetail)
+    : (
+        await prisma.program.findMany({
+          where,
+          orderBy,
+          include: catalogListInclude,
+        })
+      ).map(serializeCatalogCourse);
+
+  const bySuite = courses.reduce<Record<string, number>>((acc, course) => {
+    acc[course.category] = (acc[course.category] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    generatedAt: new Date().toISOString(),
+    includeSyllabus,
+    counts: {
+      courses: courses.length,
+      bySuite,
+    },
+    categories: serializeCategories(),
+    filters: availableFinderOptions(
+      courses.map((course) => ({
+        category: course.category,
+        duration: course.meta.durationKey,
+        experience: course.meta.experienceKey,
+      })),
+    ),
+    courses,
+  };
+}
+
 export async function listAdminCatalogCourses(
   user: SessionUser,
   opts?: { status?: ProgramStatus; q?: string },
@@ -421,53 +477,63 @@ export async function updateAdminCatalogCourse(
     }
   }
 
+  // Assigned field-by-field rather than spread into a literal: spreads skip
+  // excess-property checks, so a wrong column name would compile and only fail
+  // at runtime. The API DTO's `name`/`summary` map to `title`/`description`.
+  const updateData: Prisma.ProgramUncheckedUpdateInput = {};
+  if (data.name !== undefined) updateData.title = data.name;
+  if (data.slug !== undefined) updateData.slug = data.slug;
+  if (data.category !== undefined) {
+    updateData.category = data.category as ProgramCategory;
+  }
+  if (data.degreeLevel !== undefined) updateData.degreeLevel = data.degreeLevel;
+  if (data.summary !== undefined) {
+    updateData.description = emptyToNull(data.summary);
+  }
+  if (data.eligibilitySummary !== undefined) {
+    updateData.eligibilitySummary = emptyToNull(data.eligibilitySummary);
+  }
+  if (data.imageUrl !== undefined) {
+    updateData.imageUrl = emptyToNull(data.imageUrl);
+  }
+  if (allowPricing && data.price !== undefined) updateData.price = data.price;
+  if (allowPricing && data.tuitionCurrency !== undefined) {
+    updateData.tuitionCurrency = data.tuitionCurrency;
+  }
+  if (allowPricing && data.applicationFee !== undefined) {
+    updateData.applicationFee = data.applicationFee;
+  }
+  if (data.capacity !== undefined) updateData.capacity = data.capacity;
+  if (data.campusId !== undefined) updateData.campusId = data.campusId;
+  if (data.departmentId !== undefined) {
+    updateData.departmentId = data.departmentId;
+  }
+  if (data.formDefinitionId !== undefined) {
+    updateData.formDefinitionId = data.formDefinitionId;
+  }
+  if (data.requiredDocs !== undefined) {
+    updateData.requiredDocs = parseDocs(data.requiredDocs);
+  }
+  if (data.crmCatalogId !== undefined) {
+    updateData.crmCatalogId = emptyToNull(data.crmCatalogId);
+  }
+  if (data.requiresCrmCallback !== undefined) {
+    updateData.requiresCrmCallback = data.requiresCrmCallback;
+  }
+  if (data.learningOutcomes !== undefined) {
+    updateData.learningOutcomes = data.learningOutcomes;
+  }
+  if (data.tags !== undefined) updateData.tags = data.tags;
+  if (data.duration !== undefined) {
+    updateData.duration = emptyToNull(data.duration);
+  }
+  if (data.brochureUrl !== undefined) {
+    updateData.brochureUrl = emptyToNull(data.brochureUrl);
+  }
+
   const course = await prisma.program.update({
     where: { id },
-    data: {
-      ...(data.name !== undefined ? { name: data.name } : {}),
-      ...(data.slug !== undefined ? { slug: data.slug } : {}),
-      ...(data.category !== undefined
-        ? { category: data.category as ProgramCategory }
-        : {}),
-      ...(data.degreeLevel !== undefined ? { degreeLevel: data.degreeLevel } : {}),
-      ...(data.summary !== undefined ? { summary: emptyToNull(data.summary) } : {}),
-      ...(data.eligibilitySummary !== undefined
-        ? { eligibilitySummary: emptyToNull(data.eligibilitySummary) }
-        : {}),
-      ...(data.imageUrl !== undefined ? { imageUrl: emptyToNull(data.imageUrl) } : {}),
-      ...(allowPricing && data.price !== undefined
-        ? { price: data.price }
-        : {}),
-      ...(allowPricing && data.tuitionCurrency !== undefined
-        ? { tuitionCurrency: data.tuitionCurrency }
-        : {}),
-      ...(allowPricing && data.applicationFee !== undefined
-        ? { applicationFee: data.applicationFee }
-        : {}),
-      ...(data.capacity !== undefined ? { capacity: data.capacity } : {}),
-      ...(data.campusId !== undefined ? { campusId: data.campusId } : {}),
-      ...(data.departmentId !== undefined ? { departmentId: data.departmentId } : {}),
-      ...(data.formDefinitionId !== undefined
-        ? { formDefinitionId: data.formDefinitionId }
-        : {}),
-      ...(data.requiredDocs !== undefined
-        ? { requiredDocs: parseDocs(data.requiredDocs) }
-        : {}),
-      ...(data.crmCatalogId !== undefined
-        ? { crmCatalogId: emptyToNull(data.crmCatalogId) }
-        : {}),
-      ...(data.requiresCrmCallback !== undefined
-        ? { requiresCrmCallback: data.requiresCrmCallback }
-        : {}),
-      ...(data.learningOutcomes !== undefined
-        ? { learningOutcomes: data.learningOutcomes }
-        : {}),
-      ...(data.tags !== undefined ? { tags: data.tags } : {}),
-      ...(data.duration !== undefined ? { duration: emptyToNull(data.duration) } : {}),
-      ...(data.brochureUrl !== undefined
-        ? { brochureUrl: emptyToNull(data.brochureUrl) }
-        : {}),
-    },
+    data: updateData,
     include: {
       ...catalogListInclude,
       _count: { select: { applications: true, enrollments: true } },

@@ -11,43 +11,20 @@ import {
   displayProgramName,
   programCategoryLabel,
 } from "@/lib/programs/categories";
+import {
+  catalogDurationLabel,
+  catalogMode,
+} from "@/lib/programs/catalog-meta";
 import { formatCurrency } from "@/lib/utils";
 
-function programFormat(category: string, hasCampus: boolean) {
-  if (category === "CENTRE_OF_EXCELLENCE") return "Institutional / Hybrid";
-  if (category === "FELLOW_EXECUTIVE") return "Hybrid";
-  if (category === "ADVANCED_MANAGEMENT") return "On-campus and Live-online";
-  if (hasCampus) return "On-campus and Live-online";
-  return "Hybrid";
-}
-
-function programDuration(slug: string, degreeLevel: string, category: string) {
-  if (category === "ADVANCED_MANAGEMENT") return "13 Weeks";
-  if (category === "FELLOW_EXECUTIVE") return "Cohort-based";
-  if (category === "CENTRE_OF_EXCELLENCE") return "Custom";
-  switch (degreeLevel) {
-    case "BACHELORS":
-      return "3 Years";
-    case "MASTERS":
-      return slug.startsWith("mba-") ? "3+1 Years" : "1–2 Years";
-    case "CERTIFICATE":
-      return "Program-dependent";
-    default:
-      return "Custom Duration";
-  }
-}
-
-function coursePrice(program: {
+/** Matches the catalogue card: an unset price means tuition isn't published. */
+function tuitionLabel(program: {
   price: number | null;
-  applicationFee: number | null;
+  tuitionCurrency: string;
 }) {
-  if (program.price != null && program.price > 0) {
-    return program.price;
-  }
-  if (program.applicationFee != null && program.applicationFee > 0) {
-    return program.applicationFee;
-  }
-  return 0;
+  if (program.price == null) return "Contact Admissions";
+  if (program.price === 0) return "Free";
+  return formatCurrency(program.price, program.tuitionCurrency);
 }
 
 export default async function PublicCourseDetailPage({
@@ -99,10 +76,11 @@ export default async function PublicCourseDetailPage({
     (c) => c.value === course.category,
   );
   const nextIntake = course.intakes[0];
-  const price = coursePrice(course);
+  const tuition = tuitionLabel(course);
   const title = displayProgramName(course.title, course.category);
-  const syllabusModules =
-    course.syllabus?.modules.filter((m) => m.lessons.length > 0) ?? [];
+  // A module with only a title and summary is still useful catalogue content,
+  // so outline entries are kept even before lessons are authored.
+  const syllabusModules = course.syllabus?.modules ?? [];
 
   const activeEnrollment =
     session?.user?.id && canEnroll
@@ -118,7 +96,7 @@ export default async function PublicCourseDetailPage({
   const facts = [
     {
       label: "Format",
-      value: programFormat(course.category, Boolean(course.campus)),
+      value: catalogMode(course),
     },
     {
       label: "Starts",
@@ -132,7 +110,7 @@ export default async function PublicCourseDetailPage({
     },
     {
       label: "Duration",
-      value: programDuration(course.slug, course.degreeLevel, course.category),
+      value: catalogDurationLabel(course),
     },
     {
       label: "Eligibility",
@@ -140,11 +118,18 @@ export default async function PublicCourseDetailPage({
     },
     {
       label: "Fee",
-      value:
-        price === 0
-          ? "Free"
-          : `${formatCurrency(price, course.tuitionCurrency)} + Taxes`,
+      value: course.price == null || course.price === 0
+        ? tuition
+        : `${tuition} + Taxes`,
     },
+    ...(course.applicationFee != null && course.applicationFee > 0
+      ? [
+          {
+            label: "Application fee",
+            value: formatCurrency(course.applicationFee, course.tuitionCurrency),
+          },
+        ]
+      : []),
   ];
 
   const enrollCallback = encodeURIComponent(`/enroll/${course.slug}`);
@@ -194,6 +179,24 @@ export default async function PublicCourseDetailPage({
                 </div>
               ))}
             </dl>
+
+            {course.learningOutcomes.length ? (
+              <section className="mt-10">
+                <h2 className="courses-heading font-display text-xl">
+                  What you&rsquo;ll learn
+                </h2>
+                <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {course.learningOutcomes.map((outcome) => (
+                    <li
+                      key={outcome}
+                      className="text-sm text-fg-muted leading-relaxed"
+                    >
+                      {outcome}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
             {syllabusModules.length ? (
               <section className="mt-10">
@@ -262,9 +265,7 @@ export default async function PublicCourseDetailPage({
                 Tuition
               </p>
               <p className="courses-heading mt-2 font-display text-2xl sm:text-3xl break-words">
-                {price === 0
-                  ? "Free"
-                  : formatCurrency(price, course.tuitionCurrency)}
+                {tuition}
               </p>
 
               <div className="mt-6 flex flex-col gap-3">

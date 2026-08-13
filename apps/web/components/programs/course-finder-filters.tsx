@@ -31,9 +31,14 @@ export function CourseFinderFilters({
     [filterIndex],
   );
 
-  useEffect(() => {
+  // Navigation re-renders this component with the filters the server actually
+  // applied, which discards any draft the user left uncommitted. Adjusting
+  // during render rather than in an effect avoids a second render pass.
+  const [appliedFilters, setAppliedFilters] = useState(initialFilters);
+  if (initialFilters !== appliedFilters) {
+    setAppliedFilters(initialFilters);
     setDraft(initialFilters);
-  }, [initialFilters]);
+  }
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {

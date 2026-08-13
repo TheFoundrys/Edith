@@ -1,7 +1,0 @@
-https://testing.thefoundrys.com/'/noise.svg'
-https://testing.thefoundrys.com/_next/image?url=%2Fimages%2Fexecutive-indian.png&w=3840&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz
-https://testing.thefoundrys.com/_next/image?url=%2Fimages%2Fexecutive-indian.png&w=640&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz 640w, /_next/image?url=%2Fimages%2Fexecutive-indian.png&w=750&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz 750w, /_next/image?url=%2Fimages%2Fexecutive-indian.png&w=828&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz 828w, /_next/image?url=%2Fimages%2Fexecutive-indian.png&w=1080&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz 1080w, /_next/image?url=%2Fimages%2Fexecutive-indian.png&w=1200&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz 1200w, /_next/image?url=%2Fimages%2Fexecutive-indian.png&w=1920&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz 1920w, /_next/image?url=%2Fimages%2Fexecutive-indian.png&w=2048&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz 2048w, /_next/image?url=%2Fimages%2Fexecutive-indian.png&w=3840&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz 3840w
-https://testing.thefoundrys.com/_next/image?url=%2Fsample-certificate.png&w=1200&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz
-https://testing.thefoundrys.com/_next/image?url=%2Fsample-certificate.png&w=640&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz 1x, /_next/image?url=%2Fsample-certificate.png&w=1200&q=75&dpl=dpl_2Fsy98ei7KUQshTet1y42D2my2iz 2x
-https://testing.thefoundrys.com/images/executive-indian.png
-https://testing.thefoundrys.com/sample-certificate.png

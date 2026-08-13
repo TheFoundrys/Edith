@@ -14,7 +14,7 @@ Environment verified at the time of writing: all six env files (`.env`, `.env.ex
 
 ## Provenance
 
-Derived from a read-only introspection of `compass_dev`, snapshotted alongside this file as `compass_dev.reference.prisma`. That snapshot is documentation only: it is not a working Prisma schema and must never be used as one. Compared against `apps/web/prisma/schema.prisma` (identical to `database/schema/schema.prisma`).
+Derived from a read-only introspection of `compass_dev`, snapshotted alongside this file as `compass_dev.reference.prisma`. That snapshot is documentation only: it is not a working Prisma schema and must never be used as one. Compared against `apps/web/prisma/schema.prisma`.
 
 ## 1. Summary
 
@@ -259,8 +259,8 @@ The four **high** risk items are high for two different reasons. `passwordHash` 
 
 ### Phase 2 execution constraints
 
-1. **Never use `prisma db push` for these renames.** Prisma implements a column rename as drop-then-create, which would destroy the data. Use hand-authored `ALTER TABLE ... RENAME COLUMN` against `edith_dev` only. The repo has no migrations directory and `package.json` wires `db:push`, so this needs its own script.
-2. **Both schema copies must change together**: `apps/web/prisma/schema.prisma` and `database/schema/schema.prisma` are currently identical.
+1. **Never use `prisma db push` for these renames.** Prisma implements a column rename as drop-then-create, which would destroy the data. Use hand-authored `ALTER TABLE ... RENAME COLUMN` against `edith_dev` only, added as a pair of `.sql` / `.down.sql` files in `database/migrations`. `package.json` wires `db:push`, which must not be used here.
+2. **Keep the Prisma schema in step with the SQL.** `apps/web/prisma/schema.prisma` is the single copy; re-run `prisma generate` after any hand-written migration or the client will no longer match the database.
 3. **`User.passwordHash` is the highest-risk item.** Edith declares it `NOT NULL` and feeds it straight into `bcrypt.compare` in `apps/web/lib/auth/index.ts`. Compass has it nullable. Rename only; do not relax nullability.
 4. **Scope `sortOrder` to `Organization`, `SyllabusModule` and `SyllabusLesson` only.** `QuizQuestion` is Edith-only, and `ForumCategory` already has a real `order` column (see section 7).
 5. **Scope `summary` to `Program` only.** Exclude `eligibilitySummary` and the `SyllabusModule` / `SyllabusLesson` `summary` columns, which have no Compass counterpart.
