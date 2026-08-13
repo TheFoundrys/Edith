@@ -1,6 +1,14 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+  // Without this the workspace root above `apps/` becomes the tracing root and
+  // standalone lands in `.next/standalone/apps/web`, which the image can't find.
+  outputFileTracingRoot: path.join(__dirname),
+  // Production builds run on Turbopack (the Next 16 default); the webpack block
+  // below only applies to `next dev --webpack`.
+  turbopack: {},
   // SQLite mutates on reads/writes; if the watcher sees prisma/*.db the
   // page reloads forever. Use `next dev --webpack` so these paths can be ignored
   // (Turbopack in this Next version has no ignore API).

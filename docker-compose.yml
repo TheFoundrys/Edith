@@ -1,41 +1,70 @@
+name: edith
+
+# Every published port is deliberately off the framework defaults:
+#   app (Next.js UI + /api routes) -> 3059
+#   postgres                       -> 5439
 services:
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      target: runtime
+    restart: unless-stopped
+    env_file: apps/web/.env
+    environment:
+      PORT: "3059"
+      HOSTNAME: "0.0.0.0"
+      AUTH_URL: ${APP_ORIGIN:-http://localhost:3059}
+      NEXTAUTH_URL: ${APP_ORIGIN:-http://localhost:3059}
+      AUTH_TRUST_HOST: "true"
+    ports:
+      - "${APP_PORT:-3059}:3059"
+    volumes:
+      - edith_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3059/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # One-shot Prisma runner: the runtime image has no CLI, the build stage does.
+  #   docker compose run --rm prisma db push --schema prisma/schema.prisma
+  prisma:
+    profiles: ["tools"]
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      target: build
+    env_file: apps/web/.env
+    entrypoint: ["npx", "prisma"]
+    command: ["db", "push", "--schema", "prisma/schema.prisma"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    command: ["postgres", "-p", "5439"]
     environment:
-      POSTGRES_USER: edith
-      POSTGRES_PASSWORD: edith
-      POSTGRES_DB: edith_dev
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-edith_dev}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5439}:5439"
     volumes:
       - edith_pg:/var/lib/postgresql/data
-
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: api
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      API_PORT: "3001"
-      WEB_ORIGIN: "http://localhost:5173"
-    ports:
-      - "3001:3001"
-    depends_on:
-      - postgres
-
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: web
-    restart: unless-stopped
-    ports:
-      - "5173:80"
-    depends_on:
-      - api
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -p 5439 -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-edith_dev}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
   edith_pg:
+  edith_uploads:
