@@ -31,14 +31,14 @@ export function FeePaymentPanel({
   currency,
   alreadyPaid,
   paidAmount,
-  paidAt,
+  paymentDate,
 }: {
   applicationId: string;
   amount: number | null;
   currency: string;
   alreadyPaid: boolean;
   paidAmount?: number | null;
-  paidAt?: string | null;
+  paymentDate?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -51,7 +51,7 @@ export function FeePaymentPanel({
         <p className="text-sm font-medium">Application fee paid</p>
         <p className="text-sm text-fg-muted">
           {formatCurrency(paidAmount ?? amount, currency)}
-          {paidAt ? ` · ${new Date(paidAt).toLocaleString()}` : ""}
+          {paymentDate ? ` · ${new Date(paymentDate).toLocaleString()}` : ""}
         </p>
       </div>
     );

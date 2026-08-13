@@ -61,7 +61,7 @@ programsRouter.post(
       category: req.body.category || "YOUNG_POST_GRADUATE",
       degreeLevel: req.body.degreeLevel || "CERTIFICATE",
       summary: req.body.summary,
-      tuitionAmount: req.body.tuitionAmount ?? null,
+      price: req.body.price ?? null,
       tuitionCurrency: req.body.tuitionCurrency || "INR",
       status: req.body.status || "DRAFT",
     });

@@ -102,10 +102,10 @@ export function NewProgramForm({
             ) : null}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="tuitionAmount">Tuition</Label>
+                <Label htmlFor="price">Tuition</Label>
                 <Input
-                  id="tuitionAmount"
-                  name="tuitionAmount"
+                  id="price"
+                  name="price"
                   type="number"
                   step="0.01"
                   disabled={!canManagePricing}

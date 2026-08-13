@@ -73,7 +73,7 @@ export default async function StudentDashboardPage() {
     prisma.program.count({
       where: {
         status: "PUBLISHED",
-        OR: [{ tuitionAmount: { gt: 0 } }, { applicationFee: { gt: 0 } }],
+        OR: [{ price: { gt: 0 } }, { applicationFee: { gt: 0 } }],
         enrollments: {
           none: { userId: session.user.id, status: "ACTIVE" },
         },

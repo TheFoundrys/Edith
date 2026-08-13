@@ -41,7 +41,7 @@ export default async function PublicCoursesPage({
         orderBy: { startDate: "asc" },
       },
     },
-    orderBy: { name: "asc" },
+    orderBy: { title: "asc" },
   });
 
   const filterIndex = published.map((course) => ({

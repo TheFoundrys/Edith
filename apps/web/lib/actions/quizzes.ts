@@ -13,11 +13,11 @@ async function programContext(programId: string, organizationId: string) {
       syllabus: {
         include: {
           modules: {
-            orderBy: { sortOrder: "asc" },
+            orderBy: { order: "asc" },
             include: {
               lessons: {
                 where: { isPublished: true },
-                orderBy: { sortOrder: "asc" },
+                orderBy: { order: "asc" },
                 select: { title: true },
               },
             },
@@ -171,8 +171,8 @@ export async function generateQuizDraft(input: {
   try {
     const adapter = await getAiAdapterForOrg(session.user.organizationId);
     const draft = await adapter.generateQuizDraft({
-      programName: program.name,
-      programSummary: program.summary,
+      programName: program.title,
+      programSummary: program.description,
       syllabusOutline: outlineFromProgram(program),
       topic: input.topic,
       questionCount: input.questionCount,
@@ -227,8 +227,8 @@ export async function submitQuizAttempt(
     data: {
       userId: session.user.id,
       title: "Quiz submitted",
-      body: `You scored ${score}/${quiz.questions.length} on “${quiz.title}”.`,
-      href: `/student/quizzes/${quiz.id}`,
+      message: `You scored ${score}/${quiz.questions.length} on “${quiz.title}”.`,
+      actionUrl: `/student/quizzes/${quiz.id}`,
     },
   });
 

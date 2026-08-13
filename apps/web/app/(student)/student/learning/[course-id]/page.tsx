@@ -32,13 +32,13 @@ export default async function StudentLearningCoursePage({
   const syllabus = await prisma.programSyllabus.findFirst({
     where: { programId: courseId, status: "PUBLISHED" },
     include: {
-      program: { select: { name: true } },
+      program: { select: { title: true } },
       modules: {
-        orderBy: { sortOrder: "asc" },
+        orderBy: { order: "asc" },
         include: {
           lessons: {
             where: { isPublished: true },
-            orderBy: { sortOrder: "asc" },
+            orderBy: { order: "asc" },
           },
         },
       },
@@ -70,7 +70,7 @@ export default async function StudentLearningCoursePage({
   return (
     <div>
       <PageHeader
-        title={syllabus.program.name}
+        title={syllabus.program.title}
         description={syllabus.description || syllabus.title || "Course outline"}
         actions={
           <div className="flex flex-wrap items-center gap-3">

@@ -53,11 +53,11 @@ export default async function StudentApplicationDetailPage({
       <Breadcrumbs
         items={[
           { href: "/student/applications", label: "Applications" },
-          { label: application.program.name },
+          { label: application.program.title },
         ]}
       />
       <PageHeader
-        title={application.program.name}
+        title={application.program.title}
         description={
           application.intake
             ? `Intake: ${application.intake.name}`
@@ -102,7 +102,7 @@ export default async function StudentApplicationDetailPage({
                 currency={application.program.tuitionCurrency}
                 alreadyPaid={Boolean(paid)}
                 paidAmount={paid?.amount}
-                paidAt={paid?.paidAt?.toISOString() ?? null}
+                paymentDate={paid?.paymentDate?.toISOString() ?? null}
               />
             </Panel>
           ) : null}

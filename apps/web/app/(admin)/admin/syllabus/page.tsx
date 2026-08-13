@@ -29,7 +29,7 @@ export default async function AdminSyllabusListPage() {
         },
       },
     },
-    orderBy: { name: "asc" },
+    orderBy: { title: "asc" },
   });
 
   const withSyllabus = programs.filter((p) => p.syllabus).length;
@@ -95,7 +95,7 @@ export default async function AdminSyllabusListPage() {
                     href={`/admin/syllabus/${program.id}`}
                     className="hover:underline underline-offset-2"
                   >
-                    {program.name}
+                    {program.title}
                   </Link>
                 </h2>
 

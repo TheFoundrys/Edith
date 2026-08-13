@@ -57,22 +57,22 @@ const catalogDetailInclude = {
       description: true,
       status: true,
       modules: {
-        orderBy: { sortOrder: "asc" as const },
+        orderBy: { order: "asc" as const },
         select: {
           id: true,
           title: true,
           summary: true,
-          sortOrder: true,
+          order: true,
           duration: true,
           lessons: {
             where: { isPublished: true },
-            orderBy: { sortOrder: "asc" as const },
+            orderBy: { order: "asc" as const },
             select: {
               id: true,
               title: true,
               summary: true,
               durationMin: true,
-              sortOrder: true,
+              order: true,
               isPreview: true,
               isFree: true,
             },
@@ -128,10 +128,10 @@ export async function listPublishedCatalogCourses(query: CatalogListQuery) {
     include: catalogListInclude,
     orderBy:
       sort === "tuition"
-        ? { tuitionAmount: "asc" }
+        ? { price: "asc" }
         : sort === "updated"
           ? { updatedAt: "desc" }
-          : { name: "asc" },
+          : { title: "asc" },
   });
 
   const filterIndex = published.map((course) => ({
@@ -157,8 +157,8 @@ export async function listPublishedCatalogCourses(query: CatalogListQuery) {
   if (q) {
     filtered = filtered.filter((course) => {
       const haystack = [
-        course.name,
-        course.summary ?? "",
+        course.title,
+        course.description ?? "",
         course.eligibilitySummary ?? "",
         ...course.tags,
         ...course.learningOutcomes,
@@ -242,9 +242,9 @@ export async function listAdminCatalogCourses(
   if (opts?.status) where.status = opts.status;
   if (opts?.q?.trim()) {
     where.OR = [
-      { name: { contains: opts.q.trim(), mode: "insensitive" } },
+      { title: { contains: opts.q.trim(), mode: "insensitive" } },
       { slug: { contains: opts.q.trim(), mode: "insensitive" } },
-      { summary: { contains: opts.q.trim(), mode: "insensitive" } },
+      { description: { contains: opts.q.trim(), mode: "insensitive" } },
     ];
   }
 
@@ -295,21 +295,21 @@ export async function getAdminCatalogCourse(user: SessionUser, id: string) {
           description: true,
           status: true,
           modules: {
-            orderBy: { sortOrder: "asc" },
+            orderBy: { order: "asc" },
             select: {
               id: true,
               title: true,
               summary: true,
-              sortOrder: true,
+              order: true,
               duration: true,
               lessons: {
-                orderBy: { sortOrder: "asc" },
+                orderBy: { order: "asc" },
                 select: {
                   id: true,
                   title: true,
                   summary: true,
                   durationMin: true,
-                  sortOrder: true,
+                  order: true,
                   isPreview: true,
                   isFree: true,
                 },
@@ -335,7 +335,7 @@ export async function createAdminCatalogCourse(
   user: SessionUser,
   data: CatalogCourseWrite,
 ) {
-  if (!can(user.role, "managePricing") && (data.tuitionAmount != null || data.applicationFee != null)) {
+  if (!can(user.role, "managePricing") && (data.price != null || data.applicationFee != null)) {
     return { ok: false as const, error: "You do not have permission to set course pricing.", status: 403 as const };
   }
 
@@ -345,14 +345,14 @@ export async function createAdminCatalogCourse(
   const course = await prisma.program.create({
     data: {
       organizationId: user.organizationId,
-      name: data.name,
+      title: data.name,
       slug,
       category: data.category,
       degreeLevel: data.degreeLevel,
-      summary: emptyToNull(data.summary),
+      description: emptyToNull(data.summary),
       eligibilitySummary: emptyToNull(data.eligibilitySummary),
       imageUrl: emptyToNull(data.imageUrl),
-      tuitionAmount: data.tuitionAmount ?? null,
+      price: data.price ?? null,
       tuitionCurrency: data.tuitionCurrency ?? "INR",
       capacity: data.capacity ?? null,
       applicationFee: data.applicationFee ?? null,
@@ -400,7 +400,7 @@ export async function updateAdminCatalogCourse(
   const allowPricing = can(user.role, "managePricing");
   if (
     !allowPricing &&
-    (data.tuitionAmount !== undefined ||
+    (data.price !== undefined ||
       data.applicationFee !== undefined ||
       data.tuitionCurrency !== undefined)
   ) {
@@ -435,8 +435,8 @@ export async function updateAdminCatalogCourse(
         ? { eligibilitySummary: emptyToNull(data.eligibilitySummary) }
         : {}),
       ...(data.imageUrl !== undefined ? { imageUrl: emptyToNull(data.imageUrl) } : {}),
-      ...(allowPricing && data.tuitionAmount !== undefined
-        ? { tuitionAmount: data.tuitionAmount }
+      ...(allowPricing && data.price !== undefined
+        ? { price: data.price }
         : {}),
       ...(allowPricing && data.tuitionCurrency !== undefined
         ? { tuitionCurrency: data.tuitionCurrency }

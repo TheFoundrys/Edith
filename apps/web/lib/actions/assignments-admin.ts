@@ -13,11 +13,11 @@ async function programContext(programId: string, organizationId: string) {
       syllabus: {
         include: {
           modules: {
-            orderBy: { sortOrder: "asc" },
+            orderBy: { order: "asc" },
             include: {
               lessons: {
                 where: { isPublished: true },
-                orderBy: { sortOrder: "asc" },
+                orderBy: { order: "asc" },
                 select: { title: true },
               },
             },
@@ -44,8 +44,8 @@ export async function listProgramsForStaff() {
   const session = await requireCapability("manageContent");
   return prisma.program.findMany({
     where: { organizationId: session.user.organizationId },
-    select: { id: true, name: true, slug: true, status: true },
-    orderBy: { name: "asc" },
+    select: { id: true, title: true, slug: true, status: true },
+    orderBy: { title: "asc" },
   });
 }
 
@@ -166,8 +166,8 @@ export async function generateAssignmentDraft(input: {
   try {
     const adapter = await getAiAdapterForOrg(session.user.organizationId);
     const draft = await adapter.generateAssignmentDraft({
-      programName: program.name,
-      programSummary: program.summary,
+      programName: program.title,
+      programSummary: program.description,
       syllabusOutline: outlineFromProgram(program),
       topic: input.topic,
       difficulty: input.difficulty,

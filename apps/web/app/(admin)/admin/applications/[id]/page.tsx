@@ -53,7 +53,7 @@ export default async function AdminApplicationDetailPage({
       />
       <PageHeader
         title={application.applicant.name}
-        description={`${application.program.name}${
+        description={`${application.program.title}${
           application.intake ? ` · ${application.intake.name}` : ""
         }`}
       />
@@ -144,8 +144,8 @@ export default async function AdminApplicationDetailPage({
                       {formatCurrency(p.amount, p.currency)} · {p.provider} · {p.status}
                     </span>
                     <span className="text-xs text-fg-muted">
-                      {p.paidAt
-                        ? p.paidAt.toLocaleString()
+                      {p.paymentDate
+                        ? p.paymentDate.toLocaleString()
                         : p.createdAt.toLocaleString()}
                     </span>
                   </li>

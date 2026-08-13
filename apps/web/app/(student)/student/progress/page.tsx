@@ -17,11 +17,11 @@ export default async function StudentProgressPage() {
           syllabus: {
             include: {
               modules: {
-                orderBy: { sortOrder: "asc" },
+                orderBy: { order: "asc" },
                 include: {
                   lessons: {
                     where: { isPublished: true },
-                    orderBy: { sortOrder: "asc" },
+                    orderBy: { order: "asc" },
                   },
                 },
               },
@@ -86,7 +86,7 @@ export default async function StudentProgressPage() {
                       href={`/student/learning/${enrollment.programId}`}
                       className="font-medium hover:underline"
                     >
-                      {enrollment.program.name}
+                      {enrollment.program.title}
                     </Link>
                     <p className="mt-1 text-sm text-fg-muted">
                       {done} / {activities.length} activities

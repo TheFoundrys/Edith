@@ -14,6 +14,7 @@ const CAPABILITY_LABELS: Record<Capability, string> = {
   manageApplications: "Applications & counselling",
   manageForms: "Application forms",
   manageAiPlugins: "AI plugins",
+  manageMembers: "Members & access",
   learnAsStudent: "Student learning",
 };
 
@@ -32,6 +33,7 @@ const MATRIX_CAPS: Capability[] = [
   "manageApplications",
   "manageForms",
   "manageAiPlugins",
+  "manageMembers",
   "learnAsStudent",
 ];
 

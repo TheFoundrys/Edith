@@ -9,8 +9,8 @@ export default async function StudentCertificatesPage() {
 
   const certificates = await prisma.certificate.findMany({
     where: { userId: session.user.id },
-    include: { program: { select: { name: true } } },
-    orderBy: { issuedAt: "desc" },
+    include: { program: { select: { title: true } } },
+    orderBy: { issueDate: "desc" },
   });
 
   return (
@@ -41,9 +41,9 @@ export default async function StudentCertificatesPage() {
                 {certificate.title}
               </Link>
               <p className="mt-1 text-sm text-fg-muted">
-                {certificate.program.name} · Issued{" "}
-                {certificate.issuedAt.toLocaleDateString()} ·{" "}
-                {certificate.certificateCode}
+                {certificate.program.title} · Issued{" "}
+                {certificate.issueDate.toLocaleDateString()} ·{" "}
+                {certificate.certificateId}
               </p>
             </Panel>
           ))}

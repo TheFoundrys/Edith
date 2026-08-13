@@ -17,7 +17,7 @@ export default async function StudentQuizDetailPage({
   const quiz = await prisma.quiz.findFirst({
     where: { id, status: "PUBLISHED" },
     include: {
-      program: { select: { id: true, name: true } },
+      program: { select: { id: true, title: true } },
       questions: { orderBy: { sortOrder: "asc" } },
     },
   });
@@ -42,7 +42,7 @@ export default async function StudentQuizDetailPage({
     <div>
       <PageHeader
         title={quiz.title}
-        description={quiz.program.name}
+        description={quiz.program.title}
         actions={
           <Link href="/student/quizzes" className="text-sm text-fg-muted underline">
             All quizzes

@@ -11,7 +11,7 @@ export default async function AdminAssignmentsPage() {
   const assignments = await prisma.assignment.findMany({
     where: { organizationId: session.user.organizationId },
     include: {
-      program: { select: { name: true } },
+      program: { select: { title: true } },
       _count: { select: { submissions: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -60,7 +60,7 @@ export default async function AdminAssignmentsPage() {
             <article key={a.id} className="peak-card">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
-                  {a.program.name}
+                  {a.program.title}
                 </p>
                 <Badge tone={a.isPublished ? "success" : "neutral"}>
                   {a.isPublished ? "Published" : "Draft"}

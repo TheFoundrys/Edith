@@ -21,7 +21,7 @@ export const catalogCourseWriteSchema = z.object({
   summary: z.string().trim().max(5000).optional().nullable(),
   eligibilitySummary: z.string().trim().max(2000).optional().nullable(),
   imageUrl: z.string().url().optional().nullable().or(z.literal("")),
-  tuitionAmount: z.number().nonnegative().optional().nullable(),
+  price: z.number().nonnegative().optional().nullable(),
   tuitionCurrency: z.string().trim().min(3).max(3).optional(),
   capacity: z.number().int().positive().optional().nullable(),
   applicationFee: z.number().nonnegative().optional().nullable(),

@@ -19,9 +19,9 @@ export default async function AdminSyllabusDetailPage({
       syllabus: {
         include: {
           modules: {
-            orderBy: { sortOrder: "asc" },
+            orderBy: { order: "asc" },
             include: {
-              lessons: { orderBy: { sortOrder: "asc" } },
+              lessons: { orderBy: { order: "asc" } },
             },
           },
         },
@@ -33,7 +33,7 @@ export default async function AdminSyllabusDetailPage({
 
   return (
     <SyllabusEditor
-      program={{ id: program.id, name: program.name, slug: program.slug }}
+      program={{ id: program.id, name: program.title, slug: program.slug }}
       syllabus={program.syllabus}
     />
   );

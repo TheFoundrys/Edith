@@ -38,11 +38,11 @@ function programDuration(slug: string, degreeLevel: string, category: string) {
 }
 
 function coursePrice(program: {
-  tuitionAmount: number | null;
+  price: number | null;
   applicationFee: number | null;
 }) {
-  if (program.tuitionAmount != null && program.tuitionAmount > 0) {
-    return program.tuitionAmount;
+  if (program.price != null && program.price > 0) {
+    return program.price;
   }
   if (program.applicationFee != null && program.applicationFee > 0) {
     return program.applicationFee;
@@ -71,14 +71,14 @@ export default async function PublicCourseDetailPage({
           title: true,
           description: true,
           modules: {
-            orderBy: { sortOrder: "asc" },
+            orderBy: { order: "asc" },
             select: {
               id: true,
               title: true,
               summary: true,
               lessons: {
                 where: { isPublished: true },
-                orderBy: { sortOrder: "asc" },
+                orderBy: { order: "asc" },
                 select: {
                   id: true,
                   title: true,
@@ -100,7 +100,7 @@ export default async function PublicCourseDetailPage({
   );
   const nextIntake = course.intakes[0];
   const price = coursePrice(course);
-  const title = displayProgramName(course.name, course.category);
+  const title = displayProgramName(course.title, course.category);
   const syllabusModules =
     course.syllabus?.modules.filter((m) => m.lessons.length > 0) ?? [];
 
@@ -178,9 +178,9 @@ export default async function PublicCourseDetailPage({
               {title}
             </h1>
 
-            {course.summary ? (
+            {course.description ? (
               <p className="courses-desc mt-4 max-w-2xl text-[15px] sm:text-base leading-relaxed">
-                {course.summary}
+                {course.description}
               </p>
             ) : null}
 

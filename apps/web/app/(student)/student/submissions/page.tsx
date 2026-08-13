@@ -12,7 +12,7 @@ export default async function StudentSubmissionsPage() {
     where: { userId: session.user.id, status: "SUBMITTED" },
     include: {
       assignment: {
-        include: { program: { select: { name: true } } },
+        include: { program: { select: { title: true } } },
       },
     },
     orderBy: { submittedAt: "desc" },
@@ -48,7 +48,7 @@ export default async function StudentSubmissionsPage() {
                     {submission.assignment?.title ?? "Assignment"}
                   </Link>
                   <p className="mt-1 text-sm text-fg-muted">
-                    {submission.assignment?.program.name ?? "Program"}
+                    {submission.assignment?.program.title ?? "Program"}
                     {submission.submittedAt
                       ? ` · ${submission.submittedAt.toLocaleString()}`
                       : ""}

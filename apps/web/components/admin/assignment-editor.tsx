@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/input";
 import { PageHeader, Panel } from "@/components/ui/page";
 
-type ProgramOption = { id: string; name: string };
+type ProgramOption = { id: string; title: string };
 
 export function AssignmentEditor({
   programs,
@@ -164,7 +164,7 @@ export function AssignmentEditor({
             >
               {programs.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {p.title}
                 </option>
               ))}
             </Select>

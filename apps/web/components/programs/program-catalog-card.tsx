@@ -13,13 +13,13 @@ import type { DegreeLevel, ProgramCategory } from "@prisma/client";
 
 export type ProgramCatalogItem = {
   id: string;
-  name: string;
+  title: string;
   slug: string;
   category: ProgramCategory;
   degreeLevel: DegreeLevel;
-  summary: string | null;
+  description: string | null;
   eligibilitySummary: string | null;
-  tuitionAmount: number | null;
+  price: number | null;
   tuitionCurrency: string;
   campus: { name: string } | null;
   intakes: { name: string; startDate: Date | null }[];
@@ -59,10 +59,10 @@ function formatIntakeDate(program: ProgramCatalogItem) {
 }
 
 function feeLabel(program: ProgramCatalogItem) {
-  if (program.tuitionAmount == null || program.tuitionAmount === 0) {
-    return program.tuitionAmount === 0 ? "Free" : "Contact Admissions";
+  if (program.price == null || program.price === 0) {
+    return program.price === 0 ? "Free" : "Contact Admissions";
   }
-  return formatCurrency(program.tuitionAmount, program.tuitionCurrency);
+  return formatCurrency(program.price, program.tuitionCurrency);
 }
 
 export function ProgramCatalogCard({
@@ -92,13 +92,13 @@ export function ProgramCatalogCard({
           </p>
 
           <h2 className="courses-heading mt-[var(--grid-gap)] font-display text-[1.45rem] leading-snug sm:text-[1.55rem]">
-            {displayProgramName(program.name, program.category)}
+            {displayProgramName(program.title, program.category)}
           </h2>
 
           {/* Always rendered at a fixed three-line height so the rule below
               lands at the same offset in every card of a row. */}
           <p className="courses-desc mt-[var(--grid-gap)] line-clamp-3 min-h-[4.27rem] text-sm leading-relaxed">
-            {program.summary ? truncate(program.summary, 120) : ""}
+            {program.description ? truncate(program.description, 120) : ""}
           </p>
 
           <div className="mt-auto pt-[var(--grid-gap)]">

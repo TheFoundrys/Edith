@@ -19,14 +19,14 @@ import type { DegreeLevel, ProgramCategory, ProgramStatus } from "@prisma/client
 
 type ProgramDetail = {
   id: string;
-  name: string;
+  title: string;
   slug: string;
   category: ProgramCategory;
   degreeLevel: DegreeLevel;
-  summary: string | null;
+  description: string | null;
   eligibilitySummary: string | null;
   imageUrl: string | null;
-  tuitionAmount: number | null;
+  price: number | null;
   tuitionCurrency: string;
   capacity: number | null;
   applicationFee: number | null;
@@ -132,7 +132,7 @@ export function ProgramDetailClient({
       </p>
 
       <PageHeader
-        title={program.name}
+        title={program.title}
         description={`Slug /${program.slug} · keep pricing and syllabus ready before you publish.`}
         actions={
           <div className="flex flex-wrap gap-2">
@@ -195,7 +195,7 @@ export function ProgramDetailClient({
           <form onSubmit={onSave} className="space-y-4">
             <div>
               <Label htmlFor="name">Name</Label>
-              <Input id="name" name="name" defaultValue={program.name} required />
+              <Input id="name" name="name" defaultValue={program.title} required />
             </div>
             <div>
               <Label htmlFor="category">Category</Label>
@@ -290,13 +290,13 @@ export function ProgramDetailClient({
               </div>
               <div className="grid sm:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="tuitionAmount">Tuition</Label>
+                  <Label htmlFor="price">Tuition</Label>
                   <Input
-                    id="tuitionAmount"
-                    name="tuitionAmount"
+                    id="price"
+                    name="price"
                     type="number"
                     step="0.01"
-                    defaultValue={program.tuitionAmount ?? ""}
+                    defaultValue={program.price ?? ""}
                     disabled={!canManagePricing}
                     readOnly={!canManagePricing}
                   />
@@ -340,7 +340,7 @@ export function ProgramDetailClient({
               <Textarea
                 id="summary"
                 name="summary"
-                defaultValue={program.summary ?? ""}
+                defaultValue={program.description ?? ""}
               />
             </div>
             <div>

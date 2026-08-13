@@ -202,7 +202,7 @@ export async function submitApplication(applicationId: string) {
     email: String(answers.email || application.applicant.email),
     name: String(answers.full_name || application.applicant.name),
     phone: answers.phone ? String(answers.phone) : undefined,
-    programName: application.program.name,
+    programName: application.program.title,
     programId: application.programId,
     crmCatalogId: application.program.crmCatalogId,
     intakeName: application.intake?.name,

@@ -20,8 +20,8 @@ export default async function AdminEditQuizPage({
 
   const programs = await prisma.program.findMany({
     where: { organizationId: session.user.organizationId },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
+    select: { id: true, title: true },
+    orderBy: { title: "asc" },
   });
 
   return (

@@ -10,7 +10,7 @@ export async function requestCrmEnrollmentCallback(opts: {
   user: { id: string; name: string; email: string };
   program: {
     id: string;
-    name: string;
+    title: string;
     organizationId: string;
     crmCatalogId: string | null;
     requiresCrmCallback: boolean;
@@ -26,7 +26,7 @@ export async function requestCrmEnrollmentCallback(opts: {
     email: opts.user.email,
     name: opts.user.name,
     programId: opts.program.id,
-    programName: opts.program.name,
+    programName: opts.program.title,
     crmCatalogId: opts.program.crmCatalogId,
     status: "PENDING",
   });
@@ -46,8 +46,8 @@ export async function requestCrmEnrollmentCallback(opts: {
     data: {
       userId: opts.user.id,
       title: "Enrollment pending confirmation",
-      body: `${opts.program.name} needs CRM confirmation before learning unlocks.`,
-      href: `/student/my-courses/${opts.program.id}`,
+      message: `${opts.program.title} needs CRM confirmation before learning unlocks.`,
+      actionUrl: `/student/my-courses/${opts.program.id}`,
     },
   });
 
@@ -64,7 +64,7 @@ export async function activateEnrollmentFromCrm(opts: {
 }) {
   const enrollment = await prisma.enrollment.findUnique({
     where: { id: opts.enrollmentId },
-    include: { program: { select: { id: true, name: true } } },
+    include: { program: { select: { id: true, title: true } } },
   });
   if (!enrollment) return { error: "Enrollment not found." as const };
   if (enrollment.status === "ACTIVE") {
@@ -93,8 +93,8 @@ export async function activateEnrollmentFromCrm(opts: {
     data: {
       userId: enrollment.userId,
       title: "Enrollment confirmed",
-      body: `${enrollment.program.name} is unlocked. Open the course to start learning.`,
-      href: `/student/learning/${enrollment.programId}`,
+      message: `${enrollment.program.title} is unlocked. Open the course to start learning.`,
+      actionUrl: `/student/learning/${enrollment.programId}`,
     },
   });
 
@@ -113,7 +113,7 @@ export async function rejectEnrollmentFromCrm(opts: {
 }) {
   const enrollment = await prisma.enrollment.findUnique({
     where: { id: opts.enrollmentId },
-    include: { program: { select: { id: true, name: true } } },
+    include: { program: { select: { id: true, title: true } } },
   });
   if (!enrollment) return { error: "Enrollment not found." as const };
   if (enrollment.status === "CANCELLED") {
@@ -134,10 +134,10 @@ export async function rejectEnrollmentFromCrm(opts: {
     data: {
       userId: enrollment.userId,
       title: "Enrollment not confirmed",
-      body:
+      message:
         opts.note?.trim() ||
-        `${enrollment.program.name} was not confirmed by CRM. Contact support if you need help.`,
-      href: "/student/enroll",
+        `${enrollment.program.title} was not confirmed by CRM. Contact support if you need help.`,
+      actionUrl: "/student/enroll",
     },
   });
 

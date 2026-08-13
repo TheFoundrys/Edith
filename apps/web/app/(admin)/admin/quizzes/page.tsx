@@ -11,7 +11,7 @@ export default async function AdminQuizzesPage() {
   const quizzes = await prisma.quiz.findMany({
     where: { organizationId: session.user.organizationId },
     include: {
-      program: { select: { name: true } },
+      program: { select: { title: true } },
       _count: { select: { questions: true, attempts: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -60,7 +60,7 @@ export default async function AdminQuizzesPage() {
             <article key={q.id} className="peak-card">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
-                  {q.program.name}
+                  {q.program.title}
                 </p>
                 <Badge
                   tone={

@@ -9,11 +9,11 @@ import { programCategoryLabel } from "@/lib/programs/categories";
 import { formatCurrency } from "@/lib/utils";
 
 function coursePrice(program: {
-  tuitionAmount: number | null;
+  price: number | null;
   applicationFee: number | null;
 }) {
-  if (program.tuitionAmount != null && program.tuitionAmount > 0) {
-    return program.tuitionAmount;
+  if (program.price != null && program.price > 0) {
+    return program.price;
   }
   if (program.applicationFee != null && program.applicationFee > 0) {
     return program.applicationFee;
@@ -27,7 +27,7 @@ export default async function StudentEnrollPage() {
   const [courses, enrollments] = await Promise.all([
     prisma.program.findMany({
       where: { status: "PUBLISHED" },
-      orderBy: { name: "asc" },
+      orderBy: { title: "asc" },
     }),
     prisma.enrollment.findMany({
       where: { userId: session.user.id, status: "ACTIVE" },
@@ -78,11 +78,11 @@ export default async function StudentEnrollPage() {
                 </div>
 
                 <h2 className="mt-[var(--grid-gap)] font-display text-xl leading-snug text-fg">
-                  {course.name}
+                  {course.title}
                 </h2>
-                {course.summary ? (
+                {course.description ? (
                   <p className="mt-2 text-sm text-fg-muted line-clamp-3 leading-relaxed">
-                    {course.summary}
+                    {course.description}
                   </p>
                 ) : null}
 

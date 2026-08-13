@@ -20,7 +20,7 @@ const programSchema = z.object({
   degreeLevel: z.nativeEnum(DegreeLevel),
   summary: z.string().optional(),
   eligibilitySummary: z.string().optional(),
-  tuitionAmount: z.coerce.number().optional().nullable(),
+  price: z.coerce.number().optional().nullable(),
   tuitionCurrency: z.string().default("USD"),
   capacity: z.coerce.number().int().optional().nullable(),
   applicationFee: z.coerce.number().optional().nullable(),
@@ -65,7 +65,7 @@ export async function createProgram(formData: FormData) {
     degreeLevel: formData.get("degreeLevel"),
     summary: formData.get("summary") || undefined,
     eligibilitySummary: formData.get("eligibilitySummary") || undefined,
-    tuitionAmount: formData.get("tuitionAmount") || null,
+    price: formData.get("price") || null,
     tuitionCurrency: formData.get("tuitionCurrency") || "USD",
     capacity: formData.get("capacity") || null,
     applicationFee: formData.get("applicationFee") || null,
@@ -100,14 +100,14 @@ export async function createProgram(formData: FormData) {
   const program = await prisma.program.create({
     data: {
       organizationId: session.user.organizationId,
-      name: parsed.data.name,
+      title: parsed.data.name,
       slug,
       category: parsed.data.category,
       degreeLevel: parsed.data.degreeLevel,
-      summary: parsed.data.summary,
+      description: parsed.data.summary,
       eligibilitySummary: parsed.data.eligibilitySummary,
       imageUrl: image.imageUrl,
-      tuitionAmount: parsed.data.tuitionAmount,
+      price: parsed.data.price,
       tuitionCurrency: parsed.data.tuitionCurrency,
       capacity: parsed.data.capacity,
       applicationFee: parsed.data.applicationFee,
@@ -140,9 +140,9 @@ export async function updateProgram(programId: string, formData: FormData) {
     degreeLevel: formData.get("degreeLevel"),
     summary: formData.get("summary") || undefined,
     eligibilitySummary: formData.get("eligibilitySummary") || undefined,
-    tuitionAmount: allowPricing
-      ? formData.get("tuitionAmount") || null
-      : existing.tuitionAmount,
+    price: allowPricing
+      ? formData.get("price") || null
+      : existing.price,
     tuitionCurrency: allowPricing
       ? formData.get("tuitionCurrency") || "USD"
       : existing.tuitionCurrency,
@@ -165,15 +165,15 @@ export async function updateProgram(programId: string, formData: FormData) {
   await prisma.program.update({
     where: { id: programId },
     data: {
-      name: parsed.data.name,
+      title: parsed.data.name,
       category: parsed.data.category,
       degreeLevel: parsed.data.degreeLevel,
-      summary: parsed.data.summary,
+      description: parsed.data.summary,
       eligibilitySummary: parsed.data.eligibilitySummary,
       imageUrl: image.imageUrl,
-      tuitionAmount: allowPricing
-        ? parsed.data.tuitionAmount
-        : existing.tuitionAmount,
+      price: allowPricing
+        ? parsed.data.price
+        : existing.price,
       tuitionCurrency: allowPricing
         ? parsed.data.tuitionCurrency
         : existing.tuitionCurrency,

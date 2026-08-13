@@ -43,7 +43,7 @@ export function CourseDetailPage() {
         <p className="text-sm">
           Tuition:{" "}
           {formatCurrency(
-            program.tuitionAmount as number | null,
+            program.price as number | null,
             String(program.tuitionCurrency || "INR"),
           )}
         </p>

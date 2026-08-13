@@ -26,14 +26,14 @@ import {
 type CatalogBase = Pick<
   Program,
   | "id"
-  | "name"
+  | "title"
   | "slug"
   | "category"
   | "degreeLevel"
-  | "summary"
+  | "description"
   | "eligibilitySummary"
   | "imageUrl"
-  | "tuitionAmount"
+  | "price"
   | "tuitionCurrency"
   | "applicationFee"
   | "programKind"
@@ -53,29 +53,29 @@ type CatalogBase = Pick<
 };
 
 type SyllabusOutline = Pick<ProgramSyllabus, "id" | "title" | "description" | "status"> & {
-  modules: (Pick<SyllabusModule, "id" | "title" | "summary" | "sortOrder" | "duration"> & {
+  modules: (Pick<SyllabusModule, "id" | "title" | "summary" | "order" | "duration"> & {
     lessons: Pick<
       SyllabusLesson,
-      "id" | "title" | "summary" | "durationMin" | "sortOrder" | "isPreview" | "isFree"
+      "id" | "title" | "summary" | "durationMin" | "order" | "isPreview" | "isFree"
     >[];
   })[];
 };
 
 function feeLabel(
-  tuitionAmount: number | null,
+  price: number | null,
   tuitionCurrency: string,
 ): string {
-  if (tuitionAmount == null) return "Contact Admissions";
-  if (tuitionAmount === 0) return "Free";
+  if (price == null) return "Contact Admissions";
+  if (price === 0) return "Free";
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: tuitionCurrency || "INR",
     maximumFractionDigits: 0,
-  }).format(tuitionAmount);
+  }).format(price);
 }
 
 function catalogMeta(program: {
-  name: string;
+  title: string;
   slug: string;
   category: ProgramCategory;
   degreeLevel: DegreeLevel;
@@ -84,12 +84,12 @@ function catalogMeta(program: {
 }) {
   return {
     mode: catalogMode(program),
-    durationLabel: catalogDurationLabel(program),
+    duration: catalogDurationLabel(program),
     durationKey: catalogDurationKey(program),
     experienceLabel: catalogExperienceLabel(program),
     experienceKey: catalogExperienceKey(program),
     suiteLabel: programCategoryLabel(program.category),
-    displayName: displayProgramName(program.name, program.category),
+    displayName: displayProgramName(program.title, program.category),
   };
 }
 
@@ -97,19 +97,19 @@ export function serializeCatalogCourse(program: CatalogBase) {
   const meta = catalogMeta(program);
   return {
     id: program.id,
-    name: program.name,
+    name: program.title,
     displayName: meta.displayName,
     slug: program.slug,
     category: program.category,
     suiteLabel: meta.suiteLabel,
     degreeLevel: program.degreeLevel,
-    summary: program.summary,
+    summary: program.description,
     eligibilitySummary: program.eligibilitySummary,
     imageUrl: program.imageUrl,
-    tuitionAmount: program.tuitionAmount,
+    price: program.price,
     tuitionCurrency: program.tuitionCurrency,
     applicationFee: program.applicationFee,
-    feeLabel: feeLabel(program.tuitionAmount, program.tuitionCurrency),
+    feeLabel: feeLabel(program.price, program.tuitionCurrency),
     programKind: program.programKind,
     tags: program.tags,
     level: program.level,
@@ -133,7 +133,7 @@ export function serializeCatalogCourse(program: CatalogBase) {
     })),
     meta: {
       mode: meta.mode,
-      durationLabel: meta.durationLabel,
+      duration: meta.duration,
       durationKey: meta.durationKey,
       experienceLabel: meta.experienceLabel,
       experienceKey: meta.experienceKey,
@@ -157,14 +157,14 @@ export function serializeCatalogCourseDetail(
             id: mod.id,
             title: mod.title,
             summary: mod.summary,
-            sortOrder: mod.sortOrder,
+            sortOrder: mod.order,
             duration: mod.duration,
             lessons: mod.lessons.map((lesson) => ({
               id: lesson.id,
               title: lesson.title,
               summary: lesson.summary,
               durationMin: lesson.durationMin,
-              sortOrder: lesson.sortOrder,
+              sortOrder: lesson.order,
               isPreview: lesson.isPreview,
               isFree: lesson.isFree,
             })),

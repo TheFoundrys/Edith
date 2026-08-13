@@ -24,7 +24,7 @@ export function CoursesPage() {
             <h2 className="font-medium text-brand">{String(p.name)}</h2>
             <p className="mt-1 text-xs text-fg-muted line-clamp-3">{String(p.summary || "")}</p>
             <p className="mt-3 text-sm">
-              {formatCurrency(p.tuitionAmount as number | null, String(p.tuitionCurrency || "INR"))}
+              {formatCurrency(p.price as number | null, String(p.tuitionCurrency || "INR"))}
             </p>
             <Link
               to={`/courses/${p.slug}`}

@@ -74,17 +74,17 @@ export async function loadCourseLessonContext(opts: {
         where: { status: "PUBLISHED" },
         include: {
           modules: {
-            orderBy: { sortOrder: "asc" },
+            orderBy: { order: "asc" },
             include: {
               lessons: {
                 where: { isPublished: true },
-                orderBy: { sortOrder: "asc" },
+                orderBy: { order: "asc" },
                 select: {
                   id: true,
                   title: true,
                   summary: true,
                   contentType: true,
-                  contentBody: true,
+                  content: true,
                   durationMin: true,
                 },
               },
@@ -109,7 +109,7 @@ export async function loadCourseLessonContext(opts: {
           title: found.title,
           summary: found.summary,
           contentType: found.contentType,
-          contentBody: found.contentBody,
+          contentBody: found.content,
           durationMin: found.durationMin,
           moduleTitle: mod.title,
           moduleSummary: mod.summary,
@@ -123,8 +123,8 @@ export async function loadCourseLessonContext(opts: {
   return {
     organizationId: program.organizationId,
     programId: program.id,
-    programName: program.name,
-    programSummary: program.summary,
+    programName: program.title,
+    programSummary: program.description,
     eligibilitySummary: program.eligibilitySummary,
     degreeLevel: program.degreeLevel,
     category: program.category,
@@ -156,14 +156,14 @@ export async function loadPublicCourseSyllabus(programId: string) {
       title: true,
       description: true,
       modules: {
-        orderBy: { sortOrder: "asc" },
+        orderBy: { order: "asc" },
         select: {
           id: true,
           title: true,
           summary: true,
           lessons: {
             where: { isPublished: true },
-            orderBy: { sortOrder: "asc" },
+            orderBy: { order: "asc" },
             select: {
               id: true,
               title: true,

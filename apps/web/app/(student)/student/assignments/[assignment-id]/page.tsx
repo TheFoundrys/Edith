@@ -16,7 +16,7 @@ export default async function StudentAssignmentDetailPage({
 
   const assignment = await prisma.assignment.findFirst({
     where: { id: assignmentId, isPublished: true },
-    include: { program: { select: { id: true, name: true } } },
+    include: { program: { select: { id: true, title: true } } },
   });
   if (!assignment) notFound();
 
@@ -40,7 +40,7 @@ export default async function StudentAssignmentDetailPage({
     <div>
       <PageHeader
         title={assignment.title}
-        description={assignment.program.name}
+        description={assignment.program.title}
         actions={
           <Link
             href="/student/assignments"

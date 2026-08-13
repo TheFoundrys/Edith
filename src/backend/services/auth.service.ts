@@ -36,7 +36,7 @@ export async function login(
     return { error: "Invalid email or password." };
   }
 
-  const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
+  const valid = await bcrypt.compare(parsed.data.password, user.password);
   if (!valid) return { error: "Invalid email or password." };
 
   return {
@@ -81,13 +81,13 @@ export async function registerStudent(
 
   if (!org) return { error: "Institution is not configured yet." };
 
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  const password = await bcrypt.hash(parsed.data.password, 12);
   try {
     await prisma.user.create({
       data: {
         email,
         name: parsed.data.name,
-        passwordHash,
+        password,
         memberships: {
           create: { organizationId: org.id, role: "STUDENT" },
         },
@@ -163,11 +163,11 @@ export async function resetPassword(input: unknown) {
     return { error: "Reset link is invalid or expired." };
   }
 
-  const passwordHash = await bcrypt.hash(passwordParsed.data, 12);
+  const password = await bcrypt.hash(passwordParsed.data, 12);
   await prisma.$transaction([
     prisma.user.update({
       where: { id: record.userId },
-      data: { passwordHash },
+      data: { password },
     }),
     prisma.passwordResetToken.deleteMany({ where: { userId: record.userId } }),
   ]);

@@ -9,11 +9,11 @@ import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
 
 function coursePrice(program: {
-  tuitionAmount: number | null;
+  price: number | null;
   applicationFee: number | null;
 }) {
-  if (program.tuitionAmount != null && program.tuitionAmount > 0) {
-    return program.tuitionAmount;
+  if (program.price != null && program.price > 0) {
+    return program.price;
   }
   if (program.applicationFee != null && program.applicationFee > 0) {
     return program.applicationFee;
@@ -52,7 +52,7 @@ export default async function CheckoutPage({
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fg-muted">
         Payment
       </p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">{course.name}</h1>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight">{course.title}</h1>
       <p className="mt-2 text-sm text-fg-muted">
         {free
           ? "This course is free — confirm enrollment to unlock learning."

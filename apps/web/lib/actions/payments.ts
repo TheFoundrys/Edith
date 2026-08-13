@@ -65,7 +65,7 @@ export async function createApplicationFeeOrder(applicationId: string) {
         },
         applicantName: session.user.name,
         applicantEmail: session.user.email,
-        programName: application.program.name,
+        programName: application.program.title,
       };
     }
 
@@ -105,7 +105,7 @@ export async function createApplicationFeeOrder(applicationId: string) {
       checkout: order.checkout,
       applicantName: session.user.name,
       applicantEmail: session.user.email,
-      programName: application.program.name,
+      programName: application.program.title,
     };
   } catch (err) {
     return {

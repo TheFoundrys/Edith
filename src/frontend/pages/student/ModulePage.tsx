@@ -141,7 +141,7 @@ export function StudentModulePage({
               const row = item as Record<string, unknown>;
               return (
                 <li key={String(row.id ?? i)} className="border-b border-border py-2">
-                  {String(row.title || row.name || row.subject || row.certificateCode || row.id)}
+                  {String(row.title || row.name || row.subject || row.certificateId || row.id)}
                 </li>
               );
             })}

@@ -29,9 +29,9 @@ type Lesson = {
   title: string;
   summary: string | null;
   contentType: LessonContentType;
-  contentBody: string;
+  content: string;
   durationMin: number | null;
-  sortOrder: number;
+  order: number;
   isPublished: boolean;
 };
 
@@ -39,7 +39,7 @@ type Module = {
   id: string;
   title: string;
   summary: string | null;
-  sortOrder: number;
+  order: number;
   lessons: Lesson[];
 };
 
@@ -517,7 +517,7 @@ function LessonForm({
           name="contentBody"
           rows={5}
           placeholder="Markdown text, video URL, or external link"
-          defaultValue={defaults?.contentBody ?? ""}
+          defaultValue={defaults?.content ?? ""}
         />
         <p className="mt-1 text-xs text-fg-muted">
           Rich text supports markdown (# headings, **bold**, lists, links).

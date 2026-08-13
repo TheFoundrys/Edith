@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
   const enrollment = await prisma.enrollment.findUnique({
     where: { id: enrollmentId },
-    include: { program: { select: { requiresCrmCallback: true, name: true } } },
+    include: { program: { select: { requiresCrmCallback: true, title: true } } },
   });
   if (!enrollment) {
     return NextResponse.json({ error: "Enrollment not found." }, { status: 404 });

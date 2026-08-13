@@ -8,11 +8,11 @@ import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
 
 function coursePrice(program: {
-  tuitionAmount: number | null;
+  price: number | null;
   applicationFee: number | null;
 }) {
-  if (program.tuitionAmount != null && program.tuitionAmount > 0) {
-    return program.tuitionAmount;
+  if (program.price != null && program.price > 0) {
+    return program.price;
   }
   if (program.applicationFee != null && program.applicationFee > 0) {
     return program.applicationFee;
@@ -26,7 +26,7 @@ export default async function StudentPaymentPage() {
   const [courses, enrollments] = await Promise.all([
     prisma.program.findMany({
       where: { status: "PUBLISHED" },
-      orderBy: { name: "asc" },
+      orderBy: { title: "asc" },
     }),
     prisma.enrollment.findMany({
       where: { userId: session.user.id, status: "ACTIVE" },
@@ -83,7 +83,7 @@ export default async function StudentPaymentPage() {
                   </Badge>
                 </div>
                 <h2 className="mt-[var(--grid-gap)] font-display text-xl leading-snug text-fg">
-                  {course.name}
+                  {course.title}
                 </h2>
                 <div className="mt-auto pt-[var(--grid-pad)] flex flex-wrap gap-2">
                   <Link href={`/checkout?course=${course.slug}`}>

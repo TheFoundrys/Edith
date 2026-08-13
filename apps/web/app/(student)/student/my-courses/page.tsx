@@ -33,11 +33,11 @@ export default async function MyCoursesPage({
           syllabus: {
             include: {
               modules: {
-                orderBy: { sortOrder: "asc" },
+                orderBy: { order: "asc" },
                 include: {
                   lessons: {
                     where: { isPublished: true },
-                    orderBy: { sortOrder: "asc" },
+                    orderBy: { order: "asc" },
                   },
                 },
               },
@@ -125,7 +125,7 @@ export default async function MyCoursesPage({
                         href={`/student/my-courses/${enrollment.programId}${awaitingCrm ? "?pending=crm" : ""}`}
                         className="font-medium text-fg hover:underline"
                       >
-                        {enrollment.program.name}
+                        {enrollment.program.title}
                       </Link>
                       <p className="mt-1 text-sm text-fg-muted">
                         {awaitingCrm

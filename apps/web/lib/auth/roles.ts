@@ -27,6 +27,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
  * | manageApplications   | ✓     | ✓          | ✓          |         |         |
  * | manageForms          | ✓     | ✓          |            |         |         |
  * | manageAiPlugins      | ✓     |            |            |         |         |
+ * | manageMembers        | ✓     | ✓          |            |         |         |
  * | learnAsStudent       |       |            |            |         | ✓       |
  */
 export type Capability =
@@ -36,6 +37,7 @@ export type Capability =
   | "manageApplications"
   | "manageForms"
   | "manageAiPlugins"
+  | "manageMembers"
   | "learnAsStudent";
 
 const ROLE_CAPABILITIES: Record<AppRole, readonly Capability[]> = {
@@ -46,12 +48,14 @@ const ROLE_CAPABILITIES: Record<AppRole, readonly Capability[]> = {
     "manageApplications",
     "manageForms",
     "manageAiPlugins",
+    "manageMembers",
   ],
   ADMISSIONS_MANAGER: [
     "managePricing",
     "managePrograms",
     "manageApplications",
     "manageForms",
+    "manageMembers",
   ],
   COUNSELOR: ["manageApplications"],
   CONTENT_UPLOADER: ["manageContent"],
@@ -174,6 +178,11 @@ export const STAFF_NAV: StaffNavItem[] = [
     href: "/admin/tickets",
     label: "Tickets",
     anyOf: ["manageApplications"],
+  },
+  {
+    href: "/admin/members",
+    label: "Members",
+    anyOf: ["manageMembers"],
   },
   {
     href: "/admin/roles",

@@ -35,11 +35,11 @@ export default async function MyCourseHubPage({
           syllabus: {
             include: {
               modules: {
-                orderBy: { sortOrder: "asc" },
+                orderBy: { order: "asc" },
                 include: {
                   lessons: {
                     where: { isPublished: true },
-                    orderBy: { sortOrder: "asc" },
+                    orderBy: { order: "asc" },
                   },
                 },
               },
@@ -58,9 +58,9 @@ export default async function MyCourseHubPage({
     return (
       <div>
         <PageHeader
-          title={enrollment.program.name}
+          title={enrollment.program.title}
           description={
-            enrollment.program.summary ||
+            enrollment.program.description ||
             `${enrollment.program.department?.name ?? "Course"} · ${
               enrollment.program.campus?.name ?? "Hybrid"
             }`
@@ -115,9 +115,9 @@ export default async function MyCourseHubPage({
   return (
     <div>
       <PageHeader
-        title={enrollment.program.name}
+        title={enrollment.program.title}
         description={
-          enrollment.program.summary ||
+          enrollment.program.description ||
           `${enrollment.program.department?.name ?? "Course"} · ${
             enrollment.program.campus?.name ?? "Hybrid"
           }`

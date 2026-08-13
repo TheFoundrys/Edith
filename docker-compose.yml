@@ -18,7 +18,7 @@ services:
       NEXTAUTH_URL: ${APP_ORIGIN:-http://localhost:3059}
       AUTH_TRUST_HOST: "true"
     ports:
-      - "${APP_PORT:-3059}:3059"
+      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-3059}:3059"
     volumes:
       - edith_uploads:/app/uploads
     depends_on:
@@ -54,8 +54,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-edith_dev}
+    # Loopback by default: published Docker ports bypass ufw, so a 0.0.0.0 bind
+    # would put Postgres on the public internet.
     ports:
-      - "${POSTGRES_PORT:-5439}:5439"
+      - "${POSTGRES_BIND:-127.0.0.1}:${POSTGRES_PORT:-5439}:5439"
     volumes:
       - edith_pg:/var/lib/postgresql/data
     healthcheck:

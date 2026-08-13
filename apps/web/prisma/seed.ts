@@ -24,7 +24,7 @@ type SeedProgram = {
   requiredDocs: string[];
   capacity: number;
   applicationFee: number | null;
-  tuitionAmount: number | null;
+  price: number | null;
   crmCatalogId?: string | null;
 };
 
@@ -47,7 +47,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof"],
     capacity: 120,
     applicationFee: 1000,
-    tuitionAmount: 149000,
+    price: 149000,
     crmCatalogId: "5a0dc2f4-dfbd-440d-a79a-6360813a4207",
   },
   {
@@ -63,7 +63,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof"],
     capacity: 100,
     applicationFee: 1000,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Cybersecurity",
@@ -78,7 +78,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof"],
     capacity: 120,
     applicationFee: 1000,
-    tuitionAmount: 199000,
+    price: 199000,
   },
   {
     name: "Robotics & IoT",
@@ -93,7 +93,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof"],
     capacity: 80,
     applicationFee: 1000,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Blockchain",
@@ -108,7 +108,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof"],
     capacity: 100,
     applicationFee: 1000,
-    tuitionAmount: 99000,
+    price: 99000,
   },
   {
     name: "Quantum",
@@ -123,7 +123,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof"],
     capacity: 80,
     applicationFee: 1000,
-    tuitionAmount: 129000,
+    price: 129000,
   },
 
   // ——— PGP (Post Graduate Program) ———
@@ -140,7 +140,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 80,
     applicationFee: 1500,
-    tuitionAmount: 249000,
+    price: 249000,
   },
   {
     name: "Data Science",
@@ -155,7 +155,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 80,
     applicationFee: 1500,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Cybersecurity",
@@ -170,7 +170,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 80,
     applicationFee: 1500,
-    tuitionAmount: 299000,
+    price: 299000,
   },
   {
     name: "Robotics & IoT",
@@ -185,7 +185,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 60,
     applicationFee: 1500,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Blockchain",
@@ -200,7 +200,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 70,
     applicationFee: 1500,
-    tuitionAmount: 199000,
+    price: 199000,
   },
   {
     name: "Quantum",
@@ -215,7 +215,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 60,
     applicationFee: 1500,
-    tuitionAmount: 349000,
+    price: 349000,
   },
 
   // ——— Fellowship & Executive Programs ———
@@ -232,7 +232,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 40,
     applicationFee: 2500,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Cybersecurity",
@@ -247,7 +247,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 40,
     applicationFee: 2500,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "AI/ML Leadership",
@@ -262,7 +262,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 40,
     applicationFee: 2500,
-    tuitionAmount: 100000,
+    price: 100000,
   },
   {
     name: "Cyber Leadership",
@@ -277,7 +277,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 40,
     applicationFee: 2500,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Tech Strategy",
@@ -292,7 +292,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 40,
     applicationFee: 2500,
-    tuitionAmount: null,
+    price: null,
   },
 
   // ——— Advanced Management Program ———
@@ -309,7 +309,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 40,
     applicationFee: 2500,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Cybersecurity",
@@ -324,7 +324,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 40,
     applicationFee: 2500,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Digital Transformation",
@@ -339,7 +339,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 40,
     applicationFee: 2500,
-    tuitionAmount: 315000,
+    price: 315000,
   },
   {
     name: "General Management Program",
@@ -354,7 +354,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof", "resume"],
     capacity: 40,
     applicationFee: 2500,
-    tuitionAmount: null,
+    price: null,
   },
 
   // ——— Centre of Excellence (CoE) ———
@@ -372,7 +372,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof"],
     capacity: 15,
     applicationFee: 0,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Cybersecurity",
@@ -388,7 +388,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof"],
     capacity: 15,
     applicationFee: 0,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Blockchain",
@@ -404,7 +404,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof"],
     capacity: 15,
     applicationFee: 0,
-    tuitionAmount: null,
+    price: null,
   },
   {
     name: "Quantum",
@@ -420,7 +420,7 @@ const FOUNDRYS_PROGRAMS: SeedProgram[] = [
     requiredDocs: ["id_proof"],
     capacity: 15,
     applicationFee: 0,
-    tuitionAmount: null,
+    price: null,
   },
 ];
 
@@ -658,6 +658,8 @@ async function main() {
   await prisma.program.deleteMany();
   await prisma.department.deleteMany();
   await prisma.campus.deleteMany();
+  await prisma.membershipRole.deleteMany();
+  await prisma.permissionRole.deleteMany();
   await prisma.membership.deleteMany();
   await prisma.passwordResetToken.deleteMany();
   await prisma.user.deleteMany();
@@ -665,20 +667,58 @@ async function main() {
 
   const org = await prisma.organization.create({
     data: {
-      name: "The Foundry's",
+      title: "The Foundry's",
       slug: "the-foundrys",
       primaryColor: "#111111",
       timezone: "Asia/Kolkata",
     },
   });
 
-  const passwordHash = await bcrypt.hash("password123", 10);
+  // Assignable roles for the members console. Membership.role stays the enum the
+  // session checks read; these are the extra roles an admin can grant per member.
+  const defaultPermissionRoles = [
+    {
+      slug: "administrator",
+      name: "Administrator",
+      description: "Full access to every admin area.",
+    },
+    {
+      slug: "admissions",
+      name: "Admissions",
+      description: "Applications, forms, offers and fees.",
+    },
+    {
+      slug: "counsellor",
+      name: "Counsellor",
+      description: "Applicant counselling and follow-ups.",
+    },
+    {
+      slug: "content-author",
+      name: "Content author",
+      description: "Syllabus, assignments, quizzes and announcements.",
+    },
+    {
+      slug: "member",
+      name: "Member",
+      description: "Standard learner access.",
+    },
+  ];
+
+  const permissionRoleIdBySlug = new Map<string, string>();
+  for (const role of defaultPermissionRoles) {
+    const created = await prisma.permissionRole.create({
+      data: { ...role, organizationId: org.id, isSystem: true },
+    });
+    permissionRoleIdBySlug.set(role.slug, created.id);
+  }
+
+  const password = await bcrypt.hash("password123", 10);
 
   const admin = await prisma.user.create({
     data: {
       email: "admin@thefoundrys.com",
       name: "Foundrys Admin",
-      passwordHash,
+      password,
       memberships: {
         create: { organizationId: org.id, role: Role.SUPER_ADMIN },
       },
@@ -689,7 +729,7 @@ async function main() {
     data: {
       email: "admissions@thefoundrys.com",
       name: "Admissions Manager",
-      passwordHash,
+      password,
       memberships: {
         create: { organizationId: org.id, role: Role.ADMISSIONS_MANAGER },
       },
@@ -700,7 +740,7 @@ async function main() {
     data: {
       email: "counsellor@thefoundrys.com",
       name: "Casey Counsellor",
-      passwordHash,
+      password,
       memberships: {
         create: { organizationId: org.id, role: Role.COUNSELOR },
       },
@@ -711,7 +751,7 @@ async function main() {
     data: {
       email: "content@thefoundrys.com",
       name: "Chris Content",
-      passwordHash,
+      password,
       memberships: {
         create: { organizationId: org.id, role: Role.CONTENT_UPLOADER },
       },
@@ -722,11 +762,39 @@ async function main() {
     data: {
       email: "student@example.com",
       name: "Sam Student",
-      passwordHash,
+      password,
       memberships: {
         create: { organizationId: org.id, role: Role.STUDENT },
       },
     },
+  });
+
+  // Memberships were created nested above, so look up their ids to grant roles.
+  const seededMemberships = await prisma.membership.findMany({
+    where: { organizationId: org.id },
+    select: { id: true, userId: true },
+  });
+  const membershipIdByUser = new Map(
+    seededMemberships.map((m) => [m.userId, m.id] as const),
+  );
+
+  const seededRoleGrants: [string, string][] = [
+    [admin.id, "administrator"],
+    [manager.id, "admissions"],
+    [counsellor.id, "counsellor"],
+    [contentUploader.id, "content-author"],
+    [student.id, "member"],
+  ];
+
+  await prisma.membershipRole.createMany({
+    data: seededRoleGrants.flatMap(([userId, slug]) => {
+      const membershipId = membershipIdByUser.get(userId);
+      const permissionRoleId = permissionRoleIdBySlug.get(slug);
+      return membershipId && permissionRoleId
+        ? [{ membershipId, permissionRoleId }]
+        : [];
+    }),
+    skipDuplicates: true,
   });
 
   const [hyd, wgl] = await Promise.all([
@@ -803,14 +871,14 @@ async function main() {
         campusId: campus?.id ?? null,
         departmentId: department.id,
         formDefinitionId: form.id,
-        name: program.name,
+        title: program.name,
         slug: program.slug,
         category: program.category,
         degreeLevel: program.degreeLevel,
-        summary: program.summary,
+        description: program.summary,
         eligibilitySummary: program.eligibilitySummary,
         imageUrl: null,
-        tuitionAmount: program.tuitionAmount,
+        price: program.price,
         tuitionCurrency: "INR",
         capacity: program.capacity,
         applicationFee: program.applicationFee,
@@ -850,14 +918,14 @@ async function main() {
                       {
                         title: "Getting started",
                         summary: "Orientation and how to use Learning.",
-                        sortOrder: 0,
+                        order: 0,
                         lessons: {
                           create: [
                             {
                               title: "Welcome & program overview",
                               summary: "What you will build and how to succeed.",
                               contentType: LessonContentType.RICH_TEXT,
-                              contentBody: `# Welcome
+                              content: `# Welcome
 
 Welcome to the **YGP AI / ML** programme.
 
@@ -866,17 +934,17 @@ Welcome to the **YGP AI / ML** programme.
 - Open **activities** and mark them complete
 - Use **Continue** from Learning to resume`,
                               durationMin: 15,
-                              sortOrder: 0,
+                              order: 0,
                               isPublished: true,
                             },
                             {
                               title: "Campus orientation video",
                               summary: "Short intro to the learning environment.",
                               contentType: LessonContentType.VIDEO_URL,
-                              contentBody:
+                              content:
                                 "https://www.youtube.com/watch?v=aircAruvnKk",
                               durationMin: 10,
-                              sortOrder: 1,
+                              order: 1,
                               isPublished: true,
                             },
                           ],
@@ -885,30 +953,30 @@ Welcome to the **YGP AI / ML** programme.
                       {
                         title: "Foundations",
                         summary: "Core concepts and further reading.",
-                        sortOrder: 1,
+                        order: 1,
                         lessons: {
                           create: [
                             {
                               title: "Thinking in systems",
                               summary: "Mental models for AI products.",
                               contentType: LessonContentType.RICH_TEXT,
-                              contentBody: `## Systems thinking
+                              content: `## Systems thinking
 
 Treat models, data, and product surface as one system.
 
 - Inputs and outputs must be explicit
 - Prefer small, shippable increments`,
                               durationMin: 20,
-                              sortOrder: 0,
+                              order: 0,
                               isPublished: true,
                             },
                             {
                               title: "Further reading",
                               summary: "External resource pack.",
                               contentType: LessonContentType.EXTERNAL_LINK,
-                              contentBody: "https://testing.thefoundrys.com/programs",
+                              content: "https://testing.thefoundrys.com/programs",
                               durationMin: 5,
-                              sortOrder: 1,
+                              order: 1,
                               isPublished: true,
                             },
                           ],
@@ -931,8 +999,8 @@ Treat models, data, and product surface as one system.
       syllabus: {
         include: {
           modules: {
-            orderBy: { sortOrder: "asc" },
-            include: { lessons: { orderBy: { sortOrder: "asc" } } },
+            orderBy: { order: "asc" },
+            include: { lessons: { orderBy: { order: "asc" } } },
           },
         },
       },
@@ -1032,8 +1100,8 @@ Treat models, data, and product surface as one system.
       data: {
         userId: student.id,
         title: "Welcome to your course",
-        body: "You’re enrolled in YGP AI / ML. Open learning to continue.",
-        href: `/student/learning/${aiProgram.id}`,
+        message: "You’re enrolled in YGP AI / ML. Open learning to continue.",
+        actionUrl: `/student/learning/${aiProgram.id}`,
       },
     });
   }

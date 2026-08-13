@@ -17,7 +17,7 @@ export default async function PaymentSuccessPage({
   const course = courseId
     ? await prisma.program.findUnique({
         where: { id: courseId },
-        select: { id: true, name: true, requiresCrmCallback: true },
+        select: { id: true, title: true, requiresCrmCallback: true },
       })
     : null;
 
@@ -41,11 +41,11 @@ export default async function PaymentSuccessPage({
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">
         {awaitingCrm
           ? "Awaiting CRM confirmation"
-          : `You're enrolled${course ? ` in ${course.name}` : ""}`}
+          : `You're enrolled${course ? ` in ${course.title}` : ""}`}
       </h1>
       <p className="mt-3 text-sm text-fg-muted">
         {awaitingCrm
-          ? `Your payment went through${course ? ` for ${course.name}` : ""}. Learning unlocks after CRM confirms your enrollment.`
+          ? `Your payment went through${course ? ` for ${course.title}` : ""}. Learning unlocks after CRM confirms your enrollment.`
           : "Your payment went through. Open your dashboard to start learning."}
         {enrollmentId ? ` Enrollment reference: ${enrollmentId.slice(0, 8)}…` : ""}
       </p>

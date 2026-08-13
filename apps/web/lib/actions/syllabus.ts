@@ -61,7 +61,7 @@ export async function upsertSyllabus(programId: string, formData: FormData) {
   const title =
     parsed.data.title?.trim() ||
     program.syllabus?.title ||
-    `${program.name} Syllabus`;
+    `${program.title} Syllabus`;
 
   await prisma.programSyllabus.upsert({
     where: { programId },
@@ -140,7 +140,7 @@ export async function createModule(programId: string, formData: FormData) {
     const created = await prisma.programSyllabus.create({
       data: {
         programId,
-        title: `${program.name} Syllabus`,
+        title: `${program.title} Syllabus`,
         status: SyllabusStatus.DRAFT,
       },
     });
@@ -149,7 +149,7 @@ export async function createModule(programId: string, formData: FormData) {
 
   const maxOrder = await prisma.syllabusModule.aggregate({
     where: { syllabusId },
-    _max: { sortOrder: true },
+    _max: { order: true },
   });
 
   await prisma.syllabusModule.create({
@@ -157,7 +157,7 @@ export async function createModule(programId: string, formData: FormData) {
       syllabusId,
       title: parsed.data.title.trim(),
       summary: parsed.data.summary?.trim() || null,
-      sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+      order: (maxOrder._max.order ?? -1) + 1,
     },
   });
 
@@ -232,7 +232,7 @@ export async function moveModule(
 
   const modules = await prisma.syllabusModule.findMany({
     where: { syllabusId: program.syllabus.id },
-    orderBy: { sortOrder: "asc" },
+    orderBy: { order: "asc" },
   });
   const index = modules.findIndex((m) => m.id === moduleId);
   if (index < 0) return { error: "Module not found." };
@@ -244,11 +244,11 @@ export async function moveModule(
   await prisma.$transaction([
     prisma.syllabusModule.update({
       where: { id: a.id },
-      data: { sortOrder: b.sortOrder },
+      data: { order: b.order },
     }),
     prisma.syllabusModule.update({
       where: { id: b.id },
-      data: { sortOrder: a.sortOrder },
+      data: { order: a.order },
     }),
   ]);
 
@@ -285,7 +285,7 @@ export async function createLesson(
 
   const maxOrder = await prisma.syllabusLesson.aggregate({
     where: { moduleId },
-    _max: { sortOrder: true },
+    _max: { order: true },
   });
 
   await prisma.syllabusLesson.create({
@@ -294,10 +294,10 @@ export async function createLesson(
       title: parsed.data.title.trim(),
       summary: parsed.data.summary?.trim() || null,
       contentType: parsed.data.contentType,
-      contentBody: parsed.data.contentBody?.trim() || "",
+      content: parsed.data.contentBody?.trim() || "",
       durationMin: parsed.data.durationMin ?? null,
       isPublished: parsed.data.isPublished ?? true,
-      sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+      order: (maxOrder._max.order ?? -1) + 1,
     },
   });
 
@@ -329,7 +329,7 @@ export async function updateLesson(
     title: formData.get("title"),
     summary: formData.get("summary") || null,
     contentType: formData.get("contentType") || lesson.contentType,
-    contentBody: formData.get("contentBody") ?? lesson.contentBody,
+    contentBody: formData.get("contentBody") ?? lesson.content,
     durationMin: formData.get("durationMin") || null,
     isPublished: parsePublishedFlag(formData),
   });
@@ -341,7 +341,7 @@ export async function updateLesson(
       title: parsed.data.title.trim(),
       summary: parsed.data.summary?.trim() || null,
       contentType: parsed.data.contentType,
-      contentBody: parsed.data.contentBody?.trim() || "",
+      content: parsed.data.contentBody?.trim() || "",
       durationMin: parsed.data.durationMin ?? null,
       isPublished: parsed.data.isPublished ?? true,
     },
@@ -394,7 +394,7 @@ export async function moveLesson(
 
   const lessons = await prisma.syllabusLesson.findMany({
     where: { moduleId: lesson.moduleId },
-    orderBy: { sortOrder: "asc" },
+    orderBy: { order: "asc" },
   });
   const index = lessons.findIndex((l) => l.id === lessonId);
   const swapWith = direction === "up" ? index - 1 : index + 1;
@@ -405,11 +405,11 @@ export async function moveLesson(
   await prisma.$transaction([
     prisma.syllabusLesson.update({
       where: { id: a.id },
-      data: { sortOrder: b.sortOrder },
+      data: { order: b.order },
     }),
     prisma.syllabusLesson.update({
       where: { id: b.id },
-      data: { sortOrder: a.sortOrder },
+      data: { order: a.order },
     }),
   ]);
 
@@ -433,13 +433,13 @@ async function requireEnrolledLearningAccess(programId: string, userId: string) 
       status: SyllabusStatus.PUBLISHED,
     },
     include: {
-      program: { select: { id: true, name: true, slug: true } },
+      program: { select: { id: true, title: true, slug: true } },
       modules: {
-        orderBy: { sortOrder: "asc" },
+        orderBy: { order: "asc" },
         include: {
           lessons: {
             where: { isPublished: true },
-            orderBy: { sortOrder: "asc" },
+            orderBy: { order: "asc" },
           },
         },
       },
@@ -506,14 +506,14 @@ export async function toggleLessonComplete(lessonId: string) {
     const { maybeIssueCertificate } = await import("@/lib/actions/learning-extras");
     const program = await prisma.program.findUnique({
       where: { id: programId },
-      select: { name: true, organizationId: true },
+      select: { title: true, organizationId: true },
     });
     if (program) {
       await maybeIssueCertificate({
         userId: session.user.id,
         programId,
         organizationId: program.organizationId,
-        programName: program.name,
+        programName: program.title,
       });
     }
   }

@@ -35,7 +35,7 @@ export async function completePaidPayment(opts: {
         status: "PAID",
         providerPaymentId: opts.providerPaymentId ?? payment.providerPaymentId,
         providerSignature: opts.providerSignature ?? payment.providerSignature,
-        paidAt: new Date(),
+        paymentDate: new Date(),
         failureReason: null,
       },
     });
@@ -93,7 +93,7 @@ export async function completePaidPayment(opts: {
   const existingNote = await prisma.notification.findFirst({
     where: {
       userId: app.applicantId,
-      href: `/student/learning/${app.programId}`,
+      actionUrl: `/student/learning/${app.programId}`,
       title: "Enrollment confirmed",
     },
   });
@@ -102,8 +102,8 @@ export async function completePaidPayment(opts: {
       data: {
         userId: app.applicantId,
         title: "Enrollment confirmed",
-        body: "Your course is unlocked. Open learning to get started.",
-        href: `/student/learning/${app.programId}`,
+        message: "Your course is unlocked. Open learning to get started.",
+        actionUrl: `/student/learning/${app.programId}`,
       },
     });
   }
@@ -150,7 +150,7 @@ export async function completeCoursePayment(opts: {
         status: "PAID",
         providerPaymentId: opts.providerPaymentId ?? payment.providerPaymentId,
         providerSignature: opts.providerSignature ?? payment.providerSignature,
-        paidAt: new Date(),
+        paymentDate: new Date(),
         failureReason: null,
       },
     });
@@ -192,8 +192,8 @@ export async function completeCoursePayment(opts: {
       data: {
         userId: enrollment.userId,
         title: "Enrollment confirmed",
-        body: "Payment received. Your course is unlocked.",
-        href: `/student/learning/${enrollment.programId}`,
+        message: "Payment received. Your course is unlocked.",
+        actionUrl: `/student/learning/${enrollment.programId}`,
       },
     });
   }

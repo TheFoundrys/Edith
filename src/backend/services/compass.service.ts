@@ -257,7 +257,7 @@ export async function listOffers(orgId: string) {
     where: { organizationId: orgId },
     include: {
       user: { select: { id: true, name: true, email: true } },
-      program: { select: { id: true, name: true } },
+      program: { select: { id: true, title: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -296,7 +296,7 @@ export async function listApplications(user: SessionUser, staff: boolean) {
       ...(staff ? {} : { applicantId: user.id }),
     },
     include: {
-      program: { select: { id: true, name: true, slug: true } },
+      program: { select: { id: true, title: true, slug: true } },
       applicant: { select: { id: true, name: true, email: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -308,7 +308,7 @@ export async function listAssignments(orgId: string) {
   return prisma.assignment.findMany({
     where: { organizationId: orgId },
     include: {
-      program: { select: { id: true, name: true } },
+      program: { select: { id: true, title: true } },
       _count: { select: { submissions: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -319,7 +319,7 @@ export async function listQuizzes(orgId: string) {
   return prisma.quiz.findMany({
     where: { organizationId: orgId },
     include: {
-      program: { select: { id: true, name: true } },
+      program: { select: { id: true, title: true } },
       _count: { select: { questions: true, attempts: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -329,8 +329,8 @@ export async function listQuizzes(orgId: string) {
 export async function listCertificates(user: SessionUser) {
   return prisma.certificate.findMany({
     where: { userId: user.id, organizationId: user.organizationId },
-    include: { program: { select: { id: true, name: true } } },
-    orderBy: { issuedAt: "desc" },
+    include: { program: { select: { id: true, title: true } } },
+    orderBy: { issueDate: "desc" },
   });
 }
 

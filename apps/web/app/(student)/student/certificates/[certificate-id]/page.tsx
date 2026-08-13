@@ -16,7 +16,7 @@ export default async function StudentCertificateDetailPage({
   const certificate = await prisma.certificate.findFirst({
     where: { id: certificateId, userId: session.user.id },
     include: {
-      program: { select: { name: true } },
+      program: { select: { title: true } },
       user: { select: { name: true } },
     },
   });
@@ -26,7 +26,7 @@ export default async function StudentCertificateDetailPage({
     <div>
       <PageHeader
         title="Certificate"
-        description={certificate.program.name}
+        description={certificate.program.title}
         actions={
           <Link
             href="/student/certificates"
@@ -47,10 +47,10 @@ export default async function StudentCertificateDetailPage({
         <p className="mt-6 text-sm text-fg-muted">This certifies that</p>
         <p className="mt-2 text-xl font-medium">{certificate.user.name}</p>
         <p className="mt-6 text-sm text-fg-muted">has successfully completed</p>
-        <p className="mt-2 text-lg font-medium">{certificate.program.name}</p>
+        <p className="mt-2 text-lg font-medium">{certificate.program.title}</p>
         <p className="mt-8 text-xs text-fg-muted">
-          Issued {certificate.issuedAt.toLocaleDateString()} · Code{" "}
-          {certificate.certificateCode}
+          Issued {certificate.issueDate.toLocaleDateString()} · Code{" "}
+          {certificate.certificateId}
         </p>
       </Panel>
     </div>

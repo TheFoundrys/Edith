@@ -114,7 +114,7 @@ export default async function AdminOverviewPage() {
                       {app.applicant.name}
                     </Link>
                   </h3>
-                  <p className="mt-1 text-sm text-fg-muted">{app.program.name}</p>
+                  <p className="mt-1 text-sm text-fg-muted">{app.program.title}</p>
                   <div className="mt-auto pt-[var(--grid-pad)]">
                     <Link href={`/admin/applications/${app.id}`}>
                       <Button size="sm" variant="secondary">

@@ -20,7 +20,7 @@ export default async function StudentAssessmentsPage() {
         prisma.assignment.findMany({
           where: { programId: { in: programIds }, isPublished: true },
           include: {
-            program: { select: { name: true } },
+            program: { select: { title: true } },
             submissions: {
               where: { userId: session.user.id },
               take: 1,
@@ -31,7 +31,7 @@ export default async function StudentAssessmentsPage() {
         prisma.quiz.findMany({
           where: { programId: { in: programIds }, status: "PUBLISHED" },
           include: {
-            program: { select: { name: true } },
+            program: { select: { title: true } },
             _count: { select: { questions: true } },
             attempts: {
               where: { userId: session.user.id },
@@ -85,7 +85,7 @@ export default async function StudentAssessmentsPage() {
                     <article key={assignment.id} className="peak-card">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
-                          {assignment.program.name}
+                          {assignment.program.title}
                         </p>
                         <Badge tone={submission ? "success" : "warning"}>
                           {submission ? "Submitted" : "Open"}
@@ -138,7 +138,7 @@ export default async function StudentAssessmentsPage() {
                     <article key={quiz.id} className="peak-card">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
-                          {quiz.program.name}
+                          {quiz.program.title}
                         </p>
                         <Badge tone={attempt ? "success" : "neutral"}>
                           {attempt

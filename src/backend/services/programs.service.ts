@@ -7,16 +7,16 @@ export async function listPublishedPrograms(organizationId?: string) {
       status: "PUBLISHED",
       ...(organizationId ? { organizationId } : {}),
     },
-    orderBy: { name: "asc" },
+    orderBy: { title: "asc" },
     select: {
       id: true,
-      name: true,
+      title: true,
       slug: true,
       category: true,
       degreeLevel: true,
-      summary: true,
+      description: true,
       imageUrl: true,
-      tuitionAmount: true,
+      price: true,
       tuitionCurrency: true,
       programKind: true,
       tags: true,
@@ -55,7 +55,7 @@ export async function createProgram(
     category: string;
     degreeLevel: string;
     summary?: string;
-    tuitionAmount?: number | null;
+    price?: number | null;
     tuitionCurrency?: string;
     status?: string;
   },
@@ -63,12 +63,12 @@ export async function createProgram(
   return prisma.program.create({
     data: {
       organizationId: user.organizationId,
-      name: data.name,
+      title: data.name,
       slug: data.slug,
       category: data.category as never,
       degreeLevel: data.degreeLevel as never,
-      summary: data.summary,
-      tuitionAmount: data.tuitionAmount ?? null,
+      description: data.summary,
+      price: data.price ?? null,
       tuitionCurrency: data.tuitionCurrency ?? "INR",
       status: (data.status as never) ?? "DRAFT",
     },
@@ -82,10 +82,10 @@ export async function listStudentEnrollments(user: SessionUser) {
       program: {
         select: {
           id: true,
-          name: true,
+          title: true,
           slug: true,
           imageUrl: true,
-          summary: true,
+          description: true,
         },
       },
     },

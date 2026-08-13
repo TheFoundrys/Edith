@@ -8,11 +8,11 @@ import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
 
 function coursePrice(program: {
-  tuitionAmount: number | null;
+  price: number | null;
   applicationFee: number | null;
 }) {
-  if (program.tuitionAmount != null && program.tuitionAmount > 0) {
-    return program.tuitionAmount;
+  if (program.price != null && program.price > 0) {
+    return program.price;
   }
   if (program.applicationFee != null && program.applicationFee > 0) {
     return program.applicationFee;
@@ -53,13 +53,13 @@ export default async function EnrollPage({
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fg-muted">
         Enrollment
       </p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">{course.name}</h1>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight">{course.title}</h1>
       <p className="mt-2 text-sm text-fg-muted">
         {course.department?.name ? `${course.department.name} · ` : ""}
         {course.campus?.name ?? "Online / Hybrid"}
       </p>
-      {course.summary ? (
-        <p className="mt-4 text-sm text-fg leading-relaxed">{course.summary}</p>
+      {course.description ? (
+        <p className="mt-4 text-sm text-fg leading-relaxed">{course.description}</p>
       ) : null}
 
       {awaitingCrm ? (

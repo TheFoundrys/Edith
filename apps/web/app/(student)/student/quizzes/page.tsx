@@ -17,7 +17,7 @@ export default async function StudentQuizzesPage() {
     ? await prisma.quiz.findMany({
         where: { programId: { in: programIds }, status: "PUBLISHED" },
         include: {
-          program: { select: { name: true } },
+          program: { select: { title: true } },
           _count: { select: { questions: true } },
           attempts: {
             where: { userId: session.user.id },
@@ -56,7 +56,7 @@ export default async function StudentQuizzesPage() {
                       {quiz.title}
                     </Link>
                     <p className="mt-1 text-sm text-fg-muted">
-                      {quiz.program.name} · {quiz._count.questions} questions
+                      {quiz.program.title} · {quiz._count.questions} questions
                       {attempt
                         ? ` · Last score ${attempt.score}/${attempt.maxScore}`
                         : ""}

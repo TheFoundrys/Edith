@@ -319,7 +319,7 @@ enum VoteType {
 
 model Organization {
   id           String   @id @default(cuid())
-  name         String
+  title        String
   slug         String   @unique
   logoUrl      String?
   primaryColor String   @default("#0F172A")
@@ -335,7 +335,7 @@ model Organization {
   bio          String?
   marketing    Json?
   isPublished  Boolean  @default(false)
-  sortOrder    Int      @default(0)
+  order        Int      @default(0)
   school       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -382,7 +382,7 @@ model Organization {
 model User {
   id           String     @id @default(cuid())
   email        String     @unique
-  passwordHash String
+  password     String
   name         String
   // Compass profile
   tempEmail    String?
@@ -398,6 +398,7 @@ model User {
   verifyToken  String?
   verifyTokenExpiry DateTime?
   lastActive   DateTime?
+  resetPasswordToken String?
   resetPasswordExpires DateTime?
   tokenVersion Int        @default(0)
   theme        String     @default("system")
@@ -460,11 +461,28 @@ model Membership {
   organizationId String
   userId         String
   role           Role
+  /// null means access never expires
+  expiresAt      DateTime?
   createdAt      DateTime @default(now())
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roles        MembershipRole[]
   @@unique([organizationId, userId])
   @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Lets one membership hold several PermissionRoles at once. Kept separate from
+/// Membership.role, which stays the single enum role that session checks read.
+model MembershipRole {
+  id               String   @id @default(cuid())
+  membershipId     String
+  permissionRoleId String
+  assignedAt       DateTime @default(now())
+  membership     Membership     @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  permissionRole PermissionRole @relation(fields: [permissionRoleId], references: [id], onDelete: Cascade)
+  @@unique([membershipId, permissionRoleId])
+  @@index([permissionRoleId])
 }
 
 model Campus {
@@ -499,14 +517,14 @@ model Program {
   campusId           String?
   departmentId       String?
   formDefinitionId   String?
-  name               String
+  title              String
   slug               String
   category           ProgramCategory  @default(YOUNG_POST_GRADUATE)
   degreeLevel        DegreeLevel      @default(BACHELORS)
-  summary            String?
+  description        String?
   eligibilitySummary String?
   imageUrl           String?
-  tuitionAmount      Float?
+  price              Float?
   tuitionCurrency    String           @default("USD")
   capacity           Int?
   applicationFee     Float?
@@ -527,7 +545,7 @@ model Program {
   learningOutcomes   String[]         @default([])
   pricing            Json?
   tags               String[]         @default([])
-  courseType         CourseType?
+  type               CourseType?
   weeks              Int?
   batchStartDate     DateTime?
   isHybridOnly       Boolean          @default(false)
@@ -626,7 +644,7 @@ model SyllabusModule {
   syllabusId String
   title      String
   summary    String?
-  sortOrder  Int      @default(0)
+  order      Int      @default(0)
   // Compass Module
   slug       String?
   isLocked   Boolean  @default(false)
@@ -636,7 +654,7 @@ model SyllabusModule {
   updatedAt  DateTime @updatedAt
   syllabus ProgramSyllabus  @relation(fields: [syllabusId], references: [id], onDelete: Cascade)
   lessons  SyllabusLesson[]
-  @@index([syllabusId, sortOrder])
+  @@index([syllabusId, order])
 }
 
 model SyllabusLesson {
@@ -645,15 +663,15 @@ model SyllabusLesson {
   title       String
   summary     String?
   contentType LessonContentType @default(RICH_TEXT)
-  contentBody String            @default("")
+  content     String            @default("")
   durationMin Int?
-  sortOrder   Int               @default(0)
+  order       Int               @default(0)
   isPublished Boolean           @default(true)
   // Compass Lesson
   slug        String?
-  lessonType  LessonType?
+  type        LessonType?
   videoUrl    String?
-  durationLabel String?
+  duration    String?
   isFree      Boolean           @default(false)
   isPreview   Boolean           @default(false)
   audioUrl    String?
@@ -668,7 +686,7 @@ model SyllabusLesson {
   progress LessonProgress[]
   assignmentSubmissions AssignmentSubmission[]
   lessonMcqs LessonMcq[]
-  @@index([moduleId, sortOrder])
+  @@index([moduleId, order])
 }
 
 model LessonProgress {
@@ -773,7 +791,7 @@ model Payment {
   providerSignature String?
   receiptUrl        String?
   failureReason     String?
-  paidAt            DateTime?
+  paymentDate       DateTime?
   metadataJson      String          @default("{}")
   // Compass Transaction
   invoiceId         String?
@@ -917,8 +935,8 @@ model Certificate {
   programId       String
   userId          String
   title           String
-  certificateCode String            @unique
-  issuedAt        DateTime          @default(now())
+  certificateId   String            @unique
+  issueDate       DateTime          @default(now())
   status          CertificateStatus @default(ACTIVE)
   grade           String?
   metadata        Json?
@@ -937,8 +955,8 @@ model Notification {
   id        String    @id @default(cuid())
   userId    String
   title     String
-  body      String    @default("")
-  href      String?
+  message   String    @default("")
+  actionUrl String?
   readAt    DateTime?
   // Compass
   type      NotificationType?
@@ -1027,6 +1045,7 @@ model PermissionRole {
   updatedAt   DateTime @updatedAt
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   users       User[]
+  memberships MembershipRole[]
   @@unique([organizationId, slug])
   @@index([organizationId])
 }

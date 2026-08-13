@@ -27,7 +27,7 @@ export function AdminProgramsPage() {
       category: fd.get("category"),
       degreeLevel: fd.get("degreeLevel"),
       summary: fd.get("summary"),
-      tuitionAmount: fd.get("tuitionAmount") ? Number(fd.get("tuitionAmount")) : null,
+      price: fd.get("price") ? Number(fd.get("price")) : null,
       status: "PUBLISHED",
     });
     e.currentTarget.reset();
@@ -69,8 +69,8 @@ export function AdminProgramsPage() {
               <Input id="summary" name="summary" />
             </div>
             <div>
-              <Label htmlFor="tuitionAmount">Tuition</Label>
-              <Input id="tuitionAmount" name="tuitionAmount" type="number" step="0.01" />
+              <Label htmlFor="price">Tuition</Label>
+              <Input id="price" name="price" type="number" step="0.01" />
             </div>
             <Button type="submit" loading={loading}>
               Create published program

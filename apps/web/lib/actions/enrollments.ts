@@ -12,11 +12,11 @@ import {
 } from "@/lib/payments/complete";
 
 function coursePrice(program: {
-  tuitionAmount: number | null;
+  price: number | null;
   applicationFee: number | null;
 }): number {
-  if (program.tuitionAmount != null && program.tuitionAmount > 0) {
-    return program.tuitionAmount;
+  if (program.price != null && program.price > 0) {
+    return program.price;
   }
   if (program.applicationFee != null && program.applicationFee > 0) {
     return program.applicationFee;
@@ -25,7 +25,7 @@ function coursePrice(program: {
 }
 
 function isFreeCourse(program: {
-  tuitionAmount: number | null;
+  price: number | null;
   applicationFee: number | null;
 }) {
   return coursePrice(program) === 0;
@@ -43,13 +43,13 @@ function revalidateEnrollmentPaths(programId: string) {
   revalidatePath("/courses");
 }
 
-async function notifyEnrollment(userId: string, program: { id: string; name: string }) {
+async function notifyEnrollment(userId: string, program: { id: string; title: string }) {
   await prisma.notification.create({
     data: {
       userId,
       title: "Enrollment confirmed",
-      body: `You’re enrolled in ${program.name}. Open the course to start learning.`,
-      href: `/student/learning/${program.id}`,
+      message: `You’re enrolled in ${program.title}. Open the course to start learning.`,
+      actionUrl: `/student/learning/${program.id}`,
     },
   });
 }
@@ -191,7 +191,7 @@ export async function startCheckout(programSlug: string) {
       enrollmentId: existing.id,
       programId: program.id,
       programSlug: program.slug,
-      programName: program.name,
+      programName: program.title,
     };
   }
 
@@ -236,7 +236,7 @@ export async function startCheckout(programSlug: string) {
       enrollmentId: enrollment.id,
       programId: program.id,
       programSlug: program.slug,
-      programName: program.name,
+      programName: program.title,
     };
   }
 
@@ -257,7 +257,7 @@ export async function startCheckout(programSlug: string) {
         enrollmentId: enrollment.id,
         programId: program.id,
         programSlug: program.slug,
-        programName: program.name,
+        programName: program.title,
         provider: adapter.provider,
         providerOrderId: open.providerOrderId,
         amount: open.amount,
@@ -305,7 +305,7 @@ export async function startCheckout(programSlug: string) {
       enrollmentId: enrollment.id,
       programId: program.id,
       programSlug: program.slug,
-      programName: program.name,
+      programName: program.title,
       provider: adapter.provider,
       providerOrderId: order.providerOrderId,
       amount: order.amount,
@@ -478,16 +478,16 @@ export async function changeStudentPassword(input: {
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) return { error: "User not found." };
 
-  const valid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+  const valid = await bcrypt.compare(input.currentPassword, user.password);
   if (!valid) return { error: "Current password is incorrect." };
   if (input.newPassword.length < 8) {
     return { error: "New password must be at least 8 characters." };
   }
 
-  const passwordHash = await bcrypt.hash(input.newPassword, 10);
+  const password = await bcrypt.hash(input.newPassword, 10);
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { passwordHash },
+    data: { password },
   });
 
   return { ok: true as const };

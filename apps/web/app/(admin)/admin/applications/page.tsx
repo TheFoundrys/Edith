@@ -35,8 +35,8 @@ export default async function AdminApplicationsPage({
 
   const programs = await prisma.program.findMany({
     where: { organizationId: orgId },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
+    orderBy: { title: "asc" },
+    select: { id: true, title: true },
   });
 
   const where = {
@@ -48,7 +48,7 @@ export default async function AdminApplicationsPage({
           OR: [
             { applicant: { name: { contains: q } } },
             { applicant: { email: { contains: q } } },
-            { program: { name: { contains: q } } },
+            { program: { title: { contains: q } } },
           ],
         }
       : {}),
@@ -111,7 +111,7 @@ export default async function AdminApplicationsPage({
           <option value="">All programs</option>
           {programs.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name}
+              {p.title}
             </option>
           ))}
         </select>
@@ -155,7 +155,7 @@ export default async function AdminApplicationsPage({
                 <dl className="mt-[var(--grid-pad)] space-y-1.5 text-[13px] border-t border-border pt-[var(--grid-gap)]">
                   <div className="flex justify-between gap-3">
                     <dt className="text-fg-muted">Program</dt>
-                    <dd className="text-fg text-right">{app.program.name}</dd>
+                    <dd className="text-fg text-right">{app.program.title}</dd>
                   </div>
                   {app.intake ? (
                     <div className="flex justify-between gap-3">

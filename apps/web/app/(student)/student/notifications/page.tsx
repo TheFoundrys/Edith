@@ -15,8 +15,8 @@ export default async function StudentNotificationsPage() {
       items={items.map((n) => ({
         id: n.id,
         title: n.title,
-        body: n.body,
-        href: n.href,
+        body: n.message,
+        href: n.actionUrl,
         readAt: n.readAt?.toISOString() ?? null,
         createdAt: n.createdAt.toISOString(),
       }))}

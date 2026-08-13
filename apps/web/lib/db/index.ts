@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 // Bump when models/fields change so a long-lived Next.js process
 // does not keep a PrismaClient generated against an older schema.
-const PRISMA_CLIENT_VERSION = "edith-postgres-v3";
+const PRISMA_CLIENT_VERSION = "edith-postgres-v4";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

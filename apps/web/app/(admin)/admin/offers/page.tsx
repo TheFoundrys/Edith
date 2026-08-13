@@ -14,10 +14,10 @@ export default async function AdminOffersPage() {
       orderBy: { createdAt: "desc" },
       include: {
         user: { select: { name: true, email: true } },
-        program: { select: { name: true } },
+        program: { select: { title: true } },
       },
     }),
-    prisma.program.findMany({ where: { organizationId: orgId }, select: { id: true, name: true } }),
+    prisma.program.findMany({ where: { organizationId: orgId }, select: { id: true, title: true } }),
     prisma.membership.findMany({
       where: { organizationId: orgId, role: "STUDENT" },
       include: { user: { select: { id: true, name: true, email: true } } },
@@ -47,7 +47,7 @@ export default async function AdminOffersPage() {
               <datalist id="offer-programs">
                 {programs.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {p.title}
                   </option>
                 ))}
               </datalist>
@@ -71,7 +71,7 @@ export default async function AdminOffersPage() {
           <ul className="space-y-2">
             {offers.map((o) => (
               <li key={o.id} className="text-sm border-b border-border py-2">
-                <span className="font-medium">{o.program.name}</span> → {o.user.name}
+                <span className="font-medium">{o.program.title}</span> → {o.user.name}
                 <span className="block text-fg-muted">
                   ₹{o.customPrice} · {o.status}
                 </span>

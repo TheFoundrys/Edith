@@ -93,7 +93,7 @@ export default async function AdminProgramsPage() {
                     href={`/admin/programs/${program.id}`}
                     className="hover:underline underline-offset-2"
                   >
-                    {program.name}
+                    {program.title}
                   </Link>
                 </h2>
 
@@ -106,12 +106,12 @@ export default async function AdminProgramsPage() {
                   <div className="flex justify-between gap-3">
                     <dt className="text-fg-muted">Tuition</dt>
                     <dd className="font-medium text-fg text-right">
-                      {program.tuitionAmount == null || program.tuitionAmount === 0
-                        ? program.tuitionAmount === 0
+                      {program.price == null || program.price === 0
+                        ? program.price === 0
                           ? "Free"
                           : "Not set"
                         : formatCurrency(
-                            program.tuitionAmount,
+                            program.price,
                             program.tuitionCurrency,
                           )}
                     </dd>

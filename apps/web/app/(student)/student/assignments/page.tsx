@@ -18,7 +18,7 @@ export default async function StudentAssignmentsPage() {
     ? await prisma.assignment.findMany({
         where: { programId: { in: programIds }, isPublished: true },
         include: {
-          program: { select: { name: true } },
+          program: { select: { title: true } },
           submissions: {
             where: { userId: session.user.id },
             take: 1,
@@ -55,7 +55,7 @@ export default async function StudentAssignmentsPage() {
                       {assignment.title}
                     </Link>
                     <p className="mt-1 text-sm text-fg-muted">
-                      {assignment.program.name}
+                      {assignment.program.title}
                       {assignment.dueAt
                         ? ` · Due ${assignment.dueAt.toLocaleDateString()}`
                         : ""}

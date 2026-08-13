@@ -25,11 +25,11 @@ export default async function AdminSyllabusProgressPage({
       syllabus: {
         include: {
           modules: {
-            orderBy: { sortOrder: "asc" },
+            orderBy: { order: "asc" },
             include: {
               lessons: {
                 where: { isPublished: true },
-                orderBy: { sortOrder: "asc" },
+                orderBy: { order: "asc" },
               },
             },
           },
@@ -78,7 +78,7 @@ export default async function AdminSyllabusProgressPage({
     <div>
       <PageHeader
         title="Course progress"
-        description={program.name}
+        description={program.title}
         actions={
           <Link href={`/admin/syllabus/${programId}`}>
             <Button variant="secondary">Edit syllabus</Button>

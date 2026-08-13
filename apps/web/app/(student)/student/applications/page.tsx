@@ -25,7 +25,7 @@ export default async function StudentApplicationsPage() {
     prisma.application.findMany({
       where: { applicantId: session.user.id, organizationId: orgId },
       include: {
-        program: { select: { id: true, name: true, slug: true } },
+        program: { select: { id: true, title: true, slug: true } },
         intake: { select: { id: true, name: true } },
       },
       orderBy: { updatedAt: "desc" },
@@ -46,7 +46,7 @@ export default async function StudentApplicationsPage() {
           select: { id: true, name: true },
         },
       },
-      orderBy: { name: "asc" },
+      orderBy: { title: "asc" },
     }),
   ]);
 
@@ -85,7 +85,7 @@ export default async function StudentApplicationsPage() {
                         href={`/student/applications/${app.id}`}
                         className="font-medium text-brand underline-offset-2 hover:underline"
                       >
-                        {app.program.name}
+                        {app.program.title}
                       </Link>
                       <p className="text-xs text-fg-muted mt-1">
                         {app.intake ? `${app.intake.name} · ` : ""}
@@ -122,7 +122,7 @@ export default async function StudentApplicationsPage() {
                 <li key={program.id}>
                   <Panel className="p-4 flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="font-medium">{program.name}</p>
+                      <p className="font-medium">{program.title}</p>
                       <p className="text-xs text-fg-muted mt-1">
                         {program.intakes.length} open intake
                         {program.intakes.length === 1 ? "" : "s"}

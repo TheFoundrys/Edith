@@ -66,14 +66,14 @@ export async function registerStudent(formData: FormData) {
 
   if (!org) return { error: "Institution is not configured yet." };
 
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  const hashedPassword = await bcrypt.hash(parsed.data.password, 12);
 
   try {
     await prisma.user.create({
       data: {
         email,
         name: parsed.data.name,
-        passwordHash,
+        password: hashedPassword,
         memberships: {
           create: { organizationId: org.id, role: "STUDENT" },
         },
@@ -161,12 +161,12 @@ export async function resetPassword(formData: FormData) {
     return { error: "Reset link is invalid or expired." };
   }
 
-  const passwordHash = await bcrypt.hash(passwordParsed.data, 12);
+  const hashedPassword = await bcrypt.hash(passwordParsed.data, 12);
 
   await prisma.$transaction([
     prisma.user.update({
       where: { id: record.userId },
-      data: { passwordHash },
+      data: { password: hashedPassword },
     }),
     // Consume all outstanding tokens for this user.
     prisma.passwordResetToken.deleteMany({ where: { userId: record.userId } }),

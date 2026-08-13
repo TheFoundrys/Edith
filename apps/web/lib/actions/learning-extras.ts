@@ -68,8 +68,8 @@ export async function submitAssignment(
     data: {
       userId: session.user.id,
       title: "Assignment submitted",
-      body: `Your submission for “${assignment.title}” was received.`,
-      href: `/student/assignments/${assignment.id}`,
+      message: `Your submission for “${assignment.title}” was received.`,
+      actionUrl: `/student/assignments/${assignment.id}`,
     },
   });
 
@@ -145,7 +145,7 @@ export async function maybeIssueCertificate(opts: {
       programId: opts.programId,
       userId: opts.userId,
       title: `Certificate of Completion — ${opts.programName}`,
-      certificateCode: code,
+      certificateId: code,
     },
   });
 
@@ -153,8 +153,8 @@ export async function maybeIssueCertificate(opts: {
     data: {
       userId: opts.userId,
       title: "Certificate earned",
-      body: `You’ve completed ${opts.programName}.`,
-      href: `/student/certificates/${certificate.id}`,
+      message: `You’ve completed ${opts.programName}.`,
+      actionUrl: `/student/certificates/${certificate.id}`,
     },
   });
 
