@@ -11,7 +11,11 @@ on:
         options: [staging, production]
         default: staging
       run_migrations:
-        description: Apply the Prisma schema after deploying
+        description: Apply pending SQL migrations before rollout
+        type: boolean
+        default: false
+      publish_catalog:
+        description: Create any catalogue courses missing from the target (additive)
         type: boolean
         default: false
 
@@ -153,6 +157,7 @@ jobs:
           WEB_IMAGE: ${{ needs.publish.outputs.web }}
           TOOLS_IMAGE: ${{ needs.publish.outputs.tools }}
           RUN_MIGRATIONS: ${{ github.event.inputs.run_migrations || 'false' }}
+          PUBLISH_CATALOG: ${{ github.event.inputs.publish_catalog || 'false' }}
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIT_SHA: ${{ github.sha }}
@@ -163,6 +168,7 @@ jobs:
              WEB_IMAGE='$WEB_IMAGE' \
              TOOLS_IMAGE='$TOOLS_IMAGE' \
              RUN_MIGRATIONS='$RUN_MIGRATIONS' \
+             PUBLISH_CATALOG='$PUBLISH_CATALOG' \
              REGISTRY_USER='$REGISTRY_USER' \
              REGISTRY_TOKEN='$REGISTRY_TOKEN' \
              GIT_SHA='$GIT_SHA' \
@@ -171,12 +177,13 @@ jobs:
           cd "$DEPLOY_PATH"
 
           # The images are pinned by digest, but Compose still reads its files
-          # from disk. Take just those two from the released commit so the
-          # topology matches the artifact; everything else on the box, .env
+          # and the .sql migrations from disk. Take just those from the released
+          # commit so they match the artifact; everything else on the box, .env
           # above all, is left untouched.
           if [ -d .git ]; then
             git fetch --quiet origin
-            git checkout --quiet "$GIT_SHA" -- docker-compose.yml docker-compose.prod.yml
+            git checkout --quiet "$GIT_SHA" -- \
+              docker-compose.yml docker-compose.prod.yml database/migrations
           else
             echo "::warning::$DEPLOY_PATH is not a git checkout; using the compose files already present"
           fi
@@ -193,8 +200,18 @@ jobs:
           compose pull web
 
           if [ "$RUN_MIGRATIONS" = "true" ]; then
-            echo "--- applying Prisma schema"
-            compose run --rm prisma
+            echo "--- applying SQL migrations"
+            compose run --rm migrate
+          fi
+
+          if [ "$PUBLISH_CATALOG" = "true" ]; then
+            # Additive: creates the courses this environment is missing and
+            # leaves every existing one untouched, so it cannot clobber content
+            # edited in the admin UI. Runs after the migrations because new
+            # courses may depend on enum values they add.
+            echo "--- publishing catalogue (dry run first)"
+            compose run --rm publish-catalog --dry-run
+            compose run --rm publish-catalog
           fi
 
           echo "--- rolling out $WEB_IMAGE"

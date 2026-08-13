@@ -31,8 +31,60 @@ services:
       retries: 5
       start_period: 30s
 
-  # One-shot Prisma runner: the runtime image has no CLI, the build stage does.
-  #   docker compose run --rm prisma db push --schema prisma/schema.prisma
+  # Applies the hand-written SQL migrations in filename order. This is the only
+  # safe way to bring an existing database forward: `prisma db push` implements
+  # a column rename as DROP + ADD, so on any database that is behind the schema
+  # it silently destroys every value in the renamed columns — password hashes
+  # and programme names included. The migrations use ALTER TABLE ... RENAME.
+  #   docker compose run --rm migrate
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      target: build
+    env_file: apps/web/.env
+    volumes:
+      - ./database/migrations:/migrations:ro
+    entrypoint: ["sh", "-c"]
+    # One list entry, so the whole script reaches `sh -c` as a single argument.
+    # A plain string would be word-split into `sh -c set -e; ...`.
+    command:
+      - |
+        set -e
+        # Timestamp-prefixed names make the glob's lexicographic order the
+        # intended apply order. Rollback scripts are skipped.
+        for f in /migrations/*.sql; do
+          case "$$f" in *.down.sql) continue ;; esac
+          echo "--- applying $$(basename "$$f")"
+          npx prisma db execute --schema prisma/schema.prisma --file "$$f"
+        done
+        echo "all migrations applied"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Publishes the catalogue in prisma/catalog-data.ts. Additive: it creates the
+  # courses that are missing and leaves existing ones alone, so unlike the
+  # seeder it is safe against a database with real users and applications.
+  #   docker compose run --rm publish-catalog --dry-run
+  #   docker compose run --rm publish-catalog
+  publish-catalog:
+    profiles: ["tools"]
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      target: build
+    env_file: apps/web/.env
+    entrypoint: ["npx", "tsx", "prisma/publish-catalog.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # One-shot Prisma CLI for ad-hoc work: the runtime image has no CLI, the build
+  # stage does. The default `db push` is for bootstrapping a brand-new EMPTY
+  # database only — use the `migrate` service on anything holding data.
+  #   docker compose run --rm prisma migrate status --schema prisma/schema.prisma
   prisma:
     profiles: ["tools"]
     build:

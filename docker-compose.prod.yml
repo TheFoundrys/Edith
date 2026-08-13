@@ -12,8 +12,17 @@ services:
     image: ${WEB_IMAGE:?WEB_IMAGE must be set}
     pull_policy: always
 
-  # Same one-shot Prisma runner as the base file, but from the published build
-  # stage, so schema work needs no compiler or source checkout on the server.
+  # Same migration runner as the base file, but from the published build stage,
+  # so schema work needs no compiler on the server. The .sql files still come
+  # from the checkout via the bind mount the base file declares.
+  migrate:
+    image: ${TOOLS_IMAGE:?TOOLS_IMAGE must be set}
+    pull_policy: always
+
+  publish-catalog:
+    image: ${TOOLS_IMAGE:?TOOLS_IMAGE must be set}
+    pull_policy: always
+
   prisma:
     image: ${TOOLS_IMAGE:?TOOLS_IMAGE must be set}
     pull_policy: always
