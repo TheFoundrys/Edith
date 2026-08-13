@@ -8,6 +8,13 @@ export const PROGRAM_CATEGORIES: {
   description: string;
 }[] = [
   {
+    value: "UNDERGRADUATE_DEGREE",
+    label: "Undergraduate Degrees",
+    shortLabel: "Degree",
+    description:
+      "Three-year on-campus degrees across the Schools of Deep Tech, Entrepreneurship, Sustainability and Energy.",
+  },
+  {
     value: "YOUNG_POST_GRADUATE",
     label: "YGP (Young Graduate Program)",
     shortLabel: "YGP",
@@ -34,6 +41,20 @@ export const PROGRAM_CATEGORIES: {
     shortLabel: "AMP",
     description:
       "Advanced management programmes in AI, Cybersecurity, digital transformation and general management.",
+  },
+  {
+    value: "FACULTY_DEVELOPMENT",
+    label: "Faculty Development Programs",
+    shortLabel: "FDP",
+    description:
+      "Train-the-trainer certifications for school teachers, college faculty and institutional leaders.",
+  },
+  {
+    value: "CERTIFICATION",
+    label: "Certifications",
+    shortLabel: "Certification",
+    description:
+      "Short, standalone certifications and bootcamps in AI, Cybersecurity, Quantum and Blockchain.",
   },
   {
     value: "CENTRE_OF_EXCELLENCE",
@@ -68,6 +89,16 @@ export function displayProgramName(
       /^Advanced Management Program(?:me)?\s+in\s+/i,
       "",
     );
+    if (next !== title) title = next;
+  }
+
+  if (!category || category === "YOUNG_POST_GRADUATE") {
+    const next = title.replace(/^Young Graduate Program(?:me)?\s+in\s+/i, "");
+    if (next !== title) title = next;
+  }
+
+  if (!category || category === "POST_GRADUATE") {
+    const next = title.replace(/^Post Graduate Program(?:me)?\s+in\s+/i, "");
     if (next !== title) title = next;
   }
 

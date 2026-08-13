@@ -32,13 +32,17 @@ export const SUITE_OPTIONS: FinderFilterOption[] = PROGRAM_CATEGORIES.map(
 );
 
 export const DURATION_OPTIONS: FinderFilterOption[] = [
-  { value: "2d", label: "2 Days" },
-  { value: "13w", label: "13 Weeks" },
-  { value: "program", label: "Program-dependent" },
+  { value: "days", label: "A few days" },
+  { value: "upto6w", label: "Up to 6 weeks" },
+  { value: "6to13w", label: "6–13 weeks" },
+  { value: "upto6m", label: "Up to 6 months" },
+  { value: "12m", label: "12 months" },
+  { value: "1y", label: "1 year" },
+  { value: "3y", label: "3 years" },
+  { value: "4y", label: "4 years" },
+  { value: "3p1y", label: "3+1 years (integrated MBA)" },
   { value: "cohort", label: "Cohort-based" },
-  { value: "1-2y", label: "1–2 Years" },
-  { value: "3y", label: "3 Years" },
-  { value: "3p1y", label: "3+1 Years" },
+  { value: "program", label: "Program-dependent" },
   { value: "custom", label: "Custom" },
 ];
 
@@ -48,7 +52,9 @@ export const EXPERIENCE_OPTIONS: FinderFilterOption[] = [
   { value: "5plus", label: "5+ years" },
   { value: "8plus", label: "8+ years" },
   { value: "10plus", label: "10+ years" },
+  { value: "15plus", label: "15+ years" },
   { value: "none", label: "Not mandatory" },
+  { value: "educators", label: "Educators" },
   { value: "institution", label: "Institutions" },
 ];
 

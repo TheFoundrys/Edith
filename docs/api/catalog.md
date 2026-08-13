@@ -83,8 +83,3 @@ Publishing requires a linked form definition with at least one published version
 | Serializers | `apps/web/lib/catalog/serialize.ts` |
 | Finder filters | `apps/web/lib/programs/finder-filters.ts` |
 | Catalog meta | `apps/web/lib/programs/catalog-meta.ts` |
-
-## Related (Express SPA stack)
-
-Thin legacy endpoints remain under `/api/programs/*` on the Express server.
-Prefer `/api/catalog/*` on the Next app for new integrations.

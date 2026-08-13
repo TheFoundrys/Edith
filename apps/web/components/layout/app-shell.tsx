@@ -35,8 +35,10 @@ export function AppShell({
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-border bg-bg-elevated">
-        <div className="px-5 h-14 flex items-center border-b border-border">
+      {/* Pinned to the viewport so a long staff nav scrolls inside the rail
+          instead of running past the bottom of the window. */}
+      <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-border bg-bg-elevated sticky top-0 h-screen">
+        <div className="shrink-0 px-5 h-14 flex items-center border-b border-border">
           <Link
             href="/"
             className="font-display brand-wordmark text-lg tracking-tight text-brand"
@@ -44,7 +46,10 @@ export function AppShell({
             {brand}
           </Link>
         </div>
-        <nav className="flex-1 p-3 space-y-0.5" aria-label="Primary">
+        <nav
+          className="flex-1 min-h-0 overflow-y-auto p-3 space-y-0.5"
+          aria-label="Primary"
+        >
           {nav.map((item) => {
             const isSectionRoot =
               item.href === "/student" ||
@@ -70,7 +75,7 @@ export function AppShell({
             );
           })}
         </nav>
-        <div className="border-t border-border p-4">
+        <div className="shrink-0 border-t border-border p-4">
           <p className="text-sm font-medium truncate">{user.name}</p>
           <p className="text-xs text-fg-muted truncate">{user.email}</p>
           <p className="text-[10px] text-fg-muted mt-1.5 uppercase tracking-[0.14em]">

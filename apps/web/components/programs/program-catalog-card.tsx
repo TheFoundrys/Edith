@@ -21,6 +21,8 @@ export type ProgramCatalogItem = {
   eligibilitySummary: string | null;
   price: number | null;
   tuitionCurrency: string;
+  duration?: string | null;
+  isHybridOnly?: boolean | null;
   campus: { name: string } | null;
   intakes: { name: string; startDate: Date | null }[];
 };

@@ -42,5 +42,26 @@ used for `AUTH_URL`/`NEXTAUTH_URL`), `POSTGRES_PORT`, `POSTGRES_USER`,
 Behind a TLS terminator, set `APP_ORIGIN=https://your-domain` and proxy it to
 `3059`.
 
-An experimental SPA + Express layout remains under `src/`, `api/`, and `database/` (`npm run dev:spa`). Day-to-day product UI is the Next app, and it is the only thing `docker compose` builds.
-# Atlas
+Hand-written SQL migrations live in [`database/migrations`](database/migrations); the
+Prisma schema and seed they accompany are in [`apps/web/prisma`](apps/web/prisma).
+
+## CI/CD
+
+| Workflow | Trigger | Does |
+| --- | --- | --- |
+| [`ci.yml`](.github/workflows/ci.yml) | every PR, pushes to `main` / `dev` | lint, typecheck, `next build`, then boots the Docker image against Postgres and checks `/api/health` and `/login` |
+| [`cd.yml`](.github/workflows/cd.yml) | push to `dev` → staging, push to `main` → production, or manual | publishes images to GHCR, deploys the exact digest over SSH, health-checks it, and rolls back if it fails |
+
+Deploy configuration lives in GitHub Environments (`staging`, `production`):
+
+| Name | Kind | Value |
+| --- | --- | --- |
+| `DEPLOY_HOST` / `DEPLOY_USER` / `DEPLOY_SSH_KEY` | secret | SSH access to the server |
+| `DEPLOY_KNOWN_HOSTS` | secret | optional; pins the host key |
+| `DEPLOY_SSH_PORT` | secret | optional, defaults to `22` |
+| `DEPLOY_PATH` | variable | checkout path on the server, e.g. `/srv/foundryxs` |
+| `HEALTH_URL` | variable | public `…/api/health` for that environment |
+
+Add required reviewers to the `production` environment to gate promotion. Schema
+changes are not applied automatically — run the workflow manually with
+**Apply the Prisma schema** checked. Full server setup: [`docs/deploy/ubuntu-server.md`](docs/deploy/ubuntu-server.md).

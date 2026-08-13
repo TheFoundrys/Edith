@@ -1,0 +1,19 @@
+name: edith
+
+# Deploy overlay. The base file builds from source, which is right for local
+# work and wrong for a server: production must run the exact image CI already
+# tested, not a rebuild of whatever the working tree happens to contain.
+#
+#   WEB_IMAGE=ghcr.io/thefoundrys/atlas/web@sha256:... \
+#   TOOLS_IMAGE=ghcr.io/thefoundrys/atlas/web-tools@sha256:... \
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build web
+services:
+  web:
+    image: ${WEB_IMAGE:?WEB_IMAGE must be set}
+    pull_policy: always
+
+  # Same one-shot Prisma runner as the base file, but from the published build
+  # stage, so schema work needs no compiler or source checkout on the server.
+  prisma:
+    image: ${TOOLS_IMAGE:?TOOLS_IMAGE must be set}
+    pull_policy: always

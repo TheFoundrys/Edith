@@ -7,8 +7,8 @@
 -- first if those assignments matter.
 --
 -- If you roll back, also remove Membership.expiresAt, Membership.roles,
--- MembershipRole and PermissionRole.memberships from both schema copies
--- (apps/web/prisma/schema.prisma and database/schema/schema.prisma), then re-run
+-- MembershipRole and PermissionRole.memberships from
+-- apps/web/prisma/schema.prisma, then re-run
 -- `prisma generate`, or the client will no longer match the database.
 
 BEGIN;
