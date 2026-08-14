@@ -27,7 +27,8 @@ export const metadata: Metadata = {
     default: APP_LOCKUP,
     template: `%s · ${APP_NAME}`,
   },
-  description: APP_LOCKUP,
+  description:
+    "Programmes in AI, cybersecurity, data, blockchain, and quantum.",
   applicationName: APP_NAME,
   icons: {
     icon: [

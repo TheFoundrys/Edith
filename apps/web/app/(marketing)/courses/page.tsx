@@ -58,14 +58,14 @@ export default async function PublicCoursesPage({
   );
 
   return (
-    <MarketingShell maxWidth="max-w-7xl">
+    <MarketingShell maxWidth="max-w-7xl" showArt={false}>
       <div className="courses-theme">
         <div className="peak-rise">
           <h1 className="courses-heading font-display text-3xl sm:text-4xl">
-            Course Finder
+            Courses
           </h1>
-          <p className="mt-2 max-w-xl text-sm text-fg leading-relaxed">
-            Use any of the selectors to find the right course for you.
+          <p className="mt-2 max-w-xl text-sm text-fg-muted leading-relaxed">
+            Filter by programme, duration, or experience.
           </p>
         </div>
 
@@ -92,7 +92,7 @@ export default async function PublicCoursesPage({
                         href={`/courses/${course.slug}`}
                         className="courses-cta"
                       >
-                        Learn more →
+                        View course
                       </Link>
                     }
                   />

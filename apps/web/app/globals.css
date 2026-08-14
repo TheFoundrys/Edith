@@ -119,9 +119,116 @@ h6 {
   background-color: #f2f2f2;
 }
 
-/* Home — flat paper. Layered washes sat over the emblem and read as haze. */
+/* Home — a white-to-lavender wash. The two radials sit off-axis so the ramp
+   never resolves into a visible band, and the whole thing stays light enough
+   that the emblem and the copy keep every bit of their contrast. */
 .home-page .peak-atmosphere {
-  background: #f4f4f2;
+  background:
+    radial-gradient(
+      130% 100% at 86% 12%,
+      rgba(86, 108, 214, 0.11) 0%,
+      rgba(86, 108, 214, 0) 58%
+    ),
+    radial-gradient(
+      100% 80% at 4% 96%,
+      rgba(116, 106, 206, 0.1) 0%,
+      rgba(116, 106, 206, 0) 62%
+    ),
+    linear-gradient(167deg, #ffffff 0%, #fcfcff 34%, #f5f7fd 68%, #eceffb 100%);
+}
+
+/* Hero backdrop. Shares z-index 0 with the emblem and is ordered before it in
+   the markup, so the shield always paints on top. */
+.home-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-backdrop-curves,
+.home-backdrop-glyphs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.home-backdrop-waves {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  width: 100%;
+  height: min(42%, 26rem);
+}
+
+/* Hung off the right edge rather than centred on the shield — behind it the
+   lattice reads as graph paper and flattens the mark. */
+.home-backdrop-network {
+  position: absolute;
+  top: 62%;
+  right: -16rem;
+  width: min(46rem, 68vw);
+  height: auto;
+  opacity: 0.22;
+  translate: 0 -50%;
+}
+
+/* Particle drifts. A dot tile masked back into its own corner costs one paint
+   and scales with the viewport, where placed marks would not. */
+.home-backdrop-dots {
+  position: absolute;
+  background-image: radial-gradient(
+    circle,
+    rgba(25, 40, 144, 0.55) 1px,
+    transparent 1.5px
+  );
+  background-size: 14px 14px;
+}
+
+.home-backdrop-dots-tl {
+  top: 0;
+  left: 0;
+  width: min(20rem, 42vw);
+  height: min(18rem, 34vh);
+  opacity: 0.2;
+  -webkit-mask-image: radial-gradient(
+    125% 125% at 0% 0%,
+    #000 0%,
+    transparent 72%
+  );
+  mask-image: radial-gradient(125% 125% at 0% 0%, #000 0%, transparent 72%);
+}
+
+.home-backdrop-dots-bl {
+  bottom: 0;
+  left: 0;
+  width: min(24rem, 50vw);
+  height: min(20rem, 38vh);
+  opacity: 0.22;
+  -webkit-mask-image: radial-gradient(
+    125% 125% at 0% 100%,
+    #000 0%,
+    transparent 72%
+  );
+  mask-image: radial-gradient(125% 125% at 0% 100%, #000 0%, transparent 72%);
+}
+
+/* Phones lose the emblem, so the field behind the copy has to get quieter
+   rather than louder. */
+@media (max-width: 767px) {
+  .home-backdrop-network {
+    display: none;
+  }
+
+  .home-backdrop-glyphs {
+    opacity: 0.45;
+  }
+
+  .home-backdrop-curves {
+    opacity: 0.6;
+  }
 }
 
 .home-page .home-header {
@@ -136,9 +243,6 @@ h6 {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-elevated);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 24px 48px -34px rgba(25, 40, 144, 0.5);
 }
 
 @media (min-width: 640px) {
@@ -158,7 +262,7 @@ h6 {
 
 .home-emblem-art {
   z-index: 0;
-  opacity: 0.7;
+  opacity: 1;
 }
 
 /* Right edge lands on the hero container's content edge, not the viewport's,
@@ -169,7 +273,7 @@ h6 {
   position: absolute;
   top: 50%;
   right: calc(max(0px, (100% - 80rem) / 2) + var(--hero-gutter));
-  height: 72%;
+  height: 38%;
   width: auto;
   translate: 0 -50%;
 }
@@ -198,6 +302,12 @@ h6 {
   animation: home-emblem-nodes 5.5s ease-in-out infinite;
 }
 
+.home-emblem-chip {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: home-emblem-chip 2.8s ease-in-out infinite;
+}
+
 /* SVG transforms need an explicit box before transform-origin can be given in
    user units; both of these pivot on a specific point of the drawing. */
 .home-emblem-hammer,
@@ -211,6 +321,13 @@ h6 {
   animation: home-emblem-hammer 4.5s ease-in-out infinite;
 }
 
+/* Impact on the anvil face, same clock as the hammer's strike at 72%. */
+.home-emblem-strike {
+  transform-box: view-box;
+  transform-origin: 266px 121px;
+  animation: home-emblem-strike 4.5s ease-out infinite;
+}
+
 /* Spine of the book. */
 .home-emblem-page {
   transform-origin: 135px 114px;
@@ -221,9 +338,15 @@ h6 {
 .home-emblem-art.is-static .home-emblem-float,
 .home-emblem-art.is-static .home-emblem-globe,
 .home-emblem-art.is-static .home-emblem-nodes,
+.home-emblem-art.is-static .home-emblem-chip,
 .home-emblem-art.is-static .home-emblem-hammer,
 .home-emblem-art.is-static .home-emblem-page {
   animation: none;
+}
+
+.home-emblem-art.is-static .home-emblem-strike {
+  animation: none;
+  opacity: 0;
 }
 
 @keyframes home-emblem-float {
@@ -241,7 +364,7 @@ h6 {
     transform: translateX(0);
   }
   to {
-    transform: translateX(28px);
+    transform: translateX(16px);
   }
 }
 
@@ -252,6 +375,18 @@ h6 {
   }
   50% {
     opacity: 1;
+  }
+}
+
+@keyframes home-emblem-chip {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
   }
 }
 
@@ -277,6 +412,27 @@ h6 {
   }
 }
 
+@keyframes home-emblem-strike {
+  0%,
+  70% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  72% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  80% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+  81%,
+  100% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+}
+
 /* The leaf foreshortens toward the spine and settles back, so it riffles. */
 @keyframes home-emblem-page {
   0%,
@@ -295,31 +451,23 @@ h6 {
   }
 }
 
-/* The hero copy owns the narrow viewport; the mark pulls back to a hint. */
+/* The hero copy owns the narrow viewport; hide the mark entirely. */
 @media (max-width: 767px) {
   .home-emblem-art {
-    opacity: 0.24;
-  }
-
-  .home-emblem-mark {
-    height: 52%;
+    display: none;
   }
 }
 
 .home-page .home-wordmark {
   margin: 0;
   font-family: var(--font-hero);
-  font-size: clamp(3rem, 17vw, 14rem);
+  font-size: clamp(2.75rem, 8vw, 6.25rem);
   font-style: italic;
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.01em;
-  /* Brand constant is all-caps; set it as a math variable instead. */
   text-transform: lowercase;
-  /* One flat pass of brand blue. Offset shadow layers each carried their own
-     anti-aliased edge, and the stacked fringes read as a blurred glyph. */
   color: var(--brand);
-  /* Grayscale AA: subpixel rendering fringes display type with color at this size. */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -329,13 +477,14 @@ h6 {
 }
 
 .home-page .home-tagline {
-  margin: 1.75rem 0 0;
-  font-family: var(--font-hero);
-  font-size: clamp(1.15rem, 3vw, 2rem);
-  font-style: italic;
+  margin: 1.5rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  font-style: normal;
   font-weight: 400;
-  line-height: 1.25;
-  color: var(--brand);
+  line-height: 1.45;
+  letter-spacing: 0;
+  color: var(--fg-muted);
 }
 
 .home-page .home-hero-rule {
@@ -348,19 +497,8 @@ h6 {
   animation: home-rule-draw 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
 }
 
-.home-page .home-cta-primary {
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.2) inset,
-    0 12px 28px -14px rgba(25, 40, 144, 0.55);
-}
-
 .home-page .home-cta-secondary {
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 8px 22px -16px rgba(25, 40, 144, 0.28);
-}
-
-.home-page .home-cta-secondary:hover {
-  background: var(--brand);
+  background: var(--bg-elevated);
 }
 
 @keyframes home-rule-draw {
@@ -413,7 +551,7 @@ h6 {
   );
 }
 
-.peak-atmosphere > *:not(.peak-art):not(.home-emblem-art) {
+.peak-atmosphere > *:not(.peak-art):not(.home-emblem-art):not(.home-backdrop) {
   position: relative;
   z-index: 1;
 }
@@ -970,7 +1108,9 @@ h6 {
   .home-emblem-float,
   .home-emblem-globe,
   .home-emblem-nodes,
+  .home-emblem-chip,
   .home-emblem-hammer,
+  .home-emblem-strike,
   .home-emblem-page {
     animation: none;
   }

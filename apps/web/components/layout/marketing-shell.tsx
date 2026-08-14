@@ -52,7 +52,7 @@ export async function MarketingShell({
                 </Button>
               </Link>
               <Link href="/register">
-                <Button size="sm">Get started</Button>
+                <Button size="sm">Register</Button>
               </Link>
             </>
           )}
