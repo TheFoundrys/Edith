@@ -292,7 +292,7 @@ export default async function PublicCourseDetailPage({
                       href={`/register?callbackUrl=${enrollCallback}`}
                       className="courses-cta text-center"
                     >
-                      Create account →
+                      Create an account
                     </Link>
                   </>
                 )}

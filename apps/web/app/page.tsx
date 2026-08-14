@@ -4,6 +4,7 @@ import { isStaffRole } from "@/lib/auth/session";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { HomeHeader } from "@/components/layout/home-header";
 import { HomeEmblemArt } from "@/components/layout/home-emblem-art";
+import { HomeHeroBackdrop } from "@/components/layout/home-hero-backdrop";
 import { Button } from "@/components/ui/button";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 
@@ -28,17 +29,17 @@ export default async function HomePage() {
         id="main-content"
         className="relative flex-1 min-h-[100svh] flex flex-col peak-atmosphere"
       >
+        <HomeHeroBackdrop />
         <HomeEmblemArt />
 
         <div className="home-hero relative flex-1 flex flex-col justify-center px-5 sm:px-8 lg:px-12 max-w-7xl w-full mx-auto py-28 sm:py-32">
-          <h1 className="home-wordmark peak-rise">{APP_NAME}!</h1>
+          <h1 className="home-wordmark peak-rise">{APP_NAME}</h1>
           <div className="home-hero-rule peak-rise" aria-hidden />
           <p className="home-tagline max-w-xl peak-rise-delay">
             {APP_TAGLINE}
           </p>
           <p className="mt-5 max-w-md text-base sm:text-lg text-fg-muted leading-relaxed peak-rise-delay-2">
-            Deep tech courses in AI, cyber, data, blockchain, and quantum —
-            enroll, learn, and finish.
+            Programmes in AI, cybersecurity, data, blockchain, and quantum.
           </p>
           <div className="mt-9 flex flex-wrap gap-3 peak-rise-delay-2">
             <Link href="/courses">

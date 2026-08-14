@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { APP_LOCKUP } from "@/lib/brand";
+import { APP_NAME } from "@/lib/brand";
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-border mt-auto">
       <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-fg-muted">
         <p>
-          © {new Date().getFullYear()} {APP_LOCKUP}
+          © {new Date().getFullYear()} {APP_NAME}
         </p>
         <nav className="flex flex-wrap gap-4" aria-label="Legal">
           <Link

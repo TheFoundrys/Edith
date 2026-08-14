@@ -28,7 +28,7 @@ export function AuthShell({
         <HomeEmblemArt animated={false} />
         <div className="flex-1 flex items-center justify-start w-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-24 pb-16">
           <div className="auth-card w-full peak-rise">
-            <BrandMark showTagline />
+            <BrandMark />
             <div className="auth-card-rule" aria-hidden />
             <h1 className="font-display text-3xl sm:text-[2.5rem] leading-[1.1] tracking-tight">
               {title}

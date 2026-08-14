@@ -108,7 +108,7 @@ export default function LoginPage() {
   return (
     <AuthShell
       ctaHref="/register"
-      ctaLabel="Get started"
+      ctaLabel="Register"
       title="Sign in"
       description="Use your institution or student credentials."
     >
