@@ -100,7 +100,7 @@ function RegisterForm() {
       </form>
       <p className="mt-6 text-sm text-fg-muted">
         Already have an account?{" "}
-        <Link href={loginHref} className="text-fg underline underline-offset-2">
+        <Link href={loginHref} className="link-quiet">
           Sign in
         </Link>
       </p>
@@ -111,8 +111,6 @@ function RegisterForm() {
 export default function RegisterPage() {
   return (
     <AuthShell
-      ctaHref="/login"
-      ctaLabel="Sign in"
       title="Create account"
       description="Create a student account to enroll in courses."
     >

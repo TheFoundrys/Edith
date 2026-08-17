@@ -2,14 +2,16 @@ import { AppShell } from "@/components/layout/app-shell";
 import { requireStudent } from "@/lib/auth/session";
 import { APP_NAME } from "@/lib/brand";
 
-/** Primary student paths — Enroll, Payment, Assignments & Quizzes. */
+/** Student workspace navigation. */
 const nav = [
   { href: "/student/dashboard", label: "Home" },
   { href: "/student/enroll", label: "Enroll" },
+  { href: "/student/my-courses", label: "My Courses" },
+  { href: "/student/progress", label: "Progress" },
+  { href: "/student/assessments", label: "Assignments & Quizzes" },
+  { href: "/student/certificates", label: "Certificates" },
   { href: "/student/applications", label: "Applications" },
   { href: "/student/payment", label: "Payment" },
-  { href: "/student/assessments", label: "Assignments & Quizzes" },
-  { href: "/student/my-courses", label: "My Courses" },
   { href: "/student/announcements", label: "Announcements" },
   { href: "/student/forums", label: "Forums" },
   { href: "/student/tickets", label: "Support" },

@@ -96,7 +96,7 @@ function LoginForm() {
       </form>
       <p className="mt-6 text-sm text-fg-muted">
         New student?{" "}
-        <Link href={registerHref} className="text-fg underline underline-offset-2">
+        <Link href={registerHref} className="link-quiet">
           Create an account
         </Link>
       </p>
@@ -107,8 +107,6 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <AuthShell
-      ctaHref="/register"
-      ctaLabel="Register"
       title="Sign in"
       description="Use your institution or student credentials."
     >

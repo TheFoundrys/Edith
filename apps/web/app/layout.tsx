@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     template: `%s · ${APP_NAME}`,
   },
   description:
-    "Programmes in AI, cybersecurity, data, blockchain, and quantum.",
+    "Your learning platform for AI, cybersecurity, data, blockchain and quantum technology.",
   applicationName: APP_NAME,
   icons: {
     icon: [

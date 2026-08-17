@@ -1,37 +1,62 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/layout/brand-mark";
 import { Button } from "@/components/ui/button";
-import { APP_NAME } from "@/lib/brand";
+
+export function SiteNav({
+  loggedIn = false,
+  workspaceHref = "/student/dashboard",
+  workspaceLabel = "Continue learning",
+}: {
+  loggedIn?: boolean;
+  workspaceHref?: string;
+  workspaceLabel?: string;
+}) {
+  return (
+    <div className="flex items-center gap-1 sm:gap-2">
+      <Link href="/courses" className="nav-link">
+        Courses
+      </Link>
+      {loggedIn ? (
+        <Link href={workspaceHref}>
+          <Button size="sm">{workspaceLabel}</Button>
+        </Link>
+      ) : (
+        <>
+          <Link href="/login">
+            <Button variant="ghost" size="sm">
+              Sign in
+            </Button>
+          </Link>
+          <Link href="/register">
+            <Button size="sm">Register</Button>
+          </Link>
+        </>
+      )}
+    </div>
+  );
+}
 
 /**
  * Transparent overlay header for the pages built on the hero backdrop (home,
- * login). The CTA is per-page so it never points at the current route.
+ * login). Nav is the same set as MarketingShell so the chrome never drifts.
  */
 export function HomeHeader({
-  ctaHref,
-  ctaLabel,
+  loggedIn = false,
+  workspaceHref,
+  workspaceLabel,
 }: {
-  ctaHref: string;
-  ctaLabel: string;
+  loggedIn?: boolean;
+  workspaceHref?: string;
+  workspaceLabel?: string;
 }) {
   return (
-    <header className="home-header absolute inset-x-0 top-0 z-20 h-14 px-5 sm:px-8 flex items-center justify-between peak-fade">
-      <Link
-        href="/"
-        className="font-display brand-wordmark text-xl tracking-tight text-brand"
-      >
-        {APP_NAME}
-      </Link>
-      <div className="flex items-center gap-1 sm:gap-2">
-        <Link
-          href="/courses"
-          className="text-sm text-brand hover:text-brand/80 px-2.5 py-1.5 transition-colors"
-        >
-          Courses
-        </Link>
-        <Link href={ctaHref}>
-          <Button size="sm">{ctaLabel}</Button>
-        </Link>
-      </div>
+    <header className="home-header absolute inset-x-0 top-0 z-20 min-h-14 py-2 px-5 sm:px-8 flex items-center justify-between peak-fade">
+      <BrandMark />
+      <SiteNav
+        loggedIn={loggedIn}
+        workspaceHref={workspaceHref}
+        workspaceLabel={workspaceLabel}
+      />
     </header>
   );
 }

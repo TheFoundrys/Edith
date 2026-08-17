@@ -97,6 +97,24 @@ export function catalogExperienceLabel(program: CatalogMetaProgram): string {
   return "Not mandatory";
 }
 
+export function catalogModeBadge(program: CatalogMetaProgram): string {
+  const mode = catalogMode(program);
+  if (/institutional/i.test(mode)) return "Institutional";
+  if (/hybrid/i.test(mode)) return "Hybrid";
+  if (/campus/i.test(mode)) return "Campus";
+  if (/live-online|virtual/i.test(mode)) return "Live";
+  return mode;
+}
+
+export function catalogLevelBadge(program: CatalogMetaProgram): string | null {
+  const key = catalogExperienceKey(program);
+  if (key === "0-2" || key === "none") return "Beginner";
+  if (key === "2plus") return "Intermediate";
+  if (key === "5plus" || key === "8plus") return "Advanced";
+  if (key === "educators") return "Educators";
+  if (key === "institution") return "Institutions";
+  return null;
+}
 export function catalogExperienceKey(program: CatalogMetaProgram): string {
   const label = catalogExperienceLabel(program);
   if (label === "Educators") return "educators";

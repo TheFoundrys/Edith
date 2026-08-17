@@ -6,7 +6,12 @@ import { HomeHeader } from "@/components/layout/home-header";
 import { HomeEmblemArt } from "@/components/layout/home-emblem-art";
 import { HomeHeroBackdrop } from "@/components/layout/home-hero-backdrop";
 import { Button } from "@/components/ui/button";
-import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
+import {
+  APP_HEADLINE,
+  APP_NAME,
+  APP_PARENT_CREDIT,
+  APP_SUBHEAD,
+} from "@/lib/brand";
 
 export default async function HomePage() {
   const session = await auth();
@@ -23,36 +28,46 @@ export default async function HomePage() {
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <HomeHeader ctaHref="/login" ctaLabel="Sign in" />
+      <HomeHeader
+        loggedIn={loggedIn}
+        workspaceHref={href}
+        workspaceLabel={
+          isStaffRole(session?.user?.role) ? "Workspace" : "Continue learning"
+        }
+      />
 
       <main
         id="main-content"
-        className="relative flex-1 min-h-[100svh] flex flex-col peak-atmosphere"
+        className="relative flex-1 flex flex-col peak-atmosphere min-h-[72svh]"
       >
         <HomeHeroBackdrop />
-        <HomeEmblemArt />
 
-        <div className="home-hero relative flex-1 flex flex-col justify-center px-5 sm:px-8 lg:px-12 max-w-7xl w-full mx-auto py-28 sm:py-32">
-          <h1 className="home-wordmark peak-rise">{APP_NAME}</h1>
-          <div className="home-hero-rule peak-rise" aria-hidden />
-          <p className="home-tagline max-w-xl peak-rise-delay">
-            {APP_TAGLINE}
-          </p>
-          <p className="mt-5 max-w-md text-base sm:text-lg text-fg-muted leading-relaxed peak-rise-delay-2">
-            Programmes in AI, cybersecurity, data, blockchain, and quantum.
-          </p>
-          <div className="mt-9 flex flex-wrap gap-3 peak-rise-delay-2">
-            <Link href="/courses">
-              <Button className="home-cta-primary h-11 px-5 text-sm">
-                Browse courses
-              </Button>
-            </Link>
-            <Link href={loggedIn ? href : "/login"}>
-              <Button variant="secondary" className="home-cta-secondary h-11 px-5 text-sm">
-                {loggedIn ? "Continue learning" : "Sign in"}
-              </Button>
-            </Link>
+        <div className="home-hero relative flex-1 flex items-center justify-between gap-10 px-5 sm:px-8 lg:px-12 max-w-7xl w-full mx-auto py-20 sm:py-24">
+          <div>
+            <p className="home-wordmark peak-rise">{APP_NAME}</p>
+            <p className="home-parent peak-rise">{APP_PARENT_CREDIT}</p>
+            <div className="home-hero-rule peak-rise" aria-hidden />
+            <h1 className="home-headline peak-rise-delay">{APP_HEADLINE}</h1>
+            <p className="home-tagline max-w-md peak-rise-delay">
+              {APP_SUBHEAD}
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3 peak-rise-delay-2">
+              <Link href="/courses">
+                <Button className="home-cta-primary h-11 px-5 text-sm">
+                  Browse courses
+                </Button>
+              </Link>
+              <Link href={loggedIn ? href : "/login"}>
+                <Button
+                  variant="secondary"
+                  className="home-cta-secondary h-11 px-5 text-sm"
+                >
+                  {loggedIn ? "Continue learning" : "Sign in"}
+                </Button>
+              </Link>
+            </div>
           </div>
+          <HomeEmblemArt placement="inline" />
         </div>
       </main>
       <SiteFooter />

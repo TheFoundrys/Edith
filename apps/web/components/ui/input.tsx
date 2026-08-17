@@ -25,7 +25,7 @@ export function Label({
 }
 
 const controlClass =
-  "w-full rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated px-3 text-sm text-fg outline-none transition-colors focus-visible:border-fg placeholder:text-fg-muted/70 aria-invalid:border-fg";
+  "w-full rounded-[var(--radius-sm)] border border-border bg-bg-elevated px-3 text-sm text-fg outline-none transition-[border-color,box-shadow] duration-[var(--duration)] focus-visible:border-brand focus-visible:shadow-[0_0_0_3px_var(--brand-light)] placeholder:text-fg-muted/70 aria-invalid:border-fg";
 
 export function Input({
   className,

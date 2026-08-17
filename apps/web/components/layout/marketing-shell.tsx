@@ -1,10 +1,9 @@
-import Link from "next/link";
+import { BrandMark } from "@/components/layout/brand-mark";
+import { SiteNav } from "@/components/layout/home-header";
+import { PeakArtBackdrop } from "@/components/layout/peak-art-backdrop";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { auth } from "@/lib/auth";
 import { isStaffRole } from "@/lib/auth/session";
-import { Button } from "@/components/ui/button";
-import { PeakArtBackdrop } from "@/components/layout/peak-art-backdrop";
-import { BrandMark } from "@/components/layout/brand-mark";
-import { SiteFooter } from "@/components/layout/site-footer";
 
 export async function MarketingShell({
   children,
@@ -31,32 +30,17 @@ export async function MarketingShell({
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <header className="h-14 border-b border-border bg-bg-elevated/90 backdrop-blur px-5 sm:px-8 flex items-center justify-between">
+      <header className="min-h-14 py-2 border-b border-border bg-bg-elevated/90 backdrop-blur px-5 sm:px-8 flex items-center justify-between">
         <BrandMark />
-        <div className="flex items-center gap-1 sm:gap-2">
-          <Link
-            href="/courses"
-            className="text-sm text-fg-muted hover:text-fg px-2.5 py-1.5 transition-colors"
-          >
-            Courses
-          </Link>
-          {workspaceHref ? (
-            <Link href={workspaceHref}>
-              <Button size="sm">Workspace</Button>
-            </Link>
-          ) : (
-            <>
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  Sign in
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button size="sm">Register</Button>
-              </Link>
-            </>
-          )}
-        </div>
+        <SiteNav
+          loggedIn={Boolean(workspaceHref)}
+          workspaceHref={workspaceHref ?? undefined}
+          workspaceLabel={
+            session?.user && isStaffRole(session.user.role)
+              ? "Workspace"
+              : "Continue learning"
+          }
+        />
       </header>
       <main
         id="main-content"

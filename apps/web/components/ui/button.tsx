@@ -6,16 +6,16 @@ type Size = "sm" | "md";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-accent text-accent-fg hover:bg-[color-mix(in_srgb,var(--brand)_86%,#000000)]",
+    "bg-accent text-accent-fg hover:bg-[color-mix(in_srgb,var(--brand)_88%,#000000)]",
   secondary:
-    "bg-transparent text-brand border border-brand hover:bg-brand hover:text-accent-fg",
-  ghost: "bg-transparent text-fg-muted hover:text-fg",
+    "bg-bg-elevated text-fg border border-border hover:border-border-strong hover:bg-bg",
+  ghost: "bg-transparent text-fg-muted hover:text-fg hover:bg-bg",
   danger: "bg-fg text-accent-fg hover:opacity-90",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs tracking-wide",
-  md: "h-10 px-4 text-sm tracking-wide",
+  sm: "h-8 px-3 text-xs",
+  md: "h-10 px-4 text-sm",
 };
 
 function ButtonSpinner({ size }: { size: Size }) {
@@ -56,7 +56,7 @@ export const Button = forwardRef<
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] font-medium transition-colors duration-200 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg",
+        "inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] font-medium transition-colors duration-[var(--duration)] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
         variants[variant],
         sizes[size],
         className,

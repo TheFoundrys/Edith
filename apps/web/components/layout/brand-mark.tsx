@@ -1,26 +1,24 @@
-import Link from "next/link";
-import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
+import { APP_NAME, APP_PARENT_CREDIT } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 /** Compact brand mark for nav/auth. */
 export function BrandMark({
   href = "/",
   className,
-  showTagline = false,
+  showParent = true,
 }: {
   href?: string;
   className?: string;
-  showTagline?: boolean;
+  showParent?: boolean;
 }) {
   return (
     <Link href={href} className={cn("inline-flex flex-col", className)}>
-      <span className="font-display brand-wordmark text-lg tracking-tight text-brand">
+      <span className="brand-wordmark text-lg tracking-tight">
         {APP_NAME}
       </span>
-      {showTagline ? (
-        <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-          {APP_TAGLINE}
-        </span>
+      {showParent ? (
+        <span className="brand-parent">{APP_PARENT_CREDIT}</span>
       ) : null}
     </Link>
   );
