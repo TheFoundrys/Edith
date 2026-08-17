@@ -1,19 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #fafafa;
+  --bg: #fafafc;
   --bg-elevated: #ffffff;
-  --fg: #0a0a0a;
-  --fg-muted: #6b6b6b;
-  --border: #e8e8e8;
-  --border-strong: #cfcfcf;
-  --brand: rgb(25, 40, 144);
+  --fg: #111827;
+  --fg-muted: #667085;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --brand: #243b9b;
+  --brand-light: #eef2ff;
   --accent: var(--brand);
   --accent-fg: #ffffff;
-  --danger: #0a0a0a;
-  --radius: 2px;
-  --radius-sm: 2px;
-  --shadow: none;
+  --danger: #111827;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 1px 2px rgba(17, 24, 39, 0.05);
+  --shadow-hover: 0 10px 24px -12px rgba(17, 24, 39, 0.16);
+  --duration: 180ms;
   --font-display: var(--font-sans-body), ui-sans-serif, system-ui, sans-serif;
   /* Instrument Serif is reserved for the home hero. Keep it out of
      --font-display, which every page's display type resolves through. */
@@ -33,6 +36,7 @@
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-brand: var(--brand);
+  --color-brand-light: var(--brand-light);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-danger: var(--danger);
@@ -72,7 +76,7 @@ body {
 }
 
 ::selection {
-  background: #0a0a0a;
+  background: var(--brand);
   color: #ffffff;
 }
 
@@ -83,9 +87,9 @@ body {
 
 .font-display {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: -0.02em;
-  color: var(--brand);
+  color: var(--fg);
 }
 
 /* Wordmark: the hero serif in italic, set as "Edith" from the all-caps brand
@@ -94,47 +98,69 @@ body {
   display: inline-block;
   font-family: var(--font-hero);
   font-style: italic;
-  font-weight: 700;
+  font-weight: 400;
   text-transform: lowercase;
+  color: var(--brand);
 }
 
 .brand-wordmark::first-letter {
   text-transform: uppercase;
 }
 
-/* Headings + brand wordmark use brand blue site-wide */
+.brand-parent {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+}
+
+.nav-link {
+  font-size: 0.875rem;
+  color: var(--fg-muted);
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--duration) ease, background var(--duration) ease;
+}
+
+.nav-link:hover {
+  color: var(--fg);
+}
+
+a.link-quiet {
+  color: var(--brand);
+  text-underline-offset: 0.2em;
+  transition: color var(--duration) ease;
+}
+
+a.link-quiet:hover {
+  text-decoration: underline;
+}
+
+/* Headings use the sans, in ink — brand blue is reserved for the wordmark,
+   links, and primary actions. */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  color: var(--brand);
+  color: var(--fg);
+  font-weight: 600;
 }
 
 /* Atmosphere: quiet paper base — art composition sits on top via PeakArtBackdrop */
 .peak-atmosphere {
   position: relative;
   isolation: isolate;
-  background-color: #f2f2f2;
+  background-color: var(--bg);
 }
 
-/* Home — a white-to-lavender wash. The two radials sit off-axis so the ramp
-   never resolves into a visible band, and the whole thing stays light enough
-   that the emblem and the copy keep every bit of their contrast. */
+/* Home — paper into light blue. The radials sit off-axis so the ramp never
+   resolves into a visible band. */
 .home-page .peak-atmosphere {
-  background:
-    radial-gradient(
-      130% 100% at 86% 12%,
-      rgba(86, 108, 214, 0.11) 0%,
-      rgba(86, 108, 214, 0) 58%
-    ),
-    radial-gradient(
-      100% 80% at 4% 96%,
-      rgba(116, 106, 206, 0.1) 0%,
-      rgba(116, 106, 206, 0) 62%
-    ),
-    linear-gradient(167deg, #ffffff 0%, #fcfcff 34%, #f5f7fd 68%, #eceffb 100%);
+  background: #ffffff;
 }
 
 /* Hero backdrop. Shares z-index 0 with the emblem and is ordered before it in
@@ -147,88 +173,11 @@ h6 {
   pointer-events: none;
 }
 
-.home-backdrop-curves,
-.home-backdrop-glyphs {
+.home-backdrop-waves {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-}
-
-.home-backdrop-waves {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  width: 100%;
-  height: min(42%, 26rem);
-}
-
-/* Hung off the right edge rather than centred on the shield — behind it the
-   lattice reads as graph paper and flattens the mark. */
-.home-backdrop-network {
-  position: absolute;
-  top: 62%;
-  right: -16rem;
-  width: min(46rem, 68vw);
-  height: auto;
-  opacity: 0.22;
-  translate: 0 -50%;
-}
-
-/* Particle drifts. A dot tile masked back into its own corner costs one paint
-   and scales with the viewport, where placed marks would not. */
-.home-backdrop-dots {
-  position: absolute;
-  background-image: radial-gradient(
-    circle,
-    rgba(25, 40, 144, 0.55) 1px,
-    transparent 1.5px
-  );
-  background-size: 14px 14px;
-}
-
-.home-backdrop-dots-tl {
-  top: 0;
-  left: 0;
-  width: min(20rem, 42vw);
-  height: min(18rem, 34vh);
-  opacity: 0.2;
-  -webkit-mask-image: radial-gradient(
-    125% 125% at 0% 0%,
-    #000 0%,
-    transparent 72%
-  );
-  mask-image: radial-gradient(125% 125% at 0% 0%, #000 0%, transparent 72%);
-}
-
-.home-backdrop-dots-bl {
-  bottom: 0;
-  left: 0;
-  width: min(24rem, 50vw);
-  height: min(20rem, 38vh);
-  opacity: 0.22;
-  -webkit-mask-image: radial-gradient(
-    125% 125% at 0% 100%,
-    #000 0%,
-    transparent 72%
-  );
-  mask-image: radial-gradient(125% 125% at 0% 100%, #000 0%, transparent 72%);
-}
-
-/* Phones lose the emblem, so the field behind the copy has to get quieter
-   rather than louder. */
-@media (max-width: 767px) {
-  .home-backdrop-network {
-    display: none;
-  }
-
-  .home-backdrop-glyphs {
-    opacity: 0.45;
-  }
-
-  .home-backdrop-curves {
-    opacity: 0.6;
-  }
 }
 
 .home-page .home-header {
@@ -265,60 +214,103 @@ h6 {
   opacity: 1;
 }
 
-/* Right edge lands on the hero container's content edge, not the viewport's,
-   so the mark shares a grid with the copy instead of hugging the screen.
-   Mirrors .home-hero: max-w-7xl with px-5 / sm:px-8 / lg:px-12. */
+.home-emblem-art.is-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
 .home-emblem-mark {
+  display: block;
+  width: auto;
+}
+
+/* Auth / still backdrop: pin the mark to the same right gutter as the form. */
+.home-emblem-art.is-overlay .home-emblem-mark {
   --hero-gutter: 1.25rem;
   position: absolute;
   top: 50%;
   right: calc(max(0px, (100% - 80rem) / 2) + var(--hero-gutter));
   height: 38%;
-  width: auto;
   translate: 0 -50%;
 }
 
 @media (min-width: 640px) {
-  .home-emblem-mark {
+  .home-emblem-art.is-overlay .home-emblem-mark {
     --hero-gutter: 2rem;
   }
 }
 
 @media (min-width: 1024px) {
-  .home-emblem-mark {
+  .home-emblem-art.is-overlay .home-emblem-mark {
     --hero-gutter: 3rem;
   }
 }
 
-.home-emblem-float {
-  animation: home-emblem-float 20s ease-in-out infinite;
+/* Home hero: in-flow sibling of the copy, pushed out by space-between. */
+.home-emblem-art.is-inline {
+  flex-shrink: 0;
 }
 
-.home-emblem-globe {
-  animation: home-emblem-globe 9s linear infinite;
+.home-emblem-art.is-inline .home-emblem-mark {
+  height: clamp(16rem, 38vh, 22rem);
 }
 
-.home-emblem-nodes {
-  animation: home-emblem-nodes 5.5s ease-in-out infinite;
+/* Spinning meridians (SMIL). The still set is the reduced-motion / login pose. */
+.home-emblem-art:not(.is-static) .home-emblem-meridians-still {
+  display: none;
 }
 
-.home-emblem-chip {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: home-emblem-chip 2.8s ease-in-out infinite;
+/* Light from the upper-left: casts fall down-right on the plate. */
+.home-emblem-ground {
+  opacity: 0.1;
+}
+
+.home-emblem-ground-chip {
+  opacity: 0.05;
+}
+
+.home-emblem-cast {
+  stroke: #233b9b;
+  fill: none;
+  opacity: 0.3;
+}
+
+.home-emblem-cast-rest {
+  transform-box: view-box;
+  transform: translate(2.2px, 3.6px);
+}
+
+.home-emblem-cast-chip {
+  opacity: 0.12;
+  transform: translate(1px, 1.8px);
+}
+
+/* Page turn uses SMIL on the SVG; class kept for reduced-motion targeting. */
+
+/* Current travels around the chip pads. */
+.home-emblem-chip-node {
+  animation: home-emblem-chip-node 1.92s ease-in-out infinite;
 }
 
 /* SVG transforms need an explicit box before transform-origin can be given in
-   user units; both of these pivot on a specific point of the drawing. */
-.home-emblem-hammer,
-.home-emblem-page {
-  transform-box: view-box;
-}
-
-/* Grip end of the handle. */
+   user units; the hammer pivots on the grip. */
 .home-emblem-hammer {
+  transform-box: view-box;
   transform-origin: 289px 74px;
   animation: home-emblem-hammer 4.5s ease-in-out infinite;
+}
+
+.home-emblem-hammer-cast {
+  transform-box: view-box;
+  transform-origin: 289px 74px;
+  animation: home-emblem-hammer-cast 4.5s ease-in-out infinite;
+}
+
+.home-emblem-anvil-ground {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: home-emblem-anvil-ground 4.5s ease-out infinite;
 }
 
 /* Impact on the anvil face, same clock as the hammer's strike at 72%. */
@@ -328,20 +320,16 @@ h6 {
   animation: home-emblem-strike 4.5s ease-out infinite;
 }
 
-/* Spine of the book. */
-.home-emblem-page {
-  transform-origin: 135px 114px;
-  animation: home-emblem-page 7s ease-in-out infinite;
+/* Still backdrop: the mark holds its pose behind forms like /login. */
+.home-emblem-art.is-static .home-emblem-hammer,
+.home-emblem-art.is-static .home-emblem-hammer-cast,
+.home-emblem-art.is-static .home-emblem-anvil-ground,
+.home-emblem-art.is-static .home-emblem-chip-node {
+  animation: none;
 }
 
-/* Still backdrop: the mark holds its pose behind forms like /login. */
-.home-emblem-art.is-static .home-emblem-float,
-.home-emblem-art.is-static .home-emblem-globe,
-.home-emblem-art.is-static .home-emblem-nodes,
-.home-emblem-art.is-static .home-emblem-chip,
-.home-emblem-art.is-static .home-emblem-hammer,
-.home-emblem-art.is-static .home-emblem-page {
-  animation: none;
+.home-emblem-art.is-static .home-emblem-hammer-cast {
+  transform: translate(2.2px, 3.6px);
 }
 
 .home-emblem-art.is-static .home-emblem-strike {
@@ -349,44 +337,14 @@ h6 {
   opacity: 0;
 }
 
-@keyframes home-emblem-float {
+@keyframes home-emblem-chip-node {
   0%,
+  12%,
   100% {
-    translate: 0 0;
+    opacity: 0.28;
   }
-  50% {
-    translate: 0 -12px;
-  }
-}
-
-@keyframes home-emblem-globe {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(16px);
-  }
-}
-
-@keyframes home-emblem-nodes {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
+  6% {
     opacity: 1;
-  }
-}
-
-@keyframes home-emblem-chip {
-  0%,
-  100% {
-    opacity: 0.72;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
   }
 }
 
@@ -412,6 +370,49 @@ h6 {
   }
 }
 
+/* Same clock as the hammer. Lift throws a longer, fainter umbra; impact
+   shortens it onto the plate. Rotate first, then offset with the light. */
+@keyframes home-emblem-hammer-cast {
+  0%,
+  46% {
+    transform: translate(2.2px, 3.6px) rotate(0deg);
+    opacity: 0.3;
+  }
+  62% {
+    transform: translate(5.5px, 9px) rotate(14deg);
+    opacity: 0.12;
+  }
+  72% {
+    transform: translate(0.8px, 1.2px) rotate(-9deg);
+    opacity: 0.46;
+  }
+  79% {
+    transform: translate(3px, 5px) rotate(3deg);
+    opacity: 0.18;
+  }
+  86%,
+  100% {
+    transform: translate(2.2px, 3.6px) rotate(0deg);
+    opacity: 0.3;
+  }
+}
+
+@keyframes home-emblem-anvil-ground {
+  0%,
+  70% {
+    transform: scale(1);
+    opacity: 0.1;
+  }
+  72% {
+    transform: scaleX(1.2) scaleY(0.68);
+    opacity: 0.2;
+  }
+  80% {
+    transform: scale(1);
+    opacity: 0.1;
+  }
+}
+
 @keyframes home-emblem-strike {
   0%,
   70% {
@@ -424,30 +425,12 @@ h6 {
   }
   80% {
     opacity: 0;
-    transform: scale(1.7);
+    transform: scale(1.35);
   }
   81%,
   100% {
     opacity: 0;
     transform: scale(0.35);
-  }
-}
-
-/* The leaf foreshortens toward the spine and settles back, so it riffles. */
-@keyframes home-emblem-page {
-  0%,
-  58% {
-    transform: scaleX(1);
-  }
-  72% {
-    transform: scaleX(0.14);
-  }
-  82% {
-    transform: scaleX(0.72);
-  }
-  92%,
-  100% {
-    transform: scaleX(1);
   }
 }
 
@@ -461,7 +444,7 @@ h6 {
 .home-page .home-wordmark {
   margin: 0;
   font-family: var(--font-hero);
-  font-size: clamp(2.75rem, 8vw, 6.25rem);
+  font-size: clamp(2.5rem, 6.5vw, 4.75rem);
   font-style: italic;
   font-weight: 400;
   line-height: 1;
@@ -476,13 +459,32 @@ h6 {
   text-transform: uppercase;
 }
 
-.home-page .home-tagline {
-  margin: 1.5rem 0 0;
+.home-page .home-parent {
+  margin: 0.55rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+}
+
+.home-page .home-headline {
+  margin: 1.35rem 0 0;
+  max-width: 22rem;
   font-family: var(--font-sans);
-  font-size: 1.125rem;
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+}
+
+.home-page .home-tagline {
+  margin: 0.65rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 1rem;
   font-style: normal;
   font-weight: 400;
-  line-height: 1.45;
+  line-height: 1.5;
   letter-spacing: 0;
   color: var(--fg-muted);
 }
@@ -490,7 +492,7 @@ h6 {
 .home-page .home-hero-rule {
   width: 2.75rem;
   height: 2px;
-  margin-top: 1.15rem;
+  margin-top: 0.9rem;
   background: var(--brand);
   opacity: 0.9;
   transform-origin: left center;
@@ -520,7 +522,7 @@ h6 {
 
 .peak-art {
   z-index: 0;
-  opacity: 0.55;
+  opacity: 0.22;
   -webkit-mask-image: radial-gradient(
     ellipse 75% 70% at 88% 8%,
     #000 0%,
@@ -536,7 +538,7 @@ h6 {
 }
 
 .peak-art[data-variant="marketing"] {
-  opacity: 0.72;
+  opacity: 0.28;
   -webkit-mask-image: radial-gradient(
     ellipse 80% 75% at 86% 12%,
     #000 0%,
@@ -654,15 +656,20 @@ h6 {
 .peak-card {
   border: 1px solid var(--border);
   background: var(--bg-elevated);
+  border-radius: var(--radius);
   padding: var(--grid-pad);
   min-height: 0;
   display: flex;
   flex-direction: column;
-  transition: border-color 0.2s ease;
+  transition:
+    transform var(--duration) ease,
+    box-shadow var(--duration) ease,
+    border-color var(--duration) ease;
 }
 
 .peak-card:hover {
-  border-color: var(--fg);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
 }
 
 /* cm × cm modular containers */
@@ -700,6 +707,7 @@ h6 {
 .cm-box {
   border: 1px solid var(--border);
   background: var(--bg-elevated);
+  border-radius: var(--radius);
   padding: var(--grid-pad);
   min-height: var(--grid-cell);
   display: flex;
@@ -708,15 +716,15 @@ h6 {
 
 /* Courses catalog — quiet surfaces + type color layers */
 .courses-theme {
-  --fg-soft: #4a4a4a;
+  --fg-soft: var(--fg-muted);
   --accent: var(--brand);
   --accent-fg: #ffffff;
   color: var(--fg);
 }
 
 .courses-theme .courses-heading {
-  color: var(--brand);
-  font-weight: 400;
+  color: var(--fg);
+  font-weight: 600;
   letter-spacing: -0.025em;
 }
 
@@ -731,23 +739,73 @@ h6 {
 }
 
 .courses-theme .courses-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   color: var(--brand);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
   text-decoration: none;
-  transition: text-decoration-color 0.15s ease;
+  transition: gap var(--duration) ease, color var(--duration) ease;
 }
 
 .courses-theme .courses-cta:hover {
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+  gap: 0.45rem;
 }
 
 .courses-theme .cm-box {
   background: var(--bg-elevated);
   border-color: var(--border);
   box-shadow: none;
+  transition:
+    transform var(--duration) ease,
+    box-shadow var(--duration) ease,
+    border-color var(--duration) ease;
+}
+
+.courses-theme .cm-box:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+}
+
+.courses-theme .catalog-card {
+  --track: var(--border);
+  border-left: 3px solid var(--track);
+}
+
+.courses-theme .catalog-card[data-track="ai"] {
+  --track: #243b9b;
+}
+
+.courses-theme .catalog-card[data-track="cyber"] {
+  --track: #1e2a4a;
+}
+
+.courses-theme .catalog-card[data-track="blockchain"] {
+  --track: #5b4b8a;
+}
+
+.courses-theme .catalog-card[data-track="quantum"] {
+  --track: #1b4f8a;
+}
+
+.courses-theme .catalog-card[data-track="data"] {
+  --track: #334155;
+}
+
+.courses-theme .catalog-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg-muted);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .courses-theme .courses-chip {
@@ -911,23 +969,31 @@ h6 {
   gap: 0.75rem;
   min-height: 2.75rem;
   padding: 0.65rem 0.9rem;
-  border: 1px solid color-mix(in srgb, var(--brand) 55%, #9aa3b5);
-  background: #ffffff;
-  color: var(--brand);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--fg);
   font-size: 0.875rem;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
+  transition: border-color var(--duration) ease, box-shadow var(--duration) ease;
+}
+
+.courses-theme .courses-filter-trigger:hover {
+  border-color: var(--border-strong);
 }
 
 .courses-theme .courses-filter-trigger[data-active="true"] {
   border-color: var(--brand);
+  color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-light);
 }
 
 .courses-theme .courses-filter-chevron {
   flex-shrink: 0;
-  color: var(--brand);
-  transition: transform 0.15s ease;
+  color: var(--fg-muted);
+  transition: transform var(--duration) ease;
 }
 
 .courses-theme .courses-filter-dropdown[data-open="true"] .courses-filter-chevron {
@@ -942,9 +1008,22 @@ h6 {
   right: 0;
   min-width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border-strong);
-  background: #ffffff;
-  box-shadow: 0 12px 28px -18px rgba(10, 10, 10, 0.35);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-hover);
+  animation: filter-in var(--duration) ease;
+}
+
+@keyframes filter-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .courses-theme .courses-filter-menu-head {
@@ -994,6 +1073,7 @@ h6 {
   min-height: 2.75rem;
   padding: 0.65rem 0.9rem;
   border: 1px solid var(--brand);
+  border-radius: var(--radius-sm);
   background: var(--brand);
   color: #ffffff;
   font-size: 0.875rem;
@@ -1029,11 +1109,17 @@ h6 {
   text-underline-offset: 0.15em;
 }
 
-.cm-box-sm {
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  padding: var(--grid-gap);
-  min-height: calc(var(--grid-u) * 4);
+.progress-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--brand-light);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--brand);
 }
 
 .cm-pad {
@@ -1105,14 +1191,28 @@ h6 {
   .peak-art-frame,
   .peak-art-square,
   .peak-art-ring,
-  .home-emblem-float,
-  .home-emblem-globe,
-  .home-emblem-nodes,
-  .home-emblem-chip,
   .home-emblem-hammer,
+  .home-emblem-hammer-cast,
   .home-emblem-strike,
-  .home-emblem-page {
+  .home-emblem-anvil-ground,
+  .home-emblem-chip-node {
     animation: none;
+  }
+
+  .home-emblem-hammer-cast {
+    transform: translate(2.2px, 3.6px);
+  }
+
+  .home-emblem-page animateTransform {
+    display: none;
+  }
+
+  .home-emblem-meridians-spin {
+    display: none;
+  }
+
+  .home-emblem-art:not(.is-static) .home-emblem-meridians-still {
+    display: inline;
   }
 
   .btn-spinner {

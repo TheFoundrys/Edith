@@ -9,21 +9,17 @@ import { SiteFooter } from "@/components/layout/site-footer";
  * home hero. Keeping both pages on one shell stops them drifting apart.
  */
 export function AuthShell({
-  ctaHref,
-  ctaLabel,
   title,
   description,
   children,
 }: {
-  ctaHref: string;
-  ctaLabel: string;
   title: string;
   description: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="home-page min-h-full flex flex-col">
-      <HomeHeader ctaHref={ctaHref} ctaLabel={ctaLabel} />
+      <HomeHeader />
       <div className="relative flex-1 min-h-[100svh] flex flex-col peak-atmosphere">
         <HomeEmblemArt animated={false} />
         <div className="flex-1 flex items-center justify-start w-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-24 pb-16">

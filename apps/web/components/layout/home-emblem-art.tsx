@@ -16,9 +16,32 @@ const CIRCUIT_LEGS: Array<[number, number, number, number, number, number]> = [
   [156, 294, 156, 305, 156, 309],
 ];
 
-/* Pole-to-pole meridians, 16 apart so the spin loops. Each bows from the
-   same pole pair — pairing opposite bows is what read as a basketball. */
-const MERIDIAN_OFFSETS = [-48, -32, -16, 0, 16, 32, 48];
+const GLOBE_CX = 258;
+const GLOBE_CY = 274;
+const GLOBE_R = 25.2;
+const KAPPA = 0.55228475;
+
+/** Pole-to-pole elliptical meridian. `rx` is signed: east positive, west negative. */
+function meridianPath(rx: number) {
+  const kx = KAPPA * rx;
+  const ky = KAPPA * GLOBE_R;
+  const x = GLOBE_CX + rx;
+  const y0 = GLOBE_CY - GLOBE_R;
+  const y3 = GLOBE_CY + GLOBE_R;
+  return `M ${GLOBE_CX} ${y0} C ${GLOBE_CX + kx} ${y0} ${x} ${GLOBE_CY - ky} ${x} ${GLOBE_CY} C ${x} ${GLOBE_CY + ky} ${GLOBE_CX + kx} ${y3} ${GLOBE_CX} ${y3}`;
+}
+
+const MERIDIAN_STILL = [0, 30, -30, 60, -60].map(
+  (deg) => meridianPath(GLOBE_R * Math.sin((deg * Math.PI) / 180)),
+);
+
+/* Right limb → centre → left limb, then hold while opacity is 0. */
+const MERIDIAN_SPIN_VALUES = [90, 60, 30, 0, -30, -60, -90, -90]
+  .map((deg) => meridianPath(GLOBE_R * Math.sin((deg * Math.PI) / 180)))
+  .join(";");
+const MERIDIAN_SPIN_KEY_TIMES = "0;0.083;0.167;0.25;0.333;0.417;0.5;1";
+const MERIDIAN_COUNT = 10;
+const MERIDIAN_DUR = "8s";
 
 const BOOK_RULE_Y = [107, 113, 119, 125, 131];
 const BOOK_RULES_LEFT = BOOK_RULE_Y.map(
@@ -34,6 +57,19 @@ const BOOK_PAGE_RIGHT =
   "M 135 104 C 146 93 161 89 175 89 L 175 125 C 161 125 146 130 135 139 Z";
 const BOOK_SPINE = "M 135 103 V 140";
 
+const ANVIL_CROWN =
+  "M 228 121 L 286 118.5 C 291 118.5 292.5 122 290 126 L 236 126 C 231 126 228 124.5 228 121 Z";
+const ANVIL_NECK =
+  "M 257 126 C 260 131 260 136 258 140 L 272 140 C 270 136 270 131 273 126 Z";
+const ANVIL_BASE = "M 246 140 L 284 140 L 287 147.5 L 243 147.5 Z";
+const HAMMER_SHAFT = "M 289 74 L 266 96";
+
+const INK = "#233B9B";
+const INK_MID = "#6176C8";
+const INK_LIGHT = "#9AA9E3";
+const PLATE = "#F1F4FF";
+const GOLD = "#C5A45D";
+
 /* Four sharp tips, broad through the shoulders: 364 wide × 384 tall. */
 const SHIELD_OUTER =
   "M 18 46 L 200 16 L 382 46 C 382 200 342 320 200 400 C 58 320 18 200 18 46 Z";
@@ -41,16 +77,22 @@ const SHIELD_INNER =
   "M 34 59 L 200 32 L 366 59 C 366 203 328 313 200 382 C 72 313 34 203 34 59 Z";
 
 /**
- * The Foundry shield as oversized line art, anchored to the right of the home
- * hero. Stroke-only in the same blues as the wordmark.
- *
- * Pass `animated={false}` where the mark is a still backdrop behind a form.
+ * The Foundry shield as a plate on the home hero, with a hammer that strikes.
+ * Pass `animated={false}` behind a form.
  */
-export function HomeEmblemArt({ animated = true }: { animated?: boolean }) {
+export function HomeEmblemArt({
+  animated = true,
+  placement = "overlay",
+}: {
+  animated?: boolean;
+  placement?: "overlay" | "inline";
+}) {
   return (
     <div
       className={cn(
-        "home-emblem-art pointer-events-none absolute inset-0 overflow-hidden",
+        "home-emblem-art pointer-events-none",
+        placement === "overlay" && "is-overlay",
+        placement === "inline" && "is-inline",
         !animated && "is-static",
       )}
       aria-hidden
@@ -62,237 +104,336 @@ export function HomeEmblemArt({ animated = true }: { animated?: boolean }) {
         shapeRendering="geometricPrecision"
       >
         <defs>
-          <linearGradient
-            id="he-line"
-            gradientUnits="userSpaceOnUse"
-            x1="18"
-            y1="16"
-            x2="382"
-            y2="400"
-          >
-            <stop offset="0" stopColor="#3f5ad2" />
-            <stop offset="0.45" stopColor="#22349f" />
-            <stop offset="1" stopColor="#131f6b" />
-          </linearGradient>
-
-          {/* Opaque plate: lit from the top-left so the field reads as a
-              solid, slightly modelled surface rather than a hole. */}
-          <linearGradient
-            id="he-plate"
-            gradientUnits="userSpaceOnUse"
-            x1="80"
-            y1="20"
-            x2="300"
-            y2="390"
-          >
-            <stop offset="0" stopColor="#f8f9fd" />
-            <stop offset="0.55" stopColor="#eef0f8" />
-            <stop offset="1" stopColor="#e2e6f4" />
-          </linearGradient>
-
-          <clipPath id="he-shield-clip">
-            <path d={SHIELD_OUTER} />
+          <clipPath id="he-field-clip">
+            <path d={SHIELD_INNER} />
           </clipPath>
 
           <clipPath id="he-globe-clip">
-            <circle cx="258" cy="274" r="24.5" />
+            <circle cx="258" cy="274" r="25.2" />
           </clipPath>
 
-          {/* Raised rim: inner shadow falls bottom-right. */}
+          {/* Cast onto the wave floor so the plate reads as sitting on it. */}
           <filter
-            id="he-rim"
-            x="-8%"
+            id="he-cast"
+            x="-18%"
             y="-8%"
-            width="116%"
-            height="116%"
+            width="136%"
+            height="130%"
             colorInterpolationFilters="sRGB"
           >
-            <feOffset dx="2.2" dy="2.8" />
-            <feGaussianBlur stdDeviation="2.2" result="off" />
-            <feComposite
-              in="SourceAlpha"
-              in2="off"
-              operator="arithmetic"
-              k2="-1"
-              k3="1"
-              result="inner"
+            <feDropShadow
+              dx="0"
+              dy="14"
+              stdDeviation="10"
+              floodColor={INK}
+              floodOpacity="0.18"
             />
-            <feFlood floodColor="#1a2468" floodOpacity="0.22" result="tint" />
-            <feComposite in="tint" in2="inner" operator="in" result="shadow" />
-            <feComposite in="shadow" in2="SourceGraphic" operator="over" />
           </filter>
 
-          {/* Incised groove: shadow on the top-left wall, highlight on the
-              bottom-right — the inverse of a raised stroke. */}
+          {/* Blur only. Offset lives on the cast group so it can follow motion. */}
           <filter
-            id="he-engrave"
-            x="-12%"
-            y="-12%"
-            width="124%"
-            height="124%"
+            id="he-soft-shadow"
+            x="-50%"
+            y="-50%"
+            width="200%"
+            height="210%"
             colorInterpolationFilters="sRGB"
           >
-            <feOffset in="SourceAlpha" dx="-0.9" dy="-0.9" result="offDark" />
-            <feFlood floodColor="#0c1450" floodOpacity="0.55" result="darkFill" />
-            <feComposite
-              in="darkFill"
-              in2="offDark"
-              operator="in"
-              result="dark"
-            />
-            <feOffset in="SourceAlpha" dx="0.9" dy="0.9" result="offLight" />
-            <feFlood floodColor="#ffffff" floodOpacity="0.75" result="lightFill" />
-            <feComposite
-              in="lightFill"
-              in2="offLight"
-              operator="in"
-              result="light"
-            />
-            <feMerge>
-              <feMergeNode in="dark" />
-              <feMergeNode in="light" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" />
           </filter>
         </defs>
 
-        <g
-          className="home-emblem-float"
-          strokeLinejoin="miter"
-          strokeMiterlimit={8}
-        >
+        <g strokeLinejoin="miter" strokeMiterlimit={8}>
           <path
             d={SHIELD_OUTER}
-            fill="url(#he-plate)"
-            stroke="url(#he-line)"
+            fill="#ffffff"
+            stroke={INK}
             strokeWidth="3.6"
-            filter="url(#he-rim)"
+            filter="url(#he-cast)"
           />
-          <path d={SHIELD_INNER} fill="#e6e9f5" stroke="none" />
+          <path d={SHIELD_INNER} fill={PLATE} stroke="none" />
 
-          <g
-            fill="none"
-            stroke="url(#he-line)"
-            filter="url(#he-engrave)"
-            clipPath="url(#he-shield-clip)"
-          >
-          <path d={SHIELD_INNER} strokeWidth="1.8" opacity="0.75" />
-          <g strokeWidth="1.2" opacity="0.4">
-            <path d="M 200 38 V 368" />
-            <path d="M 63 204 H 337" />
-          </g>
+          <g fill="none" clipPath="url(#he-field-clip)">
+            <g stroke={INK_LIGHT} strokeWidth="1.2">
+              <path d="M 200 38 V 368" />
+              <path d="M 63 204 H 337" />
+            </g>
 
-          {/* 1 — Knowledge */}
-          <g transform="translate(-26.2 -2.74) scale(1.12)">
-            <g strokeWidth="2">
-              <path d={BOOK_PAGE_LEFT} />
-              <path d={BOOK_SPINE} />
-            </g>
-            <g strokeWidth="1.2" opacity="0.5">
-              {BOOK_RULES_LEFT.map((d) => (
-                <path key={d} d={d} />
-              ))}
-            </g>
-            <g className="home-emblem-page">
-              <path d={BOOK_PAGE_RIGHT} strokeWidth="2" />
-              <g strokeWidth="1.2" opacity="0.5">
-                {BOOK_RULES_RIGHT.map((d) => (
+            {/* 1 — Knowledge */}
+            <g
+              transform="translate(-26.2 -2.74) scale(1.12)"
+              stroke={INK}
+              fill="none"
+            >
+              <ellipse
+                className="home-emblem-ground"
+                cx="135"
+                cy="141"
+                rx="42"
+                ry="9"
+                fill={INK}
+                stroke="none"
+              />
+              <g
+                className="home-emblem-cast home-emblem-cast-rest"
+                filter="url(#he-soft-shadow)"
+                strokeWidth="2"
+              >
+                <path d={BOOK_PAGE_LEFT} />
+                <path d={BOOK_SPINE} />
+              </g>
+              <g strokeWidth="2">
+                <path d={BOOK_PAGE_LEFT} />
+                <path d={BOOK_SPINE} />
+              </g>
+              <g stroke={INK_MID} strokeWidth="1.2">
+                {BOOK_RULES_LEFT.map((d) => (
                   <path key={d} d={d} />
                 ))}
               </g>
-            </g>
-          </g>
-
-          {/* 2 — Craftsmanship */}
-          <g strokeWidth="2" transform="translate(-8.2 7.33) scale(1.07)">
-            <path d="M 228 121 L 286 118.5 C 291 118.5 292.5 122 290 126 L 236 126 C 231 126 228 124.5 228 121 Z" />
-            <path d="M 257 126 C 260 131 260 136 258 140 L 272 140 C 270 136 270 131 273 126 Z" />
-            <path d="M 246 140 L 284 140 L 287 147.5 L 243 147.5 Z" />
-            <g className="home-emblem-hammer">
-              <path
-                d="M 289 74 L 266 96"
-                strokeWidth="4.5"
-                strokeLinecap="round"
-              />
-              <g transform="rotate(47.5 256 101)">
-                <rect x="243" y="94.5" width="26" height="13" rx="2.5" />
-                <rect x="240.5" y="92.5" width="6" height="17" rx="1.5" />
+              <g transform="translate(135 121)">
+                <g className="home-emblem-page">
+                  {animated ? (
+                    <animateTransform
+                      attributeName="transform"
+                      attributeType="XML"
+                      type="scale"
+                      values="1 1; 1 1; 0.12 1; 0.78 1; 1 1"
+                      keyTimes="0; 0.58; 0.72; 0.82; 1"
+                      dur="5.5s"
+                      repeatCount="indefinite"
+                      calcMode="spline"
+                      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                    />
+                  ) : null}
+                  <g transform="translate(-135 -121)" strokeWidth="2">
+                    <path d={BOOK_PAGE_RIGHT} />
+                    <g stroke={INK_MID} strokeWidth="1.2">
+                      {BOOK_RULES_RIGHT.map((d) => (
+                        <path key={d} d={d} />
+                      ))}
+                    </g>
+                  </g>
+                </g>
               </g>
             </g>
-            {/* Burst sits on the anvil face, timed to the strike in CSS. */}
+
+            {/* 2 — Craftsmanship. Hammer shadow lengthens on the lift, bites on impact. */}
             <g
-              className="home-emblem-strike"
-              strokeLinecap="round"
               fill="none"
+              stroke={INK}
+              strokeWidth="2"
+              transform="translate(-8.2 7.33) scale(1.07)"
             >
-              <circle cx="266" cy="121" r="5.5" strokeWidth="1.2" />
-              <path d="M 266 121 L 259 109" strokeWidth="1.8" />
-              <path d="M 266 121 L 274 110" strokeWidth="1.8" />
-              <path d="M 266 121 L 280 118" strokeWidth="1.8" />
-              <path d="M 266 121 L 258 118" strokeWidth="1.6" />
-              <path d="M 266 121 L 272 128" strokeWidth="1.4" />
-            </g>
-          </g>
-
-          {/* 3 — Innovation */}
-          <g
-            className="home-emblem-chip"
-            transform="translate(-1.2 -7.75) scale(1.05)"
-          >
-            <g strokeWidth="1.8" opacity="0.8">
-              {CIRCUIT_LEGS.map(([x1, y1, x2, y2]) => (
-                <path
-                  key={`leg-${x1}-${y1}-${x2}-${y2}`}
-                  d={`M ${x1} ${y1} L ${x2} ${y2}`}
-                />
-              ))}
-            </g>
-            <g className="home-emblem-nodes" fill="url(#he-line)" stroke="none">
-              {CIRCUIT_LEGS.map(([, , , , cx, cy]) => (
-                <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r="2.4" />
-              ))}
-            </g>
-            <rect
-              x="122"
-              y="256"
-              width="44"
-              height="38"
-              rx="4"
-              strokeWidth="2.4"
-            />
-            <text
-              x="144"
-              y="281"
-              fill="url(#he-line)"
-              stroke="none"
-              fontFamily="var(--font-sans)"
-              fontSize="17"
-              fontWeight="500"
-              textAnchor="middle"
-              letterSpacing="0.06em"
-            >
-              AI
-            </text>
-          </g>
-
-          {/* 4 — Global leadership: wireframe sphere, not basketball seams. */}
-          <g transform="translate(-117.52 -114.56) scale(1.44)">
-            <circle cx="258" cy="274" r="26" strokeWidth="1.7" />
-            <g clipPath="url(#he-globe-clip)" strokeWidth="1.05" opacity="0.85">
-              <g className="home-emblem-globe">
-                {MERIDIAN_OFFSETS.map((offset) => (
+              <ellipse
+                className="home-emblem-ground home-emblem-anvil-ground"
+                cx="262"
+                cy="150"
+                rx="40"
+                ry="8"
+                fill={INK}
+                stroke="none"
+              />
+              <g
+                className="home-emblem-cast home-emblem-cast-rest"
+                filter="url(#he-soft-shadow)"
+              >
+                <path d={ANVIL_CROWN} />
+                <path d={ANVIL_NECK} />
+                <path d={ANVIL_BASE} />
+              </g>
+              <g filter="url(#he-soft-shadow)">
+                <g className="home-emblem-cast home-emblem-hammer-cast">
                   <path
-                    key={`mer-${offset}`}
-                    d={`M 258 248 C ${258 + offset} 261 ${258 + offset} 287 258 300`}
+                    d={HAMMER_SHAFT}
+                    strokeWidth="4.5"
+                    strokeLinecap="round"
+                  />
+                  <g transform="rotate(47.5 256 101)">
+                    <rect x="243" y="94.5" width="26" height="13" rx="2.5" />
+                    <rect x="240.5" y="92.5" width="6" height="17" rx="1.5" />
+                  </g>
+                </g>
+              </g>
+              <path d={ANVIL_CROWN} />
+              <path d={ANVIL_NECK} />
+              <path d={ANVIL_BASE} />
+              <g className="home-emblem-hammer">
+                <path
+                  d={HAMMER_SHAFT}
+                  strokeWidth="4.5"
+                  strokeLinecap="round"
+                />
+                <g transform="rotate(47.5 256 101)">
+                  <rect x="243" y="94.5" width="26" height="13" rx="2.5" />
+                  <rect x="240.5" y="92.5" width="6" height="17" rx="1.5" />
+                </g>
+              </g>
+              <g
+                className="home-emblem-strike"
+                stroke={GOLD}
+                strokeLinecap="round"
+                fill="none"
+              >
+                <path d="M 266 121 L 260 111" strokeWidth="1.8" />
+                <path d="M 266 121 L 274 112" strokeWidth="1.8" />
+                <path d="M 266 121 L 278 120" strokeWidth="1.6" />
+              </g>
+            </g>
+
+            {/* 3 — Innovation. Chip sits still; pads blink without casting. */}
+            <g transform="translate(-1.2 -7.75) scale(1.05)" stroke={INK} fill="none">
+              <ellipse
+                className="home-emblem-ground home-emblem-ground-chip"
+                cx="144"
+                cy="312"
+                rx="38"
+                ry="8"
+                fill={INK}
+                stroke="none"
+              />
+              <g
+                className="home-emblem-cast home-emblem-cast-rest home-emblem-cast-chip"
+                filter="url(#he-soft-shadow)"
+              >
+                <g strokeWidth="1.8">
+                  {CIRCUIT_LEGS.map(([x1, y1, x2, y2]) => (
+                    <path
+                      key={`cast-${x1}-${y1}-${x2}-${y2}`}
+                      d={`M ${x1} ${y1} L ${x2} ${y2}`}
+                    />
+                  ))}
+                </g>
+                <rect
+                  x="122"
+                  y="256"
+                  width="44"
+                  height="38"
+                  rx="4"
+                  strokeWidth="2.4"
+                />
+              </g>
+              <g stroke={INK_MID} strokeWidth="1.8">
+                {CIRCUIT_LEGS.map(([x1, y1, x2, y2]) => (
+                  <path
+                    key={`leg-${x1}-${y1}-${x2}-${y2}`}
+                    d={`M ${x1} ${y1} L ${x2} ${y2}`}
                   />
                 ))}
               </g>
-              <ellipse cx="258" cy="274" rx="24.5" ry="6.5" />
-              <ellipse cx="258" cy="261" rx="20" ry="4" />
-              <ellipse cx="258" cy="287" rx="20" ry="4" />
+              <g stroke="none">
+                {CIRCUIT_LEGS.map(([, , , , cx, cy], i) => (
+                  <circle
+                    key={`dot-${cx}-${cy}`}
+                    className="home-emblem-chip-node"
+                    cx={cx}
+                    cy={cy}
+                    r="2.4"
+                    fill={cx === 144 && cy === 241 ? GOLD : INK_LIGHT}
+                    style={{ animationDelay: `${i * 0.16}s` }}
+                  />
+                ))}
+              </g>
+              <rect
+                x="122"
+                y="256"
+                width="44"
+                height="38"
+                rx="4"
+                strokeWidth="2.4"
+              />
+              <text
+                x="144"
+                y="281"
+                fill={INK}
+                stroke="none"
+                fontFamily="var(--font-sans)"
+                fontSize="17"
+                fontWeight="500"
+                textAnchor="middle"
+                letterSpacing="0.06em"
+              >
+                AI
+              </text>
+            </g>
+
+            {/* 4 — Connect. Sphere umbra on the plate; meridians do not spin a shadow. */}
+            <g transform="translate(-117.52 -114.56) scale(1.44)" fill="none">
+              <ellipse
+                className="home-emblem-ground home-emblem-globe-ground"
+                cx="262"
+                cy="301"
+                rx="24"
+                ry="6.5"
+                fill={INK}
+                stroke="none"
+              />
+              <circle
+                className="home-emblem-cast home-emblem-cast-rest"
+                cx="258"
+                cy="274"
+                r="26"
+                stroke={INK}
+                strokeWidth="1.6"
+                filter="url(#he-soft-shadow)"
+              />
+              <circle
+                cx="258"
+                cy="274"
+                r="26"
+                stroke={INK}
+                strokeWidth="1.6"
+              />
+              <g
+                clipPath="url(#he-globe-clip)"
+                stroke={INK_MID}
+                strokeWidth="1.05"
+              >
+                <g className="home-emblem-meridians-still" opacity="0.85">
+                  {MERIDIAN_STILL.map((d) => (
+                    <path key={d} d={d} />
+                  ))}
+                </g>
+                {animated ? (
+                  <g className="home-emblem-meridians-spin" opacity="0.85">
+                    {Array.from({ length: MERIDIAN_COUNT }, (_, i) => (
+                      <path key={`mer-${i}`} d={MERIDIAN_STILL[0]}>
+                        <animate
+                          attributeName="d"
+                          values={MERIDIAN_SPIN_VALUES}
+                          keyTimes={MERIDIAN_SPIN_KEY_TIMES}
+                          dur={MERIDIAN_DUR}
+                          begin={`${-i * 0.8}s`}
+                          repeatCount="indefinite"
+                          calcMode="linear"
+                        />
+                        <animate
+                          attributeName="opacity"
+                          values="1;1;1;1;1;1;0;0"
+                          keyTimes={MERIDIAN_SPIN_KEY_TIMES}
+                          dur={MERIDIAN_DUR}
+                          begin={`${-i * 0.8}s`}
+                          repeatCount="indefinite"
+                        />
+                      </path>
+                    ))}
+                  </g>
+                ) : null}
+                <g opacity="0.85">
+                  <ellipse cx="258" cy="274" rx="25.2" ry="7.5" />
+                  <ellipse cx="258" cy="263" rx="21.5" ry="4.4" />
+                  <ellipse cx="258" cy="285" rx="21.5" ry="4.4" />
+                </g>
+              </g>
             </g>
           </g>
-          </g>
+
+          <path
+            d={SHIELD_INNER}
+            fill="none"
+            stroke={INK}
+            strokeWidth="1.8"
+          />
         </g>
       </svg>
     </div>

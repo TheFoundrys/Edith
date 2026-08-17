@@ -59,7 +59,7 @@ export const EXPERIENCE_OPTIONS: FinderFilterOption[] = [
 ];
 
 export const FINDER_FILTER_LABELS: Record<FinderFilterKey, string> = {
-  suite: "Programme suite",
+  suite: "Programme type",
   duration: "Duration",
   experience: "Years of experience",
 };

@@ -5,8 +5,8 @@ export function PeakArtBackdrop({
   variant?: "workspace" | "marketing";
 }) {
   const bold = variant === "marketing";
-  const ink = bold ? "rgb(25, 40, 144)" : "#0a0a0a";
-  const paper = "#f2f2f2";
+  const ink = bold ? "#243b9b" : "#111827";
+  const paper = "#fafafc";
 
   return (
     <div

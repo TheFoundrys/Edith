@@ -6,17 +6,17 @@ import { usePathname } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { BrandMark } from "@/components/layout/brand-mark";
 import { PeakArtBackdrop } from "@/components/layout/peak-art-backdrop";
 
 type NavItem = { href: string; label: string };
 
 export function AppShell({
-  brand,
   nav,
   user,
   children,
 }: {
-  brand: string;
+  brand?: string;
   nav: NavItem[];
   user: { name: string; email: string; role: string };
   children: React.ReactNode;
@@ -38,13 +38,8 @@ export function AppShell({
       {/* Pinned to the viewport so a long staff nav scrolls inside the rail
           instead of running past the bottom of the window. */}
       <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-border bg-bg-elevated sticky top-0 h-screen">
-        <div className="shrink-0 px-5 h-14 flex items-center border-b border-border">
-          <Link
-            href="/"
-            className="font-display brand-wordmark text-lg tracking-tight text-brand"
-          >
-            {brand}
-          </Link>
+        <div className="shrink-0 px-5 py-3 flex items-center border-b border-border">
+          <BrandMark />
         </div>
         <nav
           className="flex-1 min-h-0 overflow-y-auto p-3 space-y-0.5"
@@ -64,10 +59,10 @@ export function AppShell({
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "block border-l-2 px-3 py-2 text-sm transition-colors",
+                  "block rounded-[var(--radius-sm)] px-3 py-2 text-sm transition-colors duration-[var(--duration)]",
                   active
-                    ? "border-fg bg-bg text-fg font-medium"
-                    : "border-transparent text-fg-muted hover:text-fg hover:bg-bg",
+                    ? "bg-brand-light text-brand font-medium"
+                    : "text-fg-muted hover:text-fg hover:bg-bg",
                 )}
               >
                 {item.label}
@@ -96,9 +91,7 @@ export function AppShell({
       <div className="flex-1 min-w-0 min-h-full flex flex-col peak-atmosphere">
         <PeakArtBackdrop variant="workspace" />
         <header className="md:hidden h-14 border-b border-border bg-bg-elevated/85 backdrop-blur px-4 flex items-center justify-between">
-          <span className="font-display brand-wordmark text-lg text-brand">
-            {brand}
-          </span>
+          <BrandMark showParent={false} />
           <Button
             variant="ghost"
             size="sm"
@@ -124,9 +117,9 @@ export function AppShell({
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "whitespace-nowrap border-b-2 px-3 py-2 text-xs transition-colors",
+                    "whitespace-nowrap border-b-2 px-3 py-2 text-xs transition-colors duration-[var(--duration)]",
                     active
-                      ? "border-fg text-fg font-medium"
+                      ? "border-brand text-brand font-medium"
                       : "border-transparent text-fg-muted",
                   )}
                 >

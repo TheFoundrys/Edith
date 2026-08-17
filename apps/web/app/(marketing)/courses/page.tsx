@@ -92,7 +92,7 @@ export default async function PublicCoursesPage({
                         href={`/courses/${course.slug}`}
                         className="courses-cta"
                       >
-                        View course
+                        View course →
                       </Link>
                     }
                   />

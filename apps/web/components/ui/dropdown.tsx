@@ -58,9 +58,9 @@ export function Dropdown({
         onClick={() => setOpen((v) => !v)}
         className={cn(
           "flex h-9 w-full items-center justify-between gap-2 rounded-[var(--radius-sm)]",
-          "border border-border-strong bg-bg-elevated px-3 text-left text-sm text-fg",
-          "transition-colors hover:border-fg disabled:opacity-50",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg",
+          "border border-border bg-bg-elevated px-3 text-left text-sm text-fg",
+          "transition-[border-color,box-shadow] duration-[var(--duration)] hover:border-border-strong disabled:opacity-50",
+          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
         )}
       >
         <span className="truncate">{label}</span>
@@ -72,8 +72,8 @@ export function Dropdown({
       {open ? (
         <div
           className={cn(
-            "absolute z-30 mt-1 min-w-full rounded-[var(--radius-sm)] border border-border-strong",
-            "bg-bg-elevated p-1",
+            "absolute z-30 mt-1 min-w-full overflow-hidden rounded-[var(--radius-sm)] border border-border",
+            "bg-bg-elevated p-1 shadow-[var(--shadow-hover)] animate-[filter-in_var(--duration)_ease]",
             align === "end" ? "right-0" : "left-0",
             panelClassName,
           )}

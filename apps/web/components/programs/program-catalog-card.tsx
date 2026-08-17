@@ -6,9 +6,10 @@ import {
 } from "@/lib/programs/categories";
 import {
   catalogDurationLabel,
-  catalogMode,
+  catalogLevelBadge,
+  catalogModeBadge,
 } from "@/lib/programs/catalog-meta";
-import { formatCurrency } from "@/lib/utils";
+import { programTrack } from "@/lib/programs/track";
 import type { DegreeLevel, ProgramCategory } from "@prisma/client";
 
 export type ProgramCatalogItem = {
@@ -42,31 +43,6 @@ function truncate(text: string, max: number) {
   return `${clean.slice(0, max).trimEnd()}…`;
 }
 
-function eligibilityLabel(program: ProgramCatalogItem) {
-  const raw = program.eligibilitySummary?.replace(/\s+/g, " ").trim();
-  if (!raw) return "—";
-  const years = raw.match(/(\d+\+?\s*years?[^.]*)/i);
-  if (years) return years[1]!.trim();
-  return truncate(raw, 42);
-}
-
-function formatIntakeDate(program: ProgramCatalogItem) {
-  const start = program.intakes[0]?.startDate;
-  if (!start) return "—";
-  return start.toLocaleDateString("en-IN", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function feeLabel(program: ProgramCatalogItem) {
-  if (program.price == null || program.price === 0) {
-    return program.price === 0 ? "Free" : "Contact Admissions";
-  }
-  return formatCurrency(program.price, program.tuitionCurrency);
-}
-
 export function ProgramCatalogCard({
   program,
   href,
@@ -77,49 +53,40 @@ export function ProgramCatalogCard({
   action?: ReactNode;
 }) {
   const category = categoryMeta(program.category);
-  const rows = [
-    { label: "Format", value: catalogMode(program) },
-    { label: "Starts", value: formatIntakeDate(program) },
-    { label: "Duration", value: catalogDurationLabel(program) },
-    { label: "Eligibility", value: eligibilityLabel(program) },
-    { label: "Fee", value: feeLabel(program) },
-  ];
+  const track = programTrack(program.title);
+  const badges = [
+    category.shortLabel,
+    catalogDurationLabel(program),
+    catalogModeBadge(program),
+    catalogLevelBadge(program),
+  ].filter((value): value is string => Boolean(value));
 
   return (
-    <article className="group cm-box !p-0 !min-h-0 h-full overflow-hidden">
-      <div className="flex min-h-0 flex-1 flex-col p-[var(--grid-pad)]">
+    <article
+      className="group catalog-card cm-box !p-0 !min-h-0 h-full overflow-hidden"
+      data-track={track}
+    >
+      <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
         <Link href={href} className="flex min-h-0 flex-1 flex-col">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
-            {category.shortLabel}
-          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {badges.map((badge) => (
+              <span key={badge} className="catalog-badge">
+                {badge}
+              </span>
+            ))}
+          </div>
 
-          <h2 className="courses-heading mt-[var(--grid-gap)] font-display text-[1.45rem] leading-snug sm:text-[1.55rem]">
+          <h2 className="courses-heading mt-4 text-[1.35rem] leading-snug sm:text-[1.5rem]">
             {displayProgramName(program.title, program.category)}
           </h2>
 
-          {/* Always rendered at a fixed three-line height so the rule below
-              lands at the same offset in every card of a row. */}
-          <p className="courses-desc mt-[var(--grid-gap)] line-clamp-3 min-h-[4.27rem] text-sm leading-relaxed">
+          <p className="courses-desc mt-3 line-clamp-3 min-h-[4.27rem] text-sm leading-relaxed text-fg-muted">
             {program.description ? truncate(program.description, 120) : ""}
           </p>
-
-          <div className="mt-auto pt-[var(--grid-gap)]">
-            <dl className="courses-detail space-y-0 border-t border-border pt-[var(--grid-gap)]">
-              {rows.map((row) => (
-                <div
-                  key={row.label}
-                  className="grid grid-cols-[6.5rem_1fr] gap-x-3 py-1.5 text-[13px] leading-snug"
-                >
-                  <dt>{row.label}</dt>
-                  <dd className="min-w-0 truncate">{row.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
         </Link>
 
         {action ? (
-          <div className="mt-[var(--grid-gap)] flex justify-center">{action}</div>
+          <div className="mt-auto pt-5">{action}</div>
         ) : null}
       </div>
     </article>

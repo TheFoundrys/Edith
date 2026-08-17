@@ -77,7 +77,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-full flex flex-col">
       <div className="flex-1 flex items-center justify-center px-4 py-16">
         <div className="w-full max-w-sm">
-          <BrandMark showTagline />
+          <BrandMark />
           <h1 className="mt-8 text-2xl font-semibold tracking-tight">Set new password</h1>
           <p className="mt-2 text-sm text-fg-muted">
             {`Choose a new password for your ${APP_NAME} account.`}
