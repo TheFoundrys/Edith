@@ -281,38 +281,8 @@ export function HomeEmblemArt({
               </g>
             </g>
 
-            {/* 3 — Innovation. Chip sits still; pads blink without casting. */}
+            {/* 3 — Innovation */}
             <g transform="translate(-1.2 -7.75) scale(1.05)" stroke={INK} fill="none">
-              <ellipse
-                className="home-emblem-ground home-emblem-ground-chip"
-                cx="144"
-                cy="312"
-                rx="38"
-                ry="8"
-                fill={INK}
-                stroke="none"
-              />
-              <g
-                className="home-emblem-cast home-emblem-cast-rest home-emblem-cast-chip"
-                filter="url(#he-soft-shadow)"
-              >
-                <g strokeWidth="1.8">
-                  {CIRCUIT_LEGS.map(([x1, y1, x2, y2]) => (
-                    <path
-                      key={`cast-${x1}-${y1}-${x2}-${y2}`}
-                      d={`M ${x1} ${y1} L ${x2} ${y2}`}
-                    />
-                  ))}
-                </g>
-                <rect
-                  x="122"
-                  y="256"
-                  width="44"
-                  height="38"
-                  rx="4"
-                  strokeWidth="2.4"
-                />
-              </g>
               <g stroke={INK_MID} strokeWidth="1.8">
                 {CIRCUIT_LEGS.map(([x1, y1, x2, y2]) => (
                   <path

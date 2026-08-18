@@ -1,9 +1,8 @@
 /** Product brand — keep UI copy and CRM lead source in sync. */
 export const APP_NAME = "EDITH";
 export const APP_NAME_LOWER = "edith";
-/** Parent organisation shown beside the Edith lockup. */
+/** Parent organisation — internal reference only. */
 export const APP_PARENT = "The Foundrys";
-export const APP_PARENT_CREDIT = `by ${APP_PARENT}`;
 /** Tagline — part of the full product name. */
 export const APP_TAGLINE = "Map Your Future.";
 /** Product-focused hero line. */

@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import {
   APP_HEADLINE,
   APP_NAME,
-  APP_PARENT_CREDIT,
   APP_SUBHEAD,
 } from "@/lib/brand";
 
@@ -45,7 +44,6 @@ export default async function HomePage() {
         <div className="home-hero relative flex-1 flex items-center justify-between gap-10 px-5 sm:px-8 lg:px-12 max-w-7xl w-full mx-auto py-20 sm:py-24">
           <div>
             <p className="home-wordmark peak-rise">{APP_NAME}</p>
-            <p className="home-parent peak-rise">{APP_PARENT_CREDIT}</p>
             <div className="home-hero-rule peak-rise" aria-hidden />
             <h1 className="home-headline peak-rise-delay">{APP_HEADLINE}</h1>
             <p className="home-tagline max-w-md peak-rise-delay">

@@ -91,7 +91,7 @@ export function AppShell({
       <div className="flex-1 min-w-0 min-h-full flex flex-col peak-atmosphere">
         <PeakArtBackdrop variant="workspace" />
         <header className="md:hidden h-14 border-b border-border bg-bg-elevated/85 backdrop-blur px-4 flex items-center justify-between">
-          <BrandMark showParent={false} />
+          <BrandMark />
           <Button
             variant="ghost"
             size="sm"

@@ -266,10 +266,6 @@ h6 {
   opacity: 0.1;
 }
 
-.home-emblem-ground-chip {
-  opacity: 0.05;
-}
-
 .home-emblem-cast {
   stroke: #233b9b;
   fill: none;
@@ -279,11 +275,6 @@ h6 {
 .home-emblem-cast-rest {
   transform-box: view-box;
   transform: translate(2.2px, 3.6px);
-}
-
-.home-emblem-cast-chip {
-  opacity: 0.12;
-  transform: translate(1px, 1.8px);
 }
 
 /* Page turn uses SMIL on the SVG; class kept for reduced-motion targeting. */
