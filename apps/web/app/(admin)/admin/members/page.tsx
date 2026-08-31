@@ -1,52 +1,43 @@
-import Link from "next/link";
+import { MembersAdminHeader } from "@/components/admin/members-admin-header";
+import { MembersTable, type MemberRow } from "@/components/admin/members-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page";
 import {
   DEFAULT_PAGE_SIZE,
   Pagination,
   resolvePageSize,
 } from "@/components/ui/pagination";
-import { Tabs } from "@/components/ui/tabs";
-import { MembersTable, type MemberRow, type GroupRow } from "@/components/admin/members-table";
+import { memberWorkspaceCounts } from "@/lib/admin/member-workspace";
 import { requireCapability } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { membershipAccessState } from "@/lib/members/status";
 import type { Prisma } from "@prisma/client";
-
-const TABS = [
-  { value: "all", label: "All" },
-  { value: "members", label: "Members" },
-  { value: "groups", label: "Groups" },
-] as const;
-
-type TabValue = (typeof TABS)[number]["value"];
+import Link from "next/link";
 
 const SORTS = {
-  account: { label: "Sort by account", orderBy: { user: { name: "asc" } } },
-  recent: { label: "Newest first", orderBy: { createdAt: "desc" } },
-  expiry: { label: "Expiring soonest", orderBy: { expiresAt: "asc" } },
-} satisfies Record<
-  string,
-  { label: string; orderBy: Prisma.MembershipOrderByWithRelationInput }
->;
+  account: { orderBy: { user: { name: "asc" as const } } },
+  recent: { orderBy: { createdAt: "desc" as const } },
+  expiry: { orderBy: { expiresAt: "asc" as const } },
+};
 
 type SortKey = keyof typeof SORTS;
-
-function isTab(value: string | undefined): value is TabValue {
-  return !!value && TABS.some((t) => t.value === value);
-}
+type StatusFilter = "all" | "active" | "suspended" | "expired";
 
 function isSort(value: string | undefined): value is SortKey {
   return !!value && Object.hasOwn(SORTS, value);
+}
+
+function isStatus(value: string | undefined): value is StatusFilter {
+  return value === "all" || value === "active" || value === "suspended" || value === "expired";
 }
 
 export default async function AdminMembersPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    tab?: string;
     q?: string;
     roleId?: string;
     sort?: string;
+    status?: string;
     page?: string;
     pageSize?: string;
   }>;
@@ -54,17 +45,36 @@ export default async function AdminMembersPage({
   const session = await requireCapability("manageMembers");
   const sp = await searchParams;
   const orgId = session.user.organizationId;
-
-  const tab: TabValue = isTab(sp.tab) ? sp.tab : "all";
+  const isAdmin = session.user.role === "SUPER_ADMIN";
   const sort: SortKey = isSort(sp.sort) ? sp.sort : "account";
+  const status: StatusFilter = isStatus(sp.status) ? sp.status : "all";
   const q = sp.q?.trim() ?? "";
   const roleId = sp.roleId?.trim() ?? "";
   const pageSize = resolvePageSize(sp.pageSize);
   const requestedPage = Math.max(1, Math.trunc(Number(sp.page)) || 1);
 
+  const [counts, permissionRolesRaw] = await Promise.all([
+    memberWorkspaceCounts(orgId),
+    prisma.permissionRole.findMany({
+      where: { organizationId: orgId, isSystem: false },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
+
   const membershipWhere: Prisma.MembershipWhereInput = {
     organizationId: orgId,
     ...(roleId ? { roles: { some: { permissionRoleId: roleId } } } : {}),
+    ...(status === "suspended" ? { status: "SUSPENDED" } : {}),
+    ...(status === "active"
+      ? {
+          status: "ACTIVE",
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        }
+      : {}),
+    ...(status === "expired"
+      ? { status: "ACTIVE", expiresAt: { lte: new Date() } }
+      : {}),
     ...(q
       ? {
           OR: [
@@ -75,229 +85,136 @@ export default async function AdminMembersPage({
       : {}),
   };
 
-  // Groups have no role assignments, so a role filter excludes them entirely.
-  const groupWhere: Prisma.GroupWhereInput = {
-    organizationId: orgId,
-    ...(q ? { name: { contains: q, mode: "insensitive" } } : {}),
-  };
-
-  const showMembers = tab === "all" || tab === "members";
-  const showGroups = (tab === "all" || tab === "groups") && !roleId;
-
-  const [memberTotal, groupTotal, permissionRoles, memberTabCount, groupTabCount] =
-    await Promise.all([
-      showMembers ? prisma.membership.count({ where: membershipWhere }) : 0,
-      showGroups ? prisma.group.count({ where: groupWhere }) : 0,
-      prisma.permissionRole.findMany({
-        where: { organizationId: orgId },
-        orderBy: { name: "asc" },
-        select: { id: true, name: true },
-      }),
-      prisma.membership.count({ where: { organizationId: orgId } }),
-      prisma.group.count({ where: { organizationId: orgId } }),
-    ]);
-
-  // Groups occupy the first rows of the combined list, then memberships follow,
-  // so one page window can straddle both without loading everything.
-  const total = memberTotal + groupTotal;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  // Clamp rather than show an empty page when the URL points past the last one,
-  // which happens after rows are removed or the page size grows.
+  const memberTotal = await prisma.membership.count({ where: membershipWhere });
+  const totalPages = Math.max(1, Math.ceil(memberTotal / pageSize));
   const page = Math.min(requestedPage, totalPages);
-  const start = (page - 1) * pageSize;
-  const groupSkip = Math.min(start, groupTotal);
-  const groupTake = Math.max(0, Math.min(pageSize, groupTotal - groupSkip));
-  const memberSkip = Math.max(0, start - groupTotal);
-  const memberTake = pageSize - groupTake;
 
-  const [groups, memberships] = await Promise.all([
-    showGroups && groupTake > 0
-      ? prisma.group.findMany({
-          where: groupWhere,
-          orderBy: { name: "asc" },
-          skip: groupSkip,
-          take: groupTake,
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            isArchived: true,
-            _count: { select: { members: true } },
-          },
-        })
-      : [],
-    showMembers && memberTake > 0
-      ? prisma.membership.findMany({
-          where: membershipWhere,
-          orderBy: SORTS[sort].orderBy,
-          skip: memberSkip,
-          take: memberTake,
-          select: {
-            id: true,
-            role: true,
-            expiresAt: true,
-            userId: true,
-            user: {
-              select: {
-                name: true,
-                email: true,
-                _count: { select: { enrollments: true } },
-              },
-            },
-            roles: { select: { permissionRoleId: true } },
-          },
-        })
-      : [],
-  ]);
+  const memberships = await prisma.membership.findMany({
+    where: membershipWhere,
+    orderBy: SORTS[sort].orderBy,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    select: {
+      id: true,
+      role: true,
+      status: true,
+      expiresAt: true,
+      userId: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+          _count: { select: { enrollments: true } },
+        },
+      },
+      roles: { select: { permissionRoleId: true } },
+    },
+  });
 
-  const groupRows: GroupRow[] = groups.map((group) => ({
-    kind: "group",
-    id: group.id,
-    name: group.name,
-    subtitle: group.description ?? `${group._count.members} member${group._count.members === 1 ? "" : "s"}`,
-    programs: group._count.members,
-    isArchived: group.isArchived,
-  }));
-
-  const memberRows: MemberRow[] = memberships.map((m) => ({
+  const rows: MemberRow[] = memberships.map((membership) => ({
     kind: "member",
-    id: m.id,
-    name: m.user.name,
-    email: m.user.email,
-    programs: m.user._count.enrollments,
-    expiresAt: m.expiresAt ? m.expiresAt.toISOString() : null,
-    roleIds: m.roles.map((r) => r.permissionRoleId),
-    enumRole: m.role,
-    isSelf: m.userId === session.user.id,
+    id: membership.id,
+    name: membership.user.name,
+    email: membership.user.email,
+    programs: membership.user._count.enrollments,
+    expiresAt: membership.expiresAt ? membership.expiresAt.toISOString() : null,
+    roleIds: membership.roles.map((role) => role.permissionRoleId),
+    enumRole: membership.role,
+    status: membership.status,
+    accessState: membershipAccessState(membership),
+    isSelf: membership.userId === session.user.id,
   }));
 
-  function buildHref(
-    overrides: Partial<{
-      tab: string;
-      q: string;
-      roleId: string;
-      sort: string;
-      page: number;
-      pageSize: number;
-    }> = {},
-  ) {
+  function hrefFor(overrides: Record<string, string | number | undefined> = {}) {
     const next = {
-      tab,
       q,
       roleId,
       sort,
+      status,
       page,
       pageSize,
       ...overrides,
     };
     const params = new URLSearchParams();
-    if (next.tab !== "all") params.set("tab", next.tab);
-    if (next.q) params.set("q", next.q);
-    if (next.roleId) params.set("roleId", next.roleId);
-    if (next.sort !== "account") params.set("sort", next.sort);
-    if (next.pageSize !== DEFAULT_PAGE_SIZE) {
+    if (next.q) params.set("q", String(next.q));
+    if (next.roleId) params.set("roleId", String(next.roleId));
+    if (next.sort !== "account") params.set("sort", String(next.sort));
+    if (next.status !== "all") params.set("status", String(next.status));
+    if (Number(next.pageSize) !== DEFAULT_PAGE_SIZE) {
       params.set("pageSize", String(next.pageSize));
     }
-    if (next.page > 1) params.set("page", String(next.page));
+    if (Number(next.page) > 1) params.set("page", String(next.page));
     const qs = params.toString();
     return qs ? `/admin/members?${qs}` : "/admin/members";
   }
 
-  const rows = [...groupRows, ...memberRows];
-  const filtered = Boolean(q || roleId);
-
-  const emptyState = filtered
-    ? {
-        title: "No matches",
-        description: "Try a different search term or clear the role filter.",
-      }
-    : tab === "groups"
-      ? {
-          title: "No groups yet",
-          description: "Groups created for this organization will be listed here.",
-        }
-      : {
-          title: "No members yet",
-          description:
-            "Add an existing account to this organization to get started.",
-        };
-
   return (
-    <div className="peak-rise">
-      <PageHeader
-        title={`Members (${memberTabCount})`}
-        description="Assign roles, set when access ends, and remove people from this organization."
+    <div>
+      <MembersAdminHeader
+        title="People"
+        description="Invite staff, manage student memberships, suspend access, and set expiry."
+        active="people"
+        counts={counts}
+        showRolesLink={isAdmin}
       />
 
-      <div className="mb-[var(--grid-pad)]">
-        <Tabs
-          items={[
-            { value: "all", label: "All", count: memberTabCount + groupTabCount },
-            { value: "members", label: "Members", count: memberTabCount },
-            { value: "groups", label: "Groups", count: groupTabCount },
-          ]}
-          active={tab}
-          // Filters persist across tabs, but the page resets to the first.
-          hrefFor={(value) => buildHref({ tab: value, page: 1 })}
-          label="Member views"
-        />
-      </div>
-
-      <form className="mb-[var(--grid-pad)] flex flex-wrap gap-3">
-        {tab !== "all" ? <input type="hidden" name="tab" value={tab} /> : null}
+      <form className="mb-[var(--grid-pad)] flex flex-wrap gap-2">
         {pageSize !== DEFAULT_PAGE_SIZE ? (
           <input type="hidden" name="pageSize" value={pageSize} />
         ) : null}
+        <input type="hidden" name="sort" value={sort} />
         <input
           name="q"
           defaultValue={q}
-          placeholder="Search name or email"
+          placeholder="Search by name or email"
           aria-label="Search members"
           className="h-9 min-w-[14rem] flex-1 rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated/90 px-3 text-sm"
         />
         <select
-          name="roleId"
-          defaultValue={roleId}
-          aria-label="Filter by role"
+          name="status"
+          defaultValue={status}
+          aria-label="Filter by status"
           className="h-9 rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated/90 px-3 text-sm"
         >
-          <option value="">All roles</option>
-          {permissionRoles.map((role) => (
-            <option key={role.id} value={role.id}>
-              {role.name}
-            </option>
-          ))}
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+          <option value="expired">Expired</option>
         </select>
-        <select
-          name="sort"
-          defaultValue={sort}
-          aria-label="Sort members"
-          className="h-9 rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated/90 px-3 text-sm"
-        >
-          {Object.entries(SORTS).map(([value, { label }]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+        {permissionRolesRaw.length > 0 ? (
+          <select
+            name="roleId"
+            defaultValue={roleId}
+            aria-label="Filter by role"
+            className="h-9 rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated/90 px-3 text-sm"
+          >
+            <option value="">All labels</option>
+            {permissionRolesRaw.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.name}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <button
           type="submit"
           className="h-9 rounded-[var(--radius-sm)] bg-accent px-3 text-sm text-accent-fg"
         >
-          Apply
+          Search
         </button>
       </form>
 
       {rows.length === 0 ? (
         <EmptyState
-          title={emptyState.title}
-          description={emptyState.description}
+          title={q || roleId || status !== "all" ? "No matches" : "No members yet"}
+          description={
+            q || roleId || status !== "all"
+              ? "Try a different search, status, or label filter."
+              : "Invite staff or wait for students to register themselves."
+          }
           action={
-            filtered ? (
-              <Link
-                href={buildHref({ q: "", roleId: "", page: 1 })}
-                className="text-sm text-fg underline underline-offset-2"
-              >
+            q || roleId || status !== "all" ? (
+              <Link href="/admin/members" className="text-sm underline underline-offset-2">
                 Clear filters
               </Link>
             ) : null
@@ -306,15 +223,17 @@ export default async function AdminMembersPage({
       ) : (
         <MembersTable
           rows={rows}
-          permissionRoles={permissionRoles}
+          assignableRoles={permissionRolesRaw}
+          rolesSetupHref={isAdmin ? "/admin/members/roles" : undefined}
+          canInviteAdmins={isAdmin}
           footer={
             <Pagination
               page={page}
               totalPages={totalPages}
               pageSize={pageSize}
-              total={total}
-              hrefFor={(nextPage) => buildHref({ page: nextPage })}
-              pageSizeHrefFor={(nextSize) => buildHref({ pageSize: nextSize, page: 1 })}
+              total={memberTotal}
+              hrefFor={(nextPage) => hrefFor({ page: nextPage })}
+              pageSizeHrefFor={(nextSize) => hrefFor({ pageSize: nextSize, page: 1 })}
             />
           }
         />

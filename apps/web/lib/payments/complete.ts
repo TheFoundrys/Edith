@@ -2,6 +2,8 @@ import { requestCrmEnrollmentCallback } from "@/lib/crm/enrollment-callback";
 import { prisma } from "@/lib/db";
 import { crmSyncStatusSafe } from "@/lib/crm";
 import type { PaymentProvider } from "@prisma/client";
+import { upsertEnrollmentAccess } from "@/lib/enrollment/activation";
+import { afterEnrollmentHref, isPersonalityProfileProgram } from "@/lib/assessments/personality-profile";
 
 /** Mark a payment paid and enroll the application (idempotent). */
 export async function completePaidPayment(opts: {
@@ -13,7 +15,14 @@ export async function completePaidPayment(opts: {
 }) {
   const payment = await prisma.payment.findUnique({
     where: { id: opts.paymentId },
-    include: { application: true },
+    include: {
+      application: {
+        include: {
+          program: true,
+          applicant: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
   });
   if (!payment) return { error: "Payment not found." as const };
   if (!payment.applicationId || !payment.application) {
@@ -24,13 +33,22 @@ export async function completePaidPayment(opts: {
   }
 
   const app = payment.application;
-  if (app.status !== "FEE_REQUESTED" && app.status !== "OFFERED" && app.status !== "ENROLLED") {
+  if (
+    app.status !== "FEE_REQUESTED" &&
+    app.status !== "OFFERED" &&
+    app.status !== "PAYMENT_PENDING" &&
+    app.status !== "PAID" &&
+    app.status !== "ENROLLED"
+  ) {
     return { error: `Cannot enroll from status ${app.status}.` as const };
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.payment.update({
-      where: { id: payment.id },
+  const needsCrm = app.program.requiresCrmCallback;
+  const targetApplicationStatus = needsCrm ? "PAID" : "ENROLLED";
+
+  const completed = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.payment.updateMany({
+      where: { id: payment.id, status: { not: "PAID" } },
       data: {
         status: "PAID",
         providerPaymentId: opts.providerPaymentId ?? payment.providerPaymentId,
@@ -39,17 +57,22 @@ export async function completePaidPayment(opts: {
         failureReason: null,
       },
     });
+    if (claimed.count === 0) return false;
 
-    if (app.status !== "ENROLLED") {
+    if (app.status !== targetApplicationStatus) {
       await tx.application.update({
         where: { id: app.id },
         data: {
-          status: "ENROLLED",
+          status: targetApplicationStatus,
           events: {
             create: {
               fromStatus: app.status,
-              toStatus: "ENROLLED",
-              note: opts.note ?? "Application fee paid — enrolled",
+              toStatus: targetApplicationStatus,
+              note:
+                opts.note ??
+                (needsCrm
+                  ? "Application fee paid — awaiting CRM confirmation"
+                  : "Application fee paid — enrolled"),
               actorId: opts.actorId ?? null,
             },
           },
@@ -57,37 +80,59 @@ export async function completePaidPayment(opts: {
       });
     }
 
-    // Keep learning access in sync with the Enrollment model.
-    await tx.enrollment.upsert({
+    await upsertEnrollmentAccess(tx, {
+      organizationId: app.organizationId,
+      programId: app.programId,
+      userId: app.applicantId,
+      intakeId: app.intakeId,
+      status: needsCrm ? "PENDING" : "ACTIVE",
+      amountPaid: payment.amount,
+    });
+    return true;
+  });
+
+  if (!completed) {
+    return {
+      ok: true as const,
+      alreadyPaid: true,
+      awaitingCrm: needsCrm,
+      applicationId: payment.applicationId,
+    };
+  }
+
+  if (app.status !== targetApplicationStatus) {
+    await crmSyncStatusSafe({
+      organizationId: app.organizationId,
+      applicationId: app.id,
+      externalLeadId: app.crmLeadId,
+      externalApplicationId: app.crmApplicationId,
+      status: targetApplicationStatus,
+      note: opts.note ?? "Fee paid",
+    });
+  }
+
+  if (needsCrm) {
+    const enrollment = await prisma.enrollment.findUnique({
       where: {
         userId_programId: {
           userId: app.applicantId,
           programId: app.programId,
         },
       },
-      create: {
-        organizationId: app.organizationId,
-        programId: app.programId,
-        userId: app.applicantId,
-        status: "ACTIVE",
-        enrolledAt: new Date(),
-      },
-      update: {
-        status: "ACTIVE",
-        enrolledAt: new Date(),
-      },
     });
-  });
-
-  if (app.status !== "ENROLLED") {
-    await crmSyncStatusSafe({
-      organizationId: app.organizationId,
-      applicationId: app.id,
-      externalLeadId: app.crmLeadId,
-      externalApplicationId: app.crmApplicationId,
-      status: "ENROLLED",
-      note: opts.note ?? "Fee paid",
-    });
+    if (enrollment) {
+      await requestCrmEnrollmentCallback({
+        enrollmentId: enrollment.id,
+        user: app.applicant,
+        program: app.program,
+      });
+    }
+    return {
+      ok: true as const,
+      alreadyPaid: false,
+      awaitingCrm: true as const,
+      applicationId: payment.applicationId,
+    };
   }
 
   const existingNote = await prisma.notification.findFirst({
@@ -108,7 +153,12 @@ export async function completePaidPayment(opts: {
     });
   }
 
-  return { ok: true as const, alreadyPaid: false, applicationId: payment.applicationId };
+  return {
+    ok: true as const,
+    alreadyPaid: false,
+    awaitingCrm: false as const,
+    applicationId: payment.applicationId,
+  };
 }
 
 /** Mark a course payment paid and activate enrollment (idempotent). */
@@ -143,9 +193,9 @@ export async function completeCoursePayment(opts: {
 
   const needsCrm = program.requiresCrmCallback;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.payment.update({
-      where: { id: payment.id },
+  const completed = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.payment.updateMany({
+      where: { id: payment.id, status: { not: "PAID" } },
       data: {
         status: "PAID",
         providerPaymentId: opts.providerPaymentId ?? payment.providerPaymentId,
@@ -154,6 +204,7 @@ export async function completeCoursePayment(opts: {
         failureReason: null,
       },
     });
+    if (claimed.count === 0) return false;
 
     if (!needsCrm && enrollment.status !== "ACTIVE") {
       await tx.enrollment.update({
@@ -161,10 +212,37 @@ export async function completeCoursePayment(opts: {
         data: {
           status: "ACTIVE",
           enrolledAt: enrollment.enrolledAt ?? new Date(),
+          amountPaid: payment.amount,
         },
       });
+    } else {
+      await tx.enrollment.update({
+        where: { id: enrollment.id },
+        data: { amountPaid: payment.amount },
+      });
     }
+
+    if (payment.couponCode) {
+      await tx.coupon.updateMany({
+        where: {
+          organizationId: payment.organizationId,
+          code: payment.couponCode,
+        },
+        data: { usedCount: { increment: 1 } },
+      });
+    }
+    return true;
   });
+
+  if (!completed) {
+    return {
+      ok: true as const,
+      alreadyPaid: true,
+      awaitingCrm: needsCrm,
+      enrollmentId: payment.enrollmentId,
+      programId: enrollment.programId,
+    };
+  }
 
   if (needsCrm) {
     const user = await prisma.user.findUnique({
@@ -191,9 +269,13 @@ export async function completeCoursePayment(opts: {
     await prisma.notification.create({
       data: {
         userId: enrollment.userId,
-        title: "Enrollment confirmed",
-        message: "Payment received. Your course is unlocked.",
-        actionUrl: `/student/learning/${enrollment.programId}`,
+        title: isPersonalityProfileProgram(program)
+          ? "Assessment unlocked"
+          : "Enrollment confirmed",
+        message: isPersonalityProfileProgram(program)
+          ? "Payment received. Your personality profile is unlocked."
+          : "Payment received. Your course is unlocked.",
+        actionUrl: afterEnrollmentHref(program),
       },
     });
   }
@@ -211,8 +293,11 @@ export async function markPaymentFailed(opts: {
   paymentId: string;
   reason?: string;
 }) {
-  await prisma.payment.update({
-    where: { id: opts.paymentId },
+  await prisma.payment.updateMany({
+    where: {
+      id: opts.paymentId,
+      status: { in: ["CREATED", "PENDING"] },
+    },
     data: {
       status: "FAILED",
       failureReason: opts.reason ?? "Payment failed",

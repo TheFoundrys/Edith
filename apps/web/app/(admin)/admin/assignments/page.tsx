@@ -20,7 +20,7 @@ export default async function AdminAssignmentsPage() {
   const published = assignments.filter((a) => a.isPublished).length;
 
   return (
-    <div className="peak-rise">
+    <div>
       <PageHeader
         title="Assignments"
         description="Create course assignments — manually or with the AI plugin."

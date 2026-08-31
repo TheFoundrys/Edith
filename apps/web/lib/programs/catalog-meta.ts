@@ -12,6 +12,9 @@ export type CatalogMetaProgram = {
 };
 
 export function catalogMode(program: CatalogMetaProgram): string {
+  if (/\d+\s*(min|minutes?|hours?|hrs?)\b/i.test(program.duration ?? "")) {
+    return "Online · Self-paced";
+  }
   if (program.category === "CENTRE_OF_EXCELLENCE") return "Institutional / Hybrid";
   if (program.isHybridOnly) return "Hybrid (In-Person & Virtual)";
   if (program.category === "FELLOW_EXECUTIVE") return "Hybrid";
@@ -47,6 +50,7 @@ export function catalogDurationLabel(program: CatalogMetaProgram): string {
 export function catalogDurationKey(program: CatalogMetaProgram): string {
   const label = catalogDurationLabel(program).toLowerCase();
 
+  if (/\d+\s*(min|minutes?|hours?|hrs?)\b/.test(label)) return "session";
   if (/\bdays?\b/.test(label)) return "days";
   if (/cohort/.test(label)) return "cohort";
   if (/custom/.test(label)) return "custom";

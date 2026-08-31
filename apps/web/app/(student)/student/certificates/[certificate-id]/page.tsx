@@ -52,6 +52,12 @@ export default async function StudentCertificateDetailPage({
           Issued {certificate.issueDate.toLocaleDateString()} · Code{" "}
           {certificate.certificateId}
         </p>
+        <Link
+          href={`/verify/${encodeURIComponent(certificate.certificateId)}`}
+          className="mt-4 inline-block text-sm underline"
+        >
+          Open public verification
+        </Link>
       </Panel>
     </div>
   );

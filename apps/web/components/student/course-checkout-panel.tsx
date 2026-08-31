@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   completeMockCoursePayment,
-  failCoursePayment,
   startCheckout,
   verifyCoursePayment,
 } from "@/lib/actions/enrollments";
 import { Button } from "@/components/ui/button";
-import { FieldError } from "@/components/ui/input";
+import { FieldError, Input, Label } from "@/components/ui/input";
 import { APP_NAME } from "@/lib/brand";
 import { formatCurrency } from "@/lib/utils";
 
@@ -28,10 +27,12 @@ declare global {
 
 export function CourseCheckoutPanel({
   courseSlug,
+  intakeId,
   amount,
   currency,
 }: {
   courseSlug: string;
+  intakeId?: string;
   amount: number;
   currency: string;
 }) {
@@ -39,11 +40,12 @@ export function CourseCheckoutPanel({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [scriptReady, setScriptReady] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
 
   function pay() {
     setError(null);
     startTransition(async () => {
-      const order = await startCheckout(courseSlug);
+      const order = await startCheckout(courseSlug, couponCode, intakeId);
       if ("error" in order && order.error) {
         setError(order.error);
         return;
@@ -62,7 +64,7 @@ export function CourseCheckoutPanel({
 
       if (order.alreadyEnrolled) {
         router.push(
-          `/payment/success?course=${encodeURIComponent(order.programId)}`,
+          `/payment/success?course=${encodeURIComponent(order.programId)}&enrollment=${encodeURIComponent(order.enrollmentId)}`,
         );
         return;
       }
@@ -114,10 +116,6 @@ export function CourseCheckoutPanel({
           });
           if (verified.error) {
             setError(verified.error);
-            await failCoursePayment(order.paymentId!, verified.error);
-            router.push(
-              `/payment/failed?course=${encodeURIComponent(courseSlug)}`,
-            );
             return;
           }
           const pendingCrm = verified.awaitingCrm ? "&pending=crm" : "";
@@ -148,6 +146,19 @@ export function CourseCheckoutPanel({
         </span>{" "}
         to enroll.
       </p>
+      <div className="max-w-xs">
+        <Label htmlFor="courseCoupon">Coupon code</Label>
+        <Input
+          id="courseCoupon"
+          value={couponCode}
+          onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+          placeholder="Optional"
+          autoComplete="off"
+        />
+        <p className="mt-1 text-xs text-fg-muted">
+          Valid coupons and personalised offers are applied before payment.
+        </p>
+      </div>
       <Button onClick={pay} loading={pending} className="w-full sm:w-auto">
         {pending ? "Processing…" : "Pay and enroll"}
       </Button>

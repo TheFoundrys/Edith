@@ -62,6 +62,51 @@ const ROLE_CAPABILITIES: Record<AppRole, readonly Capability[]> = {
   STUDENT: ["learnAsStudent"],
 };
 
+/** Default matrix — used until an org customises roles in admin. */
+export const DEFAULT_ROLE_CAPABILITIES: Record<AppRole, Capability[]> = {
+  SUPER_ADMIN: [...ROLE_CAPABILITIES.SUPER_ADMIN],
+  ADMISSIONS_MANAGER: [...ROLE_CAPABILITIES.ADMISSIONS_MANAGER],
+  COUNSELOR: [...ROLE_CAPABILITIES.COUNSELOR],
+  CONTENT_UPLOADER: [...ROLE_CAPABILITIES.CONTENT_UPLOADER],
+  STUDENT: [...ROLE_CAPABILITIES.STUDENT],
+};
+
+/** Maps staff access enum values to system PermissionRole slugs. */
+export const ENUM_TO_PERMISSION_SLUG: Record<AppRole, string> = {
+  SUPER_ADMIN: "administrator",
+  ADMISSIONS_MANAGER: "admissions",
+  COUNSELOR: "counsellor",
+  CONTENT_UPLOADER: "content-author",
+  STUDENT: "member",
+};
+
+export const ALL_CAPABILITIES: Capability[] = [
+  "managePricing",
+  "managePrograms",
+  "manageContent",
+  "manageApplications",
+  "manageForms",
+  "manageAiPlugins",
+  "manageMembers",
+  "learnAsStudent",
+];
+
+export const STAFF_MATRIX_ROLES: AppRole[] = [
+  "SUPER_ADMIN",
+  "ADMISSIONS_MANAGER",
+  "COUNSELOR",
+  "CONTENT_UPLOADER",
+  "STUDENT",
+];
+
+/** Staff access levels shown in the permissions matrix (excludes student). */
+export const STAFF_PERMISSION_ROLES: AppRole[] = [
+  "SUPER_ADMIN",
+  "ADMISSIONS_MANAGER",
+  "COUNSELOR",
+  "CONTENT_UPLOADER",
+];
+
 export const STAFF_ROLES: AppRole[] = [
   "SUPER_ADMIN",
   "ADMISSIONS_MANAGER",
@@ -184,16 +229,14 @@ export const STAFF_NAV: StaffNavItem[] = [
     label: "Members",
     anyOf: ["manageMembers"],
   },
-  {
-    href: "/admin/roles",
-    label: "Roles",
-    anyOf: ["managePrograms", "manageContent", "manageApplications", "manageAiPlugins"],
-  },
 ];
 
-export function staffNavFor(role: string | undefined | null): StaffNavItem[] {
+export function staffNavFor(
+  role: string | undefined | null,
+  hasCapability: (cap: Capability) => boolean = (cap) => can(role, cap),
+): StaffNavItem[] {
   return STAFF_NAV.filter((item) => {
     if (!item.anyOf?.length) return true;
-    return item.anyOf.some((c) => can(role, c));
+    return item.anyOf.some((c) => hasCapability(c));
   });
 }

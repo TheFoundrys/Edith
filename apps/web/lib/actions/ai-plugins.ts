@@ -9,12 +9,34 @@ import {
 } from "@/lib/ai";
 import { requireCapability } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import {
+  decryptConfig,
+  encryptConfig,
+} from "@/lib/security/encrypted-config";
+import { recordAudit } from "@/lib/audit";
 
 export async function getAiPluginAdminState() {
   const session = await requireCapability("manageAiPlugins");
   const plugins = listAiPlugins();
   const state = await getOrgAiPluginState(session.user.organizationId);
-  return { plugins, state };
+  const plugin = getAiPlugin(state.pluginId);
+  const secretKeys = new Set(
+    plugin?.manifest.fields
+      .filter((field) => field.type === "password")
+      .map((field) => field.key) ?? [],
+  );
+  return {
+    plugins,
+    state: {
+      ...state,
+      config: Object.fromEntries(
+        Object.entries(state.config).filter(([key]) => !secretKeys.has(key)),
+      ),
+      configuredSecretKeys: [...secretKeys].filter(
+        (key) => Boolean(state.config[key]),
+      ),
+    },
+  };
 }
 
 export async function saveAiPluginSettings(input: {
@@ -26,12 +48,6 @@ export async function saveAiPluginSettings(input: {
   const plugin = getAiPlugin(input.pluginId);
   if (!plugin) return { error: "Unknown AI plugin." };
 
-  for (const field of plugin.manifest.fields) {
-    if (field.required && !input.config[field.key]?.trim()) {
-      return { error: `${field.label} is required for ${plugin.manifest.name}.` };
-    }
-  }
-
   // Keep previous secrets if the password field is left blank on save.
   const existing = await prisma.aiPluginSetting.findUnique({
     where: { organizationId: session.user.organizationId },
@@ -39,7 +55,7 @@ export async function saveAiPluginSettings(input: {
   let previous: Record<string, string> = {};
   try {
     previous = existing?.configJson
-      ? (JSON.parse(existing.configJson) as Record<string, string>)
+      ? decryptConfig(existing.configJson)
       : {};
   } catch {
     previous = {};
@@ -54,6 +70,23 @@ export async function saveAiPluginSettings(input: {
       merged[field.key] = next;
     }
   }
+  for (const field of plugin.manifest.fields) {
+    if (field.required && !merged[field.key]?.trim()) {
+      return { error: `${field.label} is required for ${plugin.manifest.name}.` };
+    }
+  }
+
+  let encryptedConfig: string;
+  try {
+    encryptedConfig = encryptConfig(merged);
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "AI configuration encryption failed.",
+    };
+  }
 
   await prisma.aiPluginSetting.upsert({
     where: { organizationId: session.user.organizationId },
@@ -61,13 +94,21 @@ export async function saveAiPluginSettings(input: {
       organizationId: session.user.organizationId,
       pluginId: input.pluginId || DEFAULT_AI_PLUGIN_ID,
       enabled: input.enabled,
-      configJson: JSON.stringify(merged),
+      configJson: encryptedConfig,
     },
     update: {
       pluginId: input.pluginId || DEFAULT_AI_PLUGIN_ID,
       enabled: input.enabled,
-      configJson: JSON.stringify(merged),
+      configJson: encryptedConfig,
     },
+  });
+  await recordAudit({
+    organizationId: session.user.organizationId,
+    actor: session.user,
+    action: "AI_PLUGIN_SETTINGS_UPDATED",
+    entityType: "AiPluginSetting",
+    targetResource: input.pluginId,
+    metadata: { pluginId: input.pluginId, enabled: input.enabled },
   });
 
   revalidatePath("/admin/plugins/ai");

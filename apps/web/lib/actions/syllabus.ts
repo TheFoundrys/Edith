@@ -10,12 +10,28 @@ import { requireCapability, requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { parsePublishedFlag } from "@/lib/learning/outline";
 
-function revalidateSyllabus(programId: string) {
+function revalidateSyllabus(programId: string, programSlug?: string | null) {
   revalidatePath("/admin/syllabus");
   revalidatePath(`/admin/syllabus/${programId}`);
   revalidatePath(`/admin/programs/${programId}`);
-  revalidatePath("/student/learn");
-  revalidatePath(`/student/learn/${programId}`);
+  revalidatePath("/admin/programs");
+  revalidatePath("/courses");
+  if (programSlug) {
+    revalidatePath(`/courses/${programSlug}`);
+  }
+  revalidatePath("/student/learning");
+  revalidatePath(`/student/learning/${programId}`);
+  revalidatePath("/student/my-courses");
+  revalidatePath(`/student/my-courses/${programId}`);
+  revalidatePath("/student/dashboard");
+}
+
+async function revalidateSyllabusForProgram(programId: string) {
+  const program = await prisma.program.findUnique({
+    where: { id: programId },
+    select: { slug: true },
+  });
+  revalidateSyllabus(programId, program?.slug);
 }
 
 async function staffOwnedProgram(programId: string, organizationId: string) {
@@ -77,7 +93,7 @@ export async function upsertSyllabus(programId: string, formData: FormData) {
     },
   });
 
-  revalidateSyllabus(programId);
+  revalidateSyllabusForProgram(programId);
   return { ok: true as const };
 }
 
@@ -117,7 +133,7 @@ export async function setSyllabusStatus(
     data: { status },
   });
 
-  revalidateSyllabus(programId);
+  revalidateSyllabusForProgram(programId);
   return { ok: true as const };
 }
 
@@ -161,7 +177,7 @@ export async function createModule(programId: string, formData: FormData) {
     },
   });
 
-  revalidateSyllabus(programId);
+  revalidateSyllabusForProgram(programId);
   return { ok: true as const };
 }
 
@@ -196,7 +212,7 @@ export async function updateModule(
     },
   });
 
-  revalidateSyllabus(programId);
+  revalidateSyllabusForProgram(programId);
   return { ok: true as const };
 }
 
@@ -214,7 +230,7 @@ export async function deleteModule(programId: string, moduleId: string) {
   if (!mod) return { error: "Module not found." };
 
   await prisma.syllabusModule.delete({ where: { id: moduleId } });
-  revalidateSyllabus(programId);
+  revalidateSyllabusForProgram(programId);
   return { ok: true as const };
 }
 
@@ -252,7 +268,7 @@ export async function moveModule(
     }),
   ]);
 
-  revalidateSyllabus(programId);
+  revalidateSyllabusForProgram(programId);
   return { ok: true as const };
 }
 
@@ -301,7 +317,7 @@ export async function createLesson(
     },
   });
 
-  revalidateSyllabus(programId);
+  revalidateSyllabusForProgram(programId);
   return { ok: true as const };
 }
 
@@ -347,7 +363,7 @@ export async function updateLesson(
     },
   });
 
-  revalidateSyllabus(programId);
+  revalidateSyllabusForProgram(programId);
   return { ok: true as const };
 }
 
@@ -368,7 +384,7 @@ export async function deleteLesson(programId: string, lessonId: string) {
   if (!lesson) return { error: "Lesson not found." };
 
   await prisma.syllabusLesson.delete({ where: { id: lessonId } });
-  revalidateSyllabus(programId);
+  revalidateSyllabusForProgram(programId);
   return { ok: true as const };
 }
 
@@ -413,7 +429,7 @@ export async function moveLesson(
     }),
   ]);
 
-  revalidateSyllabus(programId);
+  revalidateSyllabusForProgram(programId);
   return { ok: true as const };
 }
 

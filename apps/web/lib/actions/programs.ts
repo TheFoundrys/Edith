@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { DegreeLevel, ProgramStatus } from "@prisma/client";
 import { z } from "zod";
-import { can, requireCapability } from "@/lib/auth/session";
+import { requireCapability, canUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { PROGRAM_CATEGORIES } from "@/lib/programs/categories";
 import { saveProgramImage } from "@/lib/storage";
@@ -56,7 +56,7 @@ async function resolveImageUrl(
 
 export async function createProgram(formData: FormData) {
   const session = await requireCapability("managePrograms");
-  if (!can(session.user.role, "managePricing")) {
+  if (!canUser(session.user, "managePricing")) {
     return { error: "You do not have permission to set program pricing." };
   }
   const parsed = programSchema.safeParse({
@@ -132,7 +132,7 @@ export async function updateProgram(programId: string, formData: FormData) {
   });
   if (!existing) return { error: "Program not found." };
 
-  const allowPricing = can(session.user.role, "managePricing");
+  const allowPricing = canUser(session.user, "managePricing");
 
   const parsed = programSchema.safeParse({
     name: formData.get("name"),

@@ -7,16 +7,11 @@ import {
   ProgramCatalogGrid,
   ProgramCatalogGridItem,
 } from "@/components/programs/program-catalog-card";
-import { prisma } from "@/lib/db";
 import {
-  catalogDurationKey,
-  catalogExperienceKey,
-} from "@/lib/programs/catalog-meta";
-import {
-  availableFinderOptions,
-  parseFinderFilters,
-  programMatchesFinderFilters,
-} from "@/lib/programs/finder-filters";
+  buildCatalogFilterIndex,
+  filterPublishedCatalogPrograms,
+  loadPublishedCatalogPrograms,
+} from "@/lib/catalog/service";
 
 export default async function PublicCoursesPage({
   searchParams,
@@ -26,41 +21,22 @@ export default async function PublicCoursesPage({
     suite?: string;
     duration?: string;
     experience?: string;
+    q?: string;
   }>;
 }) {
   const params = await searchParams;
 
-  const published = await prisma.program.findMany({
-    where: { status: "PUBLISHED" },
-    include: {
-      department: true,
-      campus: true,
-      organization: true,
-      intakes: {
-        where: { isActive: true },
-        orderBy: { startDate: "asc" },
-      },
-    },
-    orderBy: { title: "asc" },
-  });
-
-  const filterIndex = published.map((course) => ({
-    category: course.category,
-    duration: catalogDurationKey(course),
-    experience: catalogExperienceKey(course),
-  }));
-
-  const available = availableFinderOptions(filterIndex);
-  const filters = parseFinderFilters(params, available);
-
-  const courses = published.filter((course) =>
-    programMatchesFinderFilters(course, filters),
+  const published = await loadPublishedCatalogPrograms();
+  const filterIndex = buildCatalogFilterIndex(published);
+  const { filtered: courses, filters } = filterPublishedCatalogPrograms(
+    published,
+    params,
   );
 
   return (
     <MarketingShell maxWidth="max-w-7xl" showArt={false}>
       <div className="courses-theme">
-        <div className="peak-rise">
+        <div>
           <h1 className="courses-heading font-display text-3xl sm:text-4xl">
             Courses
           </h1>
@@ -102,7 +78,7 @@ export default async function PublicCoursesPage({
           )}
         </div>
 
-        <p className="mt-[var(--grid-pad)] text-sm text-fg-muted peak-rise-delay">
+        <p className="mt-[var(--grid-pad)] text-sm text-fg-muted">
           Showing <span className="font-semibold text-fg">{courses.length}</span>{" "}
           of {published.length} results
         </p>

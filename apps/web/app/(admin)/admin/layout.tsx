@@ -1,5 +1,7 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { staffNavFor, roleLabel } from "@/lib/auth/roles";
+import { adminNavGroupsFor } from "@/lib/admin/nav";
+import { loadOrgCapabilityMatrix } from "@/lib/auth/org-capabilities";
+import { roleLabel } from "@/lib/auth/roles";
 import { requireStaff } from "@/lib/auth/session";
 import { APP_NAME } from "@/lib/brand";
 
@@ -9,20 +11,21 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await requireStaff();
-  const nav = staffNavFor(session.user.role).map(({ href, label }) => ({
-    href,
-    label,
-  }));
+  const matrix = await loadOrgCapabilityMatrix(session.user.organizationId);
+  const caps = matrix[session.user.role] ?? [];
+  const navGroups = adminNavGroupsFor(
+    (cap) => caps.includes(cap),
+    session.user.role === "SUPER_ADMIN",
+  );
 
   return (
     <AppShell
       brand={APP_NAME}
-      nav={nav}
-      user={{
-        name: session.user.name,
-        email: session.user.email,
-        role: roleLabel(session.user.role),
-      }}
+      navGroups={navGroups}
+      variant="admin"
+      userRoleLabel={roleLabel(session.user.role)}
+      workspaceHref="/admin"
+      workspaceLabel="Workspace"
     >
       {children}
     </AppShell>

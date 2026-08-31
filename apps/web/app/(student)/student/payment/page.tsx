@@ -5,43 +5,58 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { coursePrice } from "@/lib/programs/pricing";
 import { formatCurrency } from "@/lib/utils";
-
-function coursePrice(program: {
-  price: number | null;
-  applicationFee: number | null;
-}) {
-  if (program.price != null && program.price > 0) {
-    return program.price;
-  }
-  if (program.applicationFee != null && program.applicationFee > 0) {
-    return program.applicationFee;
-  }
-  return 0;
-}
 
 export default async function StudentPaymentPage() {
   const session = await requireStudent();
 
   const [courses, enrollments] = await Promise.all([
     prisma.program.findMany({
-      where: { status: "PUBLISHED" },
+      where: {
+        organizationId: session.user.organizationId,
+        status: "PUBLISHED",
+      },
       orderBy: { title: "asc" },
     }),
     prisma.enrollment.findMany({
-      where: { userId: session.user.id, status: "ACTIVE" },
-      select: { programId: true },
+      where: {
+        userId: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+      select: {
+        programId: true,
+        status: true,
+        payments: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { status: true },
+        },
+      },
     }),
   ]);
 
-  const enrolled = new Set(enrollments.map((e) => e.programId));
+  const activeIds = new Set(
+    enrollments.filter((e) => e.status === "ACTIVE").map((e) => e.programId),
+  );
+  const pendingPaymentIds = new Set(
+    enrollments
+      .filter(
+        (e) =>
+          e.status === "PENDING" &&
+          !e.payments.some((payment) => payment.status === "PAID"),
+      )
+      .map((e) => e.programId),
+  );
+
   const payable = courses.filter((c) => {
-    if (enrolled.has(c.id)) return false;
+    if (activeIds.has(c.id)) return false;
+    if (pendingPaymentIds.has(c.id)) return true;
     return coursePrice(c) > 0;
   });
 
   return (
-    <div className="peak-rise">
+    <div>
       <PageHeader
         title="Payment"
         description="Complete fee payment to unlock learning. Free courses enroll from Enroll."
@@ -58,7 +73,7 @@ export default async function StudentPaymentPage() {
         <EmptyState
           title="No payments due"
           description={
-            enrolled.size > 0
+            activeIds.size > 0 || pendingPaymentIds.size > 0
               ? "Nothing waiting. Enroll in another course or open My Courses."
               : "Pick a paid course from Enroll, then complete payment here."
           }

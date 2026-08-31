@@ -4,6 +4,8 @@ import { createHash, randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { sendPasswordResetEmail } from "@/lib/email/password-reset";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { z } from "zod";
 
 const passwordSchema = z
@@ -56,6 +58,15 @@ export async function registerStudent(formData: FormData) {
   }
 
   const email = parsed.data.email.toLowerCase();
+  const registrationLimit = await consumeRateLimit({
+    action: "register",
+    identifier: email,
+    limit: 5,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!registrationLimit.allowed) {
+    return { error: "Too many registration attempts. Try again later." };
+  }
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "An account with this email already exists." };
 
@@ -100,6 +111,13 @@ export async function requestPasswordReset(formData: FormData) {
   if (!emailRaw || !z.string().email().safeParse(emailRaw).success) {
     return RESET_GENERIC;
   }
+  const resetLimit = await consumeRateLimit({
+    action: "password-reset-request",
+    identifier: emailRaw,
+    limit: 5,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!resetLimit.allowed) return RESET_GENERIC;
 
   const user = await prisma.user.findUnique({ where: { email: emailRaw } });
   if (!user) return RESET_GENERIC;
@@ -117,13 +135,25 @@ export async function requestPasswordReset(formData: FormData) {
 
   const resetPath = `/reset-password?token=${token}`;
 
-  // No email provider yet — expose reset URL only in non-production.
   if (process.env.NODE_ENV !== "production") {
     console.info("[password-reset] issued for local testing");
     return { ...RESET_GENERIC, resetUrl: resetPath };
   }
 
-  console.info("[password-reset] issued (email delivery not configured)");
+  const publicOrigin = (
+    process.env.AUTH_URL ||
+    process.env.NEXTAUTH_URL ||
+    ""
+  ).replace(/\/$/, "");
+  if (!publicOrigin) {
+    console.error("[password-reset] AUTH_URL is required for email delivery");
+    return RESET_GENERIC;
+  }
+
+  await sendPasswordResetEmail({
+    email: user.email,
+    resetUrl: `${publicOrigin}${resetPath}`,
+  });
   return RESET_GENERIC;
 }
 
@@ -134,6 +164,15 @@ export async function resetPassword(formData: FormData) {
 
   if (!token || token.length < 32) {
     return { error: "Reset link is invalid or expired." };
+  }
+  const resetAttemptLimit = await consumeRateLimit({
+    action: "password-reset-consume",
+    identifier: token,
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!resetAttemptLimit.allowed) {
+    return { error: "Too many attempts. Request a new reset link." };
   }
 
   const passwordParsed = passwordSchema.safeParse(password);

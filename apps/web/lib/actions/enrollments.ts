@@ -11,25 +11,13 @@ import {
   providerEnum,
 } from "@/lib/payments/complete";
 
-function coursePrice(program: {
-  price: number | null;
-  applicationFee: number | null;
-}): number {
-  if (program.price != null && program.price > 0) {
-    return program.price;
-  }
-  if (program.applicationFee != null && program.applicationFee > 0) {
-    return program.applicationFee;
-  }
-  return 0;
-}
-
-function isFreeCourse(program: {
-  price: number | null;
-  applicationFee: number | null;
-}) {
-  return coursePrice(program) === 0;
-}
+import { isFreeCourse } from "@/lib/programs/pricing";
+import { buildCourseQuote } from "@/lib/payments/quote";
+import {
+  afterEnrollmentHref,
+  isPersonalityProfileProgram,
+  PERSONALITY_PROFILE_HREF,
+} from "@/lib/assessments/personality-profile";
 
 function revalidateEnrollmentPaths(programId: string) {
   revalidatePath("/student/dashboard");
@@ -41,30 +29,104 @@ function revalidateEnrollmentPaths(programId: string) {
   revalidatePath("/student/notifications");
   revalidatePath("/checkout");
   revalidatePath("/courses");
+  revalidatePath(PERSONALITY_PROFILE_HREF);
 }
 
-async function notifyEnrollment(userId: string, program: { id: string; title: string }) {
+async function notifyEnrollment(
+  userId: string,
+  program: { id: string; title: string; slug?: string | null; domainSlug?: string | null; sku?: string | null },
+) {
+  const assessment = isPersonalityProfileProgram(program);
   await prisma.notification.create({
     data: {
       userId,
-      title: "Enrollment confirmed",
-      message: `You’re enrolled in ${program.title}. Open the course to start learning.`,
-      actionUrl: `/student/learning/${program.id}`,
+      title: assessment ? "Assessment unlocked" : "Enrollment confirmed",
+      message: assessment
+        ? `You’re enrolled in ${program.title}. Open the assessment to start aptitude, quantitative and psyche analysis.`
+        : `You’re enrolled in ${program.title}. Open the course to start learning.`,
+      actionUrl: afterEnrollmentHref(program),
     },
   });
 }
 
+async function programCapacityError(
+  program: { id: string; capacity: number | null },
+  userId: string,
+  intake?: { id: string; capacity: number | null } | null,
+) {
+  const capacity = intake?.capacity ?? program.capacity;
+  if (capacity == null) return null;
+  const reservedSeats = await prisma.enrollment.count({
+    where: {
+      programId: program.id,
+      ...(intake ? { intakeId: intake.id } : {}),
+      userId: { not: userId },
+      status: { in: ["PENDING", "ACTIVE", "COMPLETED"] },
+    },
+  });
+  return reservedSeats >= capacity
+    ? "This course has reached its enrollment capacity."
+    : null;
+}
+
+type EnrollmentIntake = {
+  id: string;
+  applicationOpen: Date | null;
+  applicationClose: Date | null;
+  capacity: number | null;
+};
+
+function selectEnrollmentIntake(
+  intakes: EnrollmentIntake[],
+  intakeId?: string,
+): { ok: true; intake: EnrollmentIntake | null } | { ok: false; error: string } {
+  const intake = intakeId
+    ? intakes.find((candidate) => candidate.id === intakeId)
+    : intakes[0] ?? null;
+  if (intakeId && !intake) {
+    return { ok: false, error: "Selected intake is unavailable." };
+  }
+  if (!intake) return { ok: true, intake: null };
+  const now = Date.now();
+  if (intake.applicationOpen && intake.applicationOpen.getTime() > now) {
+    return { ok: false, error: "Enrollment for this intake is not open yet." };
+  }
+  if (intake.applicationClose && intake.applicationClose.getTime() < now) {
+    return { ok: false, error: "Enrollment for this intake is closed." };
+  }
+  return { ok: true, intake };
+}
+
 /** Activate (or create) an ACTIVE enrollment without payment — or PENDING if CRM must confirm. */
-export async function enrollFree(programSlug: string) {
+export async function enrollFree(programSlug: string, intakeId?: string) {
   const session = await requireStudent();
 
   const program = await prisma.program.findFirst({
-    where: { slug: programSlug, status: "PUBLISHED" },
+    where: {
+      organizationId: session.user.organizationId,
+      slug: programSlug,
+      status: "PUBLISHED",
+    },
+    include: {
+      intakes: {
+        where: { isActive: true },
+        orderBy: { startDate: "asc" },
+      },
+    },
   });
   if (!program) return { error: "Course not found." };
+  if (program.formDefinitionId) {
+    return {
+      error:
+        "This course requires an application and admissions approval before enrollment.",
+    };
+  }
   if (!isFreeCourse(program)) {
     return { error: "This course requires payment. Continue to payment." };
   }
+  const intakeResult = selectEnrollmentIntake(program.intakes, intakeId);
+  if (!intakeResult.ok) return { error: intakeResult.error };
+  const selectedIntake = intakeResult.intake;
 
   const existing = await prisma.enrollment.findUnique({
     where: {
@@ -92,6 +154,13 @@ export async function enrollFree(programSlug: string) {
     };
   }
 
+  const capacityError = await programCapacityError(
+    program,
+    session.user.id,
+    selectedIntake,
+  );
+  if (capacityError) return { error: capacityError };
+
   if (program.requiresCrmCallback) {
     const enrollment = existing
       ? await prisma.enrollment.update({
@@ -101,12 +170,14 @@ export async function enrollFree(programSlug: string) {
             enrolledAt: null,
             crmRequestedAt: null,
             crmCallbackAt: null,
+            intakeId: selectedIntake?.id ?? null,
           },
         })
       : await prisma.enrollment.create({
           data: {
             organizationId: program.organizationId,
             programId: program.id,
+            intakeId: selectedIntake?.id ?? null,
             userId: session.user.id,
             status: "PENDING",
           },
@@ -135,12 +206,17 @@ export async function enrollFree(programSlug: string) {
   const enrollment = existing
     ? await prisma.enrollment.update({
         where: { id: existing.id },
-        data: { status: "ACTIVE", enrolledAt: new Date() },
+        data: {
+          status: "ACTIVE",
+          enrolledAt: new Date(),
+          intakeId: selectedIntake?.id ?? null,
+        },
       })
     : await prisma.enrollment.create({
         data: {
           organizationId: program.organizationId,
           programId: program.id,
+          intakeId: selectedIntake?.id ?? null,
           userId: session.user.id,
           status: "ACTIVE",
           enrolledAt: new Date(),
@@ -159,21 +235,40 @@ export async function enrollFree(programSlug: string) {
   };
 }
 
-export async function startCheckout(programSlug: string) {
+export async function startCheckout(
+  programSlug: string,
+  couponCode?: string,
+  intakeId?: string,
+) {
   const session = await requireStudent();
 
   const program = await prisma.program.findFirst({
-    where: { slug: programSlug, status: "PUBLISHED" },
+    where: {
+      organizationId: session.user.organizationId,
+      slug: programSlug,
+      status: "PUBLISHED",
+    },
+    include: {
+      intakes: {
+        where: { isActive: true },
+        orderBy: { startDate: "asc" },
+      },
+    },
   });
   if (!program) return { error: "Course not found." };
-
-  if (isFreeCourse(program)) {
-    return enrollFree(programSlug);
+  if (program.formDefinitionId) {
+    return {
+      error:
+        "This course requires an application and admissions approval before checkout.",
+    };
   }
 
-  const amount = coursePrice(program);
-  const currency =
-    (program.tuitionCurrency || "INR").trim().toUpperCase() || "INR";
+  if (isFreeCourse(program)) {
+    return enrollFree(programSlug, intakeId);
+  }
+  const intakeResult = selectEnrollmentIntake(program.intakes, intakeId);
+  if (!intakeResult.ok) return { error: intakeResult.error };
+  const selectedIntake = intakeResult.intake;
 
   const existing = await prisma.enrollment.findUnique({
     where: {
@@ -195,12 +290,43 @@ export async function startCheckout(programSlug: string) {
     };
   }
 
+  const capacityError = await programCapacityError(
+    program,
+    session.user.id,
+    selectedIntake,
+  );
+  if (capacityError) return { error: capacityError };
+
+  const quote = await buildCourseQuote({
+    organizationId: session.user.organizationId,
+    userId: session.user.id,
+    program,
+    couponCode,
+  });
+  if ("error" in quote) return quote;
+
+  const paymentConfig = getPaymentConfig();
+  const paymentSettings = await prisma.paymentSettings.findUnique({
+    where: { organizationId: session.user.organizationId },
+  });
+  if (
+    paymentConfig.adapter === "razorpay" &&
+    paymentSettings &&
+    !paymentSettings.razorpayEnabled
+  ) {
+    return { error: "Razorpay is disabled for this organization." };
+  }
+
+  const amount = quote.totalAmount;
+  const currency = quote.currency.trim().toUpperCase() || "INR";
+
   const enrollment =
     existing ??
     (await prisma.enrollment.create({
       data: {
         organizationId: program.organizationId,
         programId: program.id,
+        intakeId: selectedIntake?.id ?? null,
         userId: session.user.id,
         status: "PENDING",
       },
@@ -210,7 +336,19 @@ export async function startCheckout(programSlug: string) {
   if (enrollment.status === "CANCELLED") {
     await prisma.enrollment.update({
       where: { id: enrollment.id },
-      data: { status: "PENDING", enrolledAt: null },
+      data: {
+        status: "PENDING",
+        enrolledAt: null,
+        intakeId: selectedIntake?.id ?? null,
+      },
+    });
+  } else if (
+    enrollment.status === "PENDING" &&
+    enrollment.intakeId !== (selectedIntake?.id ?? null)
+  ) {
+    await prisma.enrollment.update({
+      where: { id: enrollment.id },
+      data: { intakeId: selectedIntake?.id ?? null },
     });
   }
 
@@ -240,12 +378,55 @@ export async function startCheckout(programSlug: string) {
     };
   }
 
+  if (amount === 0) {
+    const zeroPayment = await prisma.payment.create({
+      data: {
+        organizationId: program.organizationId,
+        enrollmentId: enrollment.id,
+        userId: session.user.id,
+        programId: program.id,
+        amount: 0,
+        currency,
+        status: "PENDING",
+        provider: "OFFLINE",
+        purpose: "COURSE_FEE",
+        principalAmount: quote.principalAmount,
+        discountAmount: quote.discountAmount,
+        gstAmount: quote.gstAmount,
+        convenienceFee: quote.convenienceFee,
+        totalAmount: 0,
+        couponCode: quote.couponCode,
+        metadataJson: JSON.stringify({
+          reason: "Fully discounted course checkout",
+          offerId: quote.offerId,
+        }),
+      },
+    });
+    const result = await completeCoursePayment({
+      paymentId: zeroPayment.id,
+      providerPaymentId: `discount_${zeroPayment.id}`,
+      note: "Course fee fully covered by discount",
+    });
+    if ("error" in result && result.error) return { error: result.error };
+    revalidateEnrollmentPaths(program.id);
+    return {
+      ok: true as const,
+      alreadyEnrolled: !result.awaitingCrm,
+      awaitingCrm: result.awaitingCrm,
+      enrollmentId: enrollment.id,
+      programId: program.id,
+      programSlug: program.slug,
+      programName: program.title,
+    };
+  }
+
   try {
     const adapter = getPaymentAdapter();
     const open = payments.find(
       (p) =>
         (p.status === "CREATED" || p.status === "PENDING") &&
         p.amount === amount &&
+        p.couponCode === quote.couponCode &&
         p.providerOrderId,
     );
 
@@ -281,6 +462,7 @@ export async function startCheckout(programSlug: string) {
         enrollmentId: enrollment.id,
         programId: program.id,
         purpose: "COURSE_FEE",
+        couponCode: quote.couponCode ?? "",
       },
     });
 
@@ -294,6 +476,14 @@ export async function startCheckout(programSlug: string) {
         provider: providerEnum(adapter.provider),
         purpose: "COURSE_FEE",
         providerOrderId: order.providerOrderId,
+        userId: session.user.id,
+        programId: program.id,
+        principalAmount: quote.principalAmount,
+        discountAmount: quote.discountAmount,
+        gstAmount: quote.gstAmount,
+        convenienceFee: quote.convenienceFee,
+        totalAmount: quote.totalAmount,
+        couponCode: quote.couponCode,
         metadataJson: JSON.stringify({ checkout: order.checkout }),
       },
     });

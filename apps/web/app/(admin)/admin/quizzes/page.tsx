@@ -20,7 +20,7 @@ export default async function AdminQuizzesPage() {
   const published = quizzes.filter((q) => q.status === "PUBLISHED").length;
 
   return (
-    <div className="peak-rise">
+    <div>
       <PageHeader
         title="Quizzes"
         description="Create knowledge checks — manually or with the AI plugin."

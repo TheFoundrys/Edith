@@ -41,12 +41,7 @@ export default async function StudentApplicationDetailPage({
   const readOnly = application.status !== "DRAFT";
   const paid = application.payments.find((p) => p.status === "PAID");
   const showFee =
-    application.status === "FEE_REQUESTED" ||
-    application.status === "OFFERED" ||
-    Boolean(paid) ||
-    (application.program.applicationFee != null &&
-      application.program.applicationFee > 0 &&
-      application.status === "SUBMITTED");
+    application.status === "FEE_REQUESTED" || Boolean(paid);
 
   return (
     <div>

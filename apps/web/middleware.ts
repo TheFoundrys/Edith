@@ -14,7 +14,8 @@ export default auth((req) => {
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password");
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/invite");
   const isAdmin = pathname.startsWith("/admin");
   const isStudent = pathname.startsWith("/student");
   const isCheckoutFlow =
@@ -74,5 +75,6 @@ export const config = {
     "/register",
     "/forgot-password",
     "/reset-password",
+    "/invite/:path*",
   ],
 };

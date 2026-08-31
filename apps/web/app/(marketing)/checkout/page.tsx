@@ -6,32 +6,26 @@ import { MarketingShell } from "@/components/layout/marketing-shell";
 import { Button } from "@/components/ui/button";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { buildCourseQuote } from "@/lib/payments/quote";
+import { coursePrice } from "@/lib/programs/pricing";
 import { formatCurrency } from "@/lib/utils";
-
-function coursePrice(program: {
-  price: number | null;
-  applicationFee: number | null;
-}) {
-  if (program.price != null && program.price > 0) {
-    return program.price;
-  }
-  if (program.applicationFee != null && program.applicationFee > 0) {
-    return program.applicationFee;
-  }
-  return 0;
-}
+import { afterEnrollmentHref, catalogHrefForProgram, isPersonalityProfileProgram } from "@/lib/assessments/personality-profile";
 
 export default async function CheckoutPage({
   searchParams,
 }: {
-  searchParams: Promise<{ course?: string }>;
+  searchParams: Promise<{ course?: string; intake?: string }>;
 }) {
-  const { course: slug } = await searchParams;
+  const { course: slug, intake: intakeId } = await searchParams;
   if (!slug) redirect("/courses");
 
   const session = await requireStudent();
   const course = await prisma.program.findFirst({
-    where: { slug, status: "PUBLISHED" },
+    where: {
+      organizationId: session.user.organizationId,
+      slug,
+      status: "PUBLISHED",
+    },
   });
   if (!course) notFound();
 
@@ -41,11 +35,17 @@ export default async function CheckoutPage({
     },
   });
   if (enrollment?.status === "ACTIVE") {
-    redirect(`/student/my-courses/${course.id}`);
+    redirect(afterEnrollmentHref(course));
   }
 
-  const price = coursePrice(course);
-  const free = price === 0;
+  const quote = await buildCourseQuote({
+    organizationId: session.user.organizationId,
+    userId: session.user.id,
+    program: course,
+  });
+  if ("error" in quote) notFound();
+  const price = quote.totalAmount;
+  const free = coursePrice(course) === 0;
 
   return (
     <MarketingShell maxWidth="max-w-xl">
@@ -56,23 +56,48 @@ export default async function CheckoutPage({
       <p className="mt-2 text-sm text-fg-muted">
         {free
           ? "This course is free — confirm enrollment to unlock learning."
-          : "Complete payment to unlock the learning platform."}
+          : isPersonalityProfileProgram(course)
+            ? "Complete payment to unlock aptitude, quantitative and psyche analysis."
+            : "Complete payment to unlock the learning platform."}
       </p>
 
       <div className="mt-8 border border-border bg-bg-elevated p-5 space-y-4">
         <div className="flex items-baseline justify-between gap-4">
           <span className="text-sm text-fg-muted">Amount due</span>
           <span className="text-lg font-semibold">
-            {free ? "Free" : formatCurrency(price, course.tuitionCurrency)}
+            {free ? "Free" : formatCurrency(price, quote.currency)}
           </span>
         </div>
+        {!free ? (
+          <dl className="space-y-1 border-t border-border pt-3 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-fg-muted">Course fee</dt>
+              <dd>{formatCurrency(quote.principalAmount, quote.currency)}</dd>
+            </div>
+            {quote.gstAmount > 0 ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-fg-muted">GST</dt>
+                <dd>{formatCurrency(quote.gstAmount, quote.currency)}</dd>
+              </div>
+            ) : null}
+            {quote.convenienceFee > 0 ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-fg-muted">Convenience fee</dt>
+                <dd>
+                  {formatCurrency(quote.convenienceFee, quote.currency)}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        ) : null}
         {free ? (
-          <FreeEnrollButton courseSlug={course.slug} />
+          <FreeEnrollButton courseSlug={course.slug} intakeId={intakeId} />
         ) : (
           <CourseCheckoutPanel
             courseSlug={course.slug}
+            intakeId={intakeId}
             amount={price}
-            currency={course.tuitionCurrency}
+            currency={quote.currency}
           />
         )}
       </div>
@@ -86,7 +111,7 @@ export default async function CheckoutPage({
           .
         </p>
       ) : (
-        <Link href={`/courses/${course.slug}`} className="mt-4 inline-block">
+        <Link href={catalogHrefForProgram(course)} className="mt-4 inline-block">
           <Button variant="ghost" size="sm">
             Back to course
           </Button>

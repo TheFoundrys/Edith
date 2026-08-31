@@ -12,7 +12,7 @@ import type {
   SyncStatusInput,
   UpsertLeadInput,
 } from "./types";
-import { APP_NAME } from "@/lib/brand";
+import { APP_NAME_SYSTEM } from "@/lib/brand";
 
 type PublicLeadResponse = {
   success?: boolean;
@@ -57,7 +57,7 @@ export class CentraCrmAdapter implements CrmPort {
       name: input.name,
       email: input.email,
       phone: input.phone || undefined,
-      leadSource: APP_NAME,
+      leadSource: APP_NAME_SYSTEM,
       interestedCatalogId: catalogId || undefined,
       qualification,
       eduBackground,

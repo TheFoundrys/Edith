@@ -62,6 +62,10 @@ export type SeedProgram = {
   pricing?: Record<string, { INR: number; USD: number }> | null;
   syllabusTitle?: string;
   modules?: SeedModule[];
+  /** When false, learners pay/enroll directly — no admissions form. */
+  requiresApplication?: boolean;
+  /** Rolling products skip cohort intakes so enrollment stays open. */
+  skipIntakes?: boolean;
 };
 
 /** The catalogue publishes one price across every persona tier. */
@@ -1598,6 +1602,63 @@ Treat models, data, and product surface as one system.
     modules: COE_PILLARS,
   },
 
+  // ——— Assessments (open to every career stage) ———
+  {
+    name: "Edith Personality Profile",
+    slug: "edith-personality-profile",
+    campusCode: null,
+    departmentCode: "EXEC",
+    category: ProgramCategory.CERTIFICATION,
+    degreeLevel: DegreeLevel.CERTIFICATE,
+    summary:
+      "A single sitting that maps how you think, calculate and decide: aptitude, quantitative reasoning, and qualitative psyche analysis. Open to every career stage — one price, one profile, used to match you to the right Foundrys path.",
+    eligibilitySummary:
+      "Experience is not mandatory. Suitable for any career stage.",
+    requiredDocs: ["id_proof"],
+    capacity: 5000,
+    applicationFee: 0,
+    price: 3500,
+    sku: "ASSESS 001",
+    duration: "90 Minutes",
+    type: CourseType.SELF_PACED,
+    specialization: "Career & personality assessment",
+    domainSlug: "assessments",
+    requiresApplication: false,
+    skipIntakes: true,
+    tags: [
+      "Personality",
+      "Aptitude",
+      "Psyche analysis",
+      "All levels",
+      "Self-paced",
+    ],
+    learningOutcomes: [
+      "Aptitude band (logical, verbal and pattern reasoning)",
+      "Quantitative band (numeracy and data interpretation)",
+      "Psyche profile (drive, structure, people and exploration)",
+      "Recommended Foundrys programmes from your profile",
+    ],
+    pricing: flatPricing(3500, 42),
+    syllabusTitle: "Assessment batteries",
+    modules: [
+      {
+        title: "Aptitude",
+        summary:
+          "Logical, verbal and pattern reasoning. Scored against a band, not a pass mark.",
+      },
+      {
+        title: "Quantitative",
+        summary:
+          "Numeracy, arithmetic and data interpretation in a short timed battery.",
+      },
+      {
+        title: "Qualitative psyche analysis",
+        summary:
+          "Work style, motives and decision patterns. No right or wrong answers — this builds your profile.",
+      },
+    ],
+  },
+
   // ——— Certifications (short, standalone) ———
   {
     name: "Certified Applied AI Practitioner",
@@ -2061,6 +2122,183 @@ Two deliverables:
 2. A written audit of another participant's contract, with severity ratings and
    a suggested fix for each finding.`,
             durationMin: 120,
+          },
+        ],
+      },
+    ],
+  },
+
+  // ——— EDITH end-to-end learning demo (free, fully populated syllabus) ———
+  {
+    name: "Cybersecurity Essentials",
+    slug: "edith-demo-cybersecurity-essentials",
+    campusCode: null,
+    departmentCode: "CYBER",
+    category: ProgramCategory.CERTIFICATION,
+    degreeLevel: DegreeLevel.CERTIFICATE,
+    summary:
+      "A four-week introduction to cybersecurity: threat models, defensive controls, and a capstone incident report. Built as a complete EDITH learning demo with text, video, and external resources.",
+    eligibilitySummary:
+      "Open to anyone. No prior security experience required — only curiosity and a willingness to work through each activity in order.",
+    requiredDocs: ["id_proof"],
+    capacity: 500,
+    applicationFee: 0,
+    price: 0,
+    sku: "DEMO 001",
+    duration: "4 Weeks",
+    weeks: 4,
+    level: CourseLevel.BEGINNER,
+    type: CourseType.SELF_PACED,
+    specialization: "Cybersecurity",
+    domainSlug: "certifications",
+    tags: ["Free", "Self-paced", "Demo Course", "Beginner"],
+    learningOutcomes: [
+      "Explain the CIA triad and apply it to everyday systems",
+      "Identify common attack vectors and basic defensive controls",
+      "Triage a simple security alert and document findings",
+      "Complete a written incident report suitable for a team handoff",
+    ],
+    pricing: flatPricing(0, 0),
+    syllabusTitle: "Course syllabus",
+    modules: [
+      {
+        title: "Module 1 — Welcome & orientation",
+        summary:
+          "How this course works in EDITH and what you will build by the end.",
+        lessons: [
+          {
+            title: "Welcome to Cybersecurity Essentials",
+            summary: "Course goals, structure, and how to use Learning.",
+            contentType: LessonContentType.RICH_TEXT,
+            content: `# Welcome to Cybersecurity Essentials
+
+This is a **complete end-to-end course** in EDITH. Work through each module in order.
+
+## What you will learn
+- How security teams think about risk (CIA triad)
+- Common threats and practical defences
+- How to document an incident clearly
+
+## How to use EDITH
+1. Open **Learning** from your dashboard.
+2. Complete each **activity** and mark it done.
+3. Use **Continue** to pick up where you left off.
+
+> Tip: The first activity is marked complete so you can see progress immediately.`,
+            durationMin: 10,
+          },
+          {
+            title: "Why cybersecurity matters now",
+            summary: "Short video on the modern threat landscape.",
+            contentType: LessonContentType.VIDEO_URL,
+            content: "https://www.youtube.com/watch?v=inWWhr5tnEA",
+            durationMin: 12,
+          },
+        ],
+      },
+      {
+        title: "Module 2 — Security fundamentals",
+        summary:
+          "Core concepts every analyst and engineer should internalise.",
+        lessons: [
+          {
+            title: "The CIA triad",
+            summary: "Confidentiality, integrity, and availability — defined.",
+            contentType: LessonContentType.RICH_TEXT,
+            content: `## Confidentiality, integrity, availability
+
+| Pillar | Question it answers | Example control |
+|--------|---------------------|-----------------|
+| **Confidentiality** | Who can read this? | Encryption, access control |
+| **Integrity** | Has this been altered? | Hashing, code signing |
+| **Availability** | Can authorised users reach it? | Backups, redundancy |
+
+When you evaluate any system, ask all three questions. A control that helps one pillar can hurt another — document the trade-off.`,
+            durationMin: 20,
+          },
+          {
+            title: "Threats vs vulnerabilities vs risks",
+            summary: "Vocabulary that keeps teams aligned under pressure.",
+            contentType: LessonContentType.RICH_TEXT,
+            content: `## Speak the same language
+
+- **Threat** — something that *could* cause harm (phishing, ransomware operator).
+- **Vulnerability** — a weakness that *could* be exploited (unpatched server, reused password).
+- **Risk** — likelihood × impact if the threat exploits the vulnerability.
+
+Security work is prioritisation: fix what reduces the most risk first, not what is easiest to tick off.`,
+            durationMin: 25,
+          },
+        ],
+      },
+      {
+        title: "Module 3 — Defensive basics",
+        summary:
+          "Controls you can apply today and reference frameworks to go deeper.",
+        lessons: [
+          {
+            title: "Authentication and access control",
+            summary: "Passwords, MFA, and least privilege in practice.",
+            contentType: LessonContentType.RICH_TEXT,
+            content: `## Defend the front door
+
+**Multi-factor authentication (MFA)** blocks most credential-stuffing attacks. Enable it everywhere you can.
+
+**Least privilege** means accounts get only the access they need for their job — not admin by default.
+
+### Quick audit checklist
+- [ ] MFA on email and admin consoles
+- [ ] No shared root/service accounts without rotation
+- [ ] Offboarding removes access within 24 hours`,
+            durationMin: 30,
+          },
+          {
+            title: "OWASP Top 10 — further reading",
+            summary: "Official reference for the most critical web application risks.",
+            contentType: LessonContentType.EXTERNAL_LINK,
+            content: "https://owasp.org/www-project-top-ten/",
+            durationMin: 15,
+          },
+        ],
+      },
+      {
+        title: "Module 4 — Capstone",
+        summary:
+          "Apply what you learned: triage an alert and write an incident report.",
+        lessons: [
+          {
+            title: "Lab: triage a suspicious login alert",
+            summary: "Walk through a realistic SOC-style scenario.",
+            contentType: LessonContentType.RICH_TEXT,
+            content: `## Scenario
+
+Your SIEM fires: **"Impossible travel — user logged in from Hyderabad and Frankfurt within 10 minutes."**
+
+### Steps
+1. **Verify** — Is the user on leave? VPN? Shared account?
+2. **Contain** — Disable session, force password reset if suspicious.
+3. **Investigate** — Pull auth logs, source IPs, user agent.
+4. **Document** — Timeline, actions taken, open questions.
+
+Write three sentences: what you checked first, what you would escalate, and what evidence you would attach.`,
+            durationMin: 45,
+          },
+          {
+            title: "Capstone: submit your incident report",
+            summary: "Bring the course together in one written deliverable.",
+            contentType: LessonContentType.RICH_TEXT,
+            content: `## Capstone deliverable
+
+Draft a **one-page incident report** for the login alert in the previous activity.
+
+Include:
+1. **Summary** — one paragraph, non-technical audience.
+2. **Timeline** — bullet list with timestamps (use placeholders if needed).
+3. **Actions taken** — what you did and why.
+4. **Recommendations** — two controls to prevent recurrence.
+
+Congratulations — you have completed the full syllabus. Mark this activity done to finish the course.`,
+            durationMin: 60,
           },
         ],
       },

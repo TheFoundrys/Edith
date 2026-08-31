@@ -19,7 +19,9 @@ export function EmptyState({
       )}
     >
       <h3 className="text-sm font-medium text-fg">{title}</h3>
-      {description ? <p className="text-sm text-fg-muted max-w-md">{description}</p> : null}
+      {description ? (
+        <p className="text-sm text-fg-muted max-w-md">{description}</p>
+      ) : null}
       {action ? <div className="mt-2">{action}</div> : null}
     </div>
   );

@@ -23,7 +23,8 @@ export class MockPaymentAdapter implements PaymentPort {
     };
   }
 
-  async verifyPayment(_input: VerifyPaymentInput): Promise<boolean> {
+  async verifyPayment(input: VerifyPaymentInput): Promise<boolean> {
+    void input;
     return true;
   }
 }

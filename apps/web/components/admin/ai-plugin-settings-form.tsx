@@ -19,6 +19,7 @@ export function AiPluginSettingsForm({
     pluginId: string;
     enabled: boolean;
     config: Record<string, string>;
+    configuredSecretKeys: string[];
   };
 }) {
   const [pluginId, setPluginId] = useState(initial.pluginId);
@@ -82,7 +83,8 @@ export function AiPluginSettingsForm({
               type={field.type === "password" ? "password" : "text"}
               value={config[field.key] ?? ""}
               placeholder={
-                field.type === "password" && initial.config[field.key]
+                field.type === "password" &&
+                initial.configuredSecretKeys.includes(field.key)
                   ? "•••••••• (leave blank to keep)"
                   : field.placeholder
               }

@@ -1,10 +1,11 @@
 import {
   ProgramStatus,
+  type EnrollmentStatus,
   type Prisma,
   type ProgramCategory,
 } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
-import { can } from "@/lib/auth/roles";
+import { canUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import {
   availableFinderOptions,
@@ -16,6 +17,7 @@ import {
   catalogDurationKey,
   catalogExperienceKey,
 } from "@/lib/programs/catalog-meta";
+import { getDefaultOrganizationId } from "@/lib/organizations/default";
 import { slugify } from "@/lib/utils";
 import type {
   CatalogCoursePatch,
@@ -43,6 +45,22 @@ const catalogListInclude = {
       applicationClose: true,
       capacity: true,
       isActive: true,
+    },
+  },
+} satisfies Prisma.ProgramInclude;
+
+const activeEnrollmentStatuses = [
+  "ACTIVE",
+  "COMPLETED",
+] satisfies EnrollmentStatus[];
+
+const catalogListingInclude = {
+  ...catalogListInclude,
+  _count: {
+    select: {
+      enrollments: {
+        where: { status: { in: [...activeEnrollmentStatuses] } },
+      },
     },
   },
 } satisfies Prisma.ProgramInclude;
@@ -94,6 +112,84 @@ export type CatalogListQuery = {
   sort?: "name" | "updated" | "tuition";
 };
 
+export type PublishedCatalogProgram = Prisma.ProgramGetPayload<{
+  include: typeof catalogListingInclude;
+}>;
+
+function catalogSortOrder(sort: CatalogListQuery["sort"] = "name") {
+  if (sort === "tuition") return { price: "asc" as const };
+  if (sort === "updated") return { updatedAt: "desc" as const };
+  return { title: "asc" as const };
+}
+
+/** Canonical published catalogue — same source as `/courses`. */
+export async function loadPublishedCatalogPrograms(options?: {
+  sort?: CatalogListQuery["sort"];
+  organizationId?: string;
+}) {
+  const organizationId =
+    options?.organizationId ?? (await getDefaultOrganizationId());
+  return prisma.program.findMany({
+    where: { organizationId, status: "PUBLISHED" },
+    include: catalogListingInclude,
+    orderBy: catalogSortOrder(options?.sort),
+  });
+}
+
+export function buildCatalogFilterIndex(
+  programs: Pick<PublishedCatalogProgram, "category" | "slug" | "degreeLevel" | "eligibilitySummary" | "campus" | "duration" | "isHybridOnly">[],
+) {
+  return programs.map((course) => ({
+    category: course.category,
+    duration: catalogDurationKey(course),
+    experience: catalogExperienceKey(course),
+  }));
+}
+
+export function filterPublishedCatalogPrograms(
+  programs: PublishedCatalogProgram[],
+  query: Pick<
+    CatalogListQuery,
+    "suite" | "category" | "duration" | "experience" | "q"
+  >,
+  available?: ReturnType<typeof availableFinderOptions>,
+) {
+  const filterIndex = buildCatalogFilterIndex(programs);
+  const options = available ?? availableFinderOptions(filterIndex);
+  const filters = parseFinderFilters(
+    {
+      suite: query.suite,
+      category: query.category,
+      duration: query.duration,
+      experience: query.experience,
+    },
+    options,
+  );
+
+  const q = query.q?.trim().toLowerCase();
+  let filtered = programs.filter((course) =>
+    programMatchesFinderFilters(course, filters),
+  );
+
+  if (q) {
+    filtered = filtered.filter((course) => {
+      const haystack = [
+        course.title,
+        course.description ?? "",
+        course.eligibilitySummary ?? "",
+        course.slug.replace(/-/g, " "),
+        ...course.tags,
+        ...course.learningOutcomes,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }
+
+  return { filtered, filters, available: options, totalPublished: programs.length };
+}
+
 function parseDocs(docs?: string[]) {
   return JSON.stringify(docs ?? []);
 }
@@ -118,56 +214,19 @@ async function uniqueSlug(organizationId: string, name: string, preferred?: stri
   return slug;
 }
 
-export async function listPublishedCatalogCourses(query: CatalogListQuery) {
+export async function listPublishedCatalogCourses(
+  query: CatalogListQuery,
+  organizationId?: string,
+) {
   const page = query.page ?? 1;
   const pageSize = query.pageSize ?? 50;
   const sort = query.sort ?? "name";
 
-  const published = await prisma.program.findMany({
-    where: { status: "PUBLISHED" },
-    include: catalogListInclude,
-    orderBy:
-      sort === "tuition"
-        ? { price: "asc" }
-        : sort === "updated"
-          ? { updatedAt: "desc" }
-          : { title: "asc" },
-  });
-
-  const filterIndex = published.map((course) => ({
-    category: course.category,
-    duration: catalogDurationKey(course),
-    experience: catalogExperienceKey(course),
-  }));
-  const available = availableFinderOptions(filterIndex);
-  const filters = parseFinderFilters(
-    {
-      suite: query.suite,
-      category: query.category,
-      duration: query.duration,
-      experience: query.experience,
-    },
-    available,
+  const published = await loadPublishedCatalogPrograms({ sort, organizationId });
+  const { filtered, filters, available } = filterPublishedCatalogPrograms(
+    published,
+    query,
   );
-
-  const q = query.q?.trim().toLowerCase();
-  let filtered = published.filter((course) =>
-    programMatchesFinderFilters(course, filters),
-  );
-  if (q) {
-    filtered = filtered.filter((course) => {
-      const haystack = [
-        course.title,
-        course.description ?? "",
-        course.eligibilitySummary ?? "",
-        ...course.tags,
-        ...course.learningOutcomes,
-      ]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(q);
-    });
-  }
 
   const total = filtered.length;
   const start = (page - 1) * pageSize;
@@ -188,32 +247,26 @@ export async function listPublishedCatalogCourses(query: CatalogListQuery) {
   };
 }
 
-export async function getPublishedCatalogCourseBySlug(slug: string) {
+export async function getPublishedCatalogCourseBySlug(
+  slug: string,
+  organizationId?: string,
+) {
+  const resolvedOrganizationId =
+    organizationId ?? (await getDefaultOrganizationId());
   const course = await prisma.program.findFirst({
-    where: { slug, status: "PUBLISHED" },
+    where: {
+      organizationId: resolvedOrganizationId,
+      slug,
+      status: "PUBLISHED",
+    },
     include: catalogDetailInclude,
   });
   if (!course) return null;
   return serializeCatalogCourseDetail(course);
 }
 
-export async function getCatalogFilters() {
-  const published = await prisma.program.findMany({
-    where: { status: "PUBLISHED" },
-    select: {
-      slug: true,
-      category: true,
-      degreeLevel: true,
-      eligibilitySummary: true,
-      campus: { select: { name: true } },
-      // Both are optional on CatalogMetaProgram, so omitting them compiles but
-      // makes catalogDurationKey fall back to the degree-level default instead
-      // of the authored duration — the offered options then disagree with what
-      // the course list actually returns.
-      duration: true,
-      isHybridOnly: true,
-    },
-  });
+export async function getCatalogFilters(organizationId?: string) {
+  const published = await loadPublishedCatalogPrograms({ organizationId });
 
   const filterIndex = published.map((course) => ({
     category: course.category,
@@ -240,6 +293,7 @@ export function getCatalogCategories() {
 
 export type CatalogDumpQuery = {
   includeSyllabus?: boolean;
+  organizationId?: string;
 };
 
 /**
@@ -248,7 +302,12 @@ export type CatalogDumpQuery = {
  */
 export async function dumpPublishedCatalog(query: CatalogDumpQuery = {}) {
   const includeSyllabus = query.includeSyllabus ?? true;
-  const where = { status: ProgramStatus.PUBLISHED } satisfies Prisma.ProgramWhereInput;
+  const organizationId =
+    query.organizationId ?? (await getDefaultOrganizationId());
+  const where = {
+    organizationId,
+    status: ProgramStatus.PUBLISHED,
+  } satisfies Prisma.ProgramWhereInput;
   const orderBy = [
     { category: "asc" as const },
     { title: "asc" as const },
@@ -397,7 +456,7 @@ export async function createAdminCatalogCourse(
   user: SessionUser,
   data: CatalogCourseWrite,
 ) {
-  if (!can(user.role, "managePricing") && (data.price != null || data.applicationFee != null)) {
+  if (!canUser(user, "managePricing") && (data.price != null || data.applicationFee != null)) {
     return { ok: false as const, error: "You do not have permission to set course pricing.", status: 403 as const };
   }
 
@@ -459,7 +518,7 @@ export async function updateAdminCatalogCourse(
   });
   if (!existing) return { ok: false as const, error: "Course not found.", status: 404 as const };
 
-  const allowPricing = can(user.role, "managePricing");
+  const allowPricing = canUser(user, "managePricing");
   if (
     !allowPricing &&
     (data.price !== undefined ||

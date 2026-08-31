@@ -12,6 +12,10 @@ export async function GET(request: Request) {
   const incoming = new URL(request.url);
   const dest = new URL("/login", incoming.origin);
   dest.searchParams.set("notice", "session_expired");
+  const reason = incoming.searchParams.get("reason");
+  if (reason === "membership_suspended" || reason === "membership_expired") {
+    dest.searchParams.set("notice", reason);
+  }
   const callbackUrl = incoming.searchParams.get("callbackUrl");
   if (callbackUrl) dest.searchParams.set("callbackUrl", callbackUrl);
 

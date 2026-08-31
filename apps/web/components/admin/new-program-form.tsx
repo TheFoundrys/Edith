@@ -39,7 +39,7 @@ export function NewProgramForm({
   }
 
   return (
-    <div className="peak-rise max-w-2xl">
+    <div className="max-w-2xl">
       <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
         <Link href="/admin/programs" className="hover:text-fg">
           Programs

@@ -32,7 +32,7 @@ export default async function AdminProgramsPage() {
   const drafts = programs.filter((p) => p.status === "DRAFT").length;
 
   return (
-    <div className="peak-rise">
+    <div>
       <PageHeader
         title="Programs"
         description="Build the catalog — set details and pricing, add a syllabus, then publish to go live."

@@ -29,12 +29,64 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  async headers() {
+    const isProduction = process.env.NODE_ENV === "production";
+    const scriptPolicy =
+      isProduction
+        ? "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com"
+        : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com";
+    const contentSecurityPolicy = [
+      "default-src 'self'",
+      scriptPolicy,
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data:",
+      isProduction
+        ? "connect-src 'self' https://*.razorpay.com"
+        : "connect-src 'self' ws: wss: https://*.razorpay.com",
+      "frame-src https://*.razorpay.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      ...(isProduction ? ["upgrade-insecure-requests"] : []),
+    ].join("; ");
+    const securityHeaders = [
+      { key: "Content-Security-Policy", value: contentSecurityPolicy },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      {
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=()",
+      },
+      ...(isProduction
+        ? [
+            {
+              key: "Strict-Transport-Security",
+              value: "max-age=31536000; includeSubDomains",
+            },
+          ]
+        : []),
+    ];
+    return [
+      {
+        source: "/(.*)",
+        headers: securityHeaders,
+      },
+    ];
+  },
   async redirects() {
     return [
       { source: "/programs", destination: "/courses", permanent: false },
       {
         source: "/programs/:slug",
         destination: "/courses/:slug",
+        permanent: false,
+      },
+      {
+        source: "/courses/edith-personality-profile",
+        destination: "/personality-profile",
         permanent: false,
       },
       { source: "/student", destination: "/student/dashboard", permanent: false },
@@ -51,16 +103,6 @@ const nextConfig: NextConfig = {
       {
         source: "/student/programs",
         destination: "/courses",
-        permanent: false,
-      },
-      {
-        source: "/student/applications",
-        destination: "/student/dashboard",
-        permanent: false,
-      },
-      {
-        source: "/student/applications/:id",
-        destination: "/student/dashboard",
         permanent: false,
       },
       {

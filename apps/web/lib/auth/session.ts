@@ -6,11 +6,33 @@ import {
   type AppRole,
   type Capability,
 } from "@/lib/auth/roles";
+import { getCapabilitiesForRole } from "@/lib/auth/org-capabilities";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 
 export { isStaffRole, can };
 export type { AppRole, Capability };
+
+export type SessionWithCapabilities = Awaited<ReturnType<typeof requireSession>>;
+
+/** Prefer session capabilities (org matrix); fall back to code defaults. */
+export function canUser(
+  user: { role: AppRole; capabilities?: Capability[] },
+  capability: Capability,
+) {
+  if (user.capabilities) return user.capabilities.includes(capability);
+  return can(user.role, capability);
+}
+
+export function isSuperAdmin(role: string | undefined | null) {
+  return role === "SUPER_ADMIN";
+}
+
+export async function requireSuperAdmin() {
+  const session = await requireStaff();
+  if (!isSuperAdmin(session.user.role)) redirect("/admin");
+  return session;
+}
 
 export async function requireSession() {
   const session = await auth();
@@ -18,18 +40,33 @@ export async function requireSession() {
     redirect("/login");
   }
 
-  // Node-only membership check (JWT stays Edge-safe; this refreshes after reseeds).
-  const membership = await prisma.membership.findFirst({
-    where: { userId: session.user.id },
+  const membership = await prisma.membership.findUnique({
+    where: {
+      organizationId_userId: {
+        organizationId: session.user.organizationId,
+        userId: session.user.id,
+      },
+    },
   });
 
   if (membership) {
+    if (membership.status === "SUSPENDED") {
+      redirect("/api/auth/clear-stale?reason=membership_suspended");
+    }
+    if (membership.expiresAt && membership.expiresAt.getTime() <= Date.now()) {
+      redirect("/api/auth/clear-stale?reason=membership_expired");
+    }
+    const capabilities = await getCapabilitiesForRole(
+      membership.organizationId,
+      membership.role,
+    );
     return {
       ...session,
       user: {
         ...session.user,
         role: membership.role as AppRole,
         organizationId: membership.organizationId,
+        capabilities,
       },
     };
   }
@@ -58,7 +95,7 @@ export async function requireStaff() {
 /** Staff with a specific capability (e.g. pricing vs content). */
 export async function requireCapability(capability: Capability) {
   const session = await requireStaff();
-  if (!can(session.user.role, capability)) {
+  if (!canUser(session.user, capability)) {
     redirect("/admin");
   }
   return session;
