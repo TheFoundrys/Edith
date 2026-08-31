@@ -12,6 +12,7 @@ import {
 } from "@prisma/client";
 import { requireCapability, requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { recordAudit } from "@/lib/audit";
 
 function csvList(raw: string | null | undefined) {
   return String(raw || "")
@@ -115,8 +116,42 @@ export async function gradeAssignmentSubmission(
       status: "GRADED",
     },
   });
+  await recordAudit({
+    organizationId: session.user.organizationId,
+    actor: session.user,
+    action: "ASSIGNMENT_SUBMISSION_GRADED",
+    entityType: "AssignmentSubmission",
+    entityId: submission.id,
+    metadata: { grade, assignmentId: submission.assignmentId },
+  });
+  await prisma.notification.create({
+    data: {
+      userId: submission.userId,
+      title: "Assignment graded",
+      message:
+        grade == null
+          ? "Feedback is available for your assignment."
+          : `Your assignment grade is ${grade}.`,
+      actionUrl: submission.assignmentId
+        ? `/student/assignments/${submission.assignmentId}`
+        : "/student/submissions",
+    },
+  });
   revalidatePath("/admin/assignments");
+  if (submission.assignmentId) {
+    revalidatePath(`/admin/assignments/${submission.assignmentId}`);
+    revalidatePath(`/student/assignments/${submission.assignmentId}`);
+  }
+  revalidatePath("/student/submissions");
+  revalidatePath("/student/notifications");
   return { ok: true as const };
+}
+
+export async function gradeAssignmentSubmissionAction(
+  submissionId: string,
+  formData: FormData,
+): Promise<void> {
+  await gradeAssignmentSubmission(submissionId, formData);
 }
 
 export async function setApplicationReference(
@@ -179,20 +214,44 @@ export async function createCoupon(formData: FormData) {
 
   const type = String(formData.get("type") || "PERCENTAGE") as CouponType;
   const scope = String(formData.get("scope") || "GLOBAL") as CouponScope;
+  const resolvedType = Object.values(CouponType).includes(type)
+    ? type
+    : CouponType.PERCENTAGE;
+  const maxUses = Number(formData.get("maxUses") || 0);
+  const expiry = new Date(expiresAt);
+  if (
+    !Number.isFinite(value) ||
+    value <= 0 ||
+    (resolvedType === CouponType.PERCENTAGE && value > 100) ||
+    !Number.isInteger(maxUses) ||
+    maxUses < 0 ||
+    Number.isNaN(expiry.getTime()) ||
+    expiry.getTime() <= Date.now()
+  ) {
+    return { error: "Enter a valid value, future expiry, and usage limit." };
+  }
 
   await prisma.coupon.create({
     data: {
       organizationId: session.user.organizationId,
       code,
       value,
-      type: Object.values(CouponType).includes(type) ? type : CouponType.PERCENTAGE,
+      type: resolvedType,
       scope: Object.values(CouponScope).includes(scope) ? scope : CouponScope.GLOBAL,
       description: String(formData.get("description") || "").trim() || null,
-      maxUses: Number(formData.get("maxUses") || 0),
-      expiresAt: new Date(expiresAt),
+      maxUses,
+      expiresAt: expiry,
       isActive: formData.get("isActive") !== "off",
       createdBy: session.user.id,
     },
+  });
+  await recordAudit({
+    organizationId: session.user.organizationId,
+    actor: session.user,
+    action: "COUPON_CREATED",
+    entityType: "Coupon",
+    targetResource: code,
+    metadata: { code, value, type: resolvedType, scope, maxUses },
   });
   revalidatePath("/admin/coupons");
   return { ok: true as const };
@@ -362,22 +421,54 @@ export async function createForumThread(formData: FormData) {
 export async function upsertPaymentSettings(formData: FormData) {
   const session = await requireCapability("managePricing");
   const orgId = session.user.organizationId;
+  const gstPercent = Number(formData.get("gstPercent") || 0);
+  const convenienceFeePercent = Number(
+    formData.get("convenienceFeePercent") || 0,
+  );
+  if (
+    !Number.isFinite(gstPercent) ||
+    gstPercent < 0 ||
+    gstPercent > 100 ||
+    !Number.isFinite(convenienceFeePercent) ||
+    convenienceFeePercent < 0 ||
+    convenienceFeePercent > 100
+  ) {
+    return { error: "Tax and convenience fee must be between 0 and 100." };
+  }
+  const currency = String(formData.get("currency") || "INR")
+    .trim()
+    .toUpperCase();
+  const razorpayEnabled = formData.get("razorpayEnabled") === "on";
   await prisma.paymentSettings.upsert({
     where: { organizationId: orgId },
     create: {
       organizationId: orgId,
-      currency: String(formData.get("currency") || "INR"),
-      gstPercent: Number(formData.get("gstPercent") || 18),
-      convenienceFeePercent: Number(formData.get("convenienceFeePercent") || 0),
-      razorpayEnabled: formData.get("razorpayEnabled") === "on",
-      stripeEnabled: formData.get("stripeEnabled") === "on",
+      currency,
+      gstPercent,
+      convenienceFeePercent,
+      razorpayEnabled,
+      stripeEnabled: false,
+      enabled: true,
     },
     update: {
-      currency: String(formData.get("currency") || "INR"),
-      gstPercent: Number(formData.get("gstPercent") || 18),
-      convenienceFeePercent: Number(formData.get("convenienceFeePercent") || 0),
-      razorpayEnabled: formData.get("razorpayEnabled") === "on",
-      stripeEnabled: formData.get("stripeEnabled") === "on",
+      currency,
+      gstPercent,
+      convenienceFeePercent,
+      razorpayEnabled,
+      stripeEnabled: false,
+      enabled: true,
+    },
+  });
+  await recordAudit({
+    organizationId: orgId,
+    actor: session.user,
+    action: "PAYMENT_SETTINGS_UPDATED",
+    entityType: "PaymentSettings",
+    metadata: {
+      currency,
+      gstPercent,
+      convenienceFeePercent,
+      razorpayEnabled,
     },
   });
   revalidatePath("/admin/payment-settings");
@@ -386,20 +477,46 @@ export async function upsertPaymentSettings(formData: FormData) {
 
 export async function createProgramOffer(formData: FormData) {
   const session = await requireCapability("managePricing");
+  const organizationId = session.user.organizationId;
   const userId = String(formData.get("userId") || "");
   const programId = String(formData.get("programId") || "");
   if (!userId || !programId) return { error: "User and program required." };
-  await prisma.programOffer.create({
+  const customPrice = Number(formData.get("customPrice") || 0);
+  if (!Number.isFinite(customPrice) || customPrice < 0) {
+    return { error: "Custom price must be zero or greater." };
+  }
+  const [membership, program] = await Promise.all([
+    prisma.membership.findUnique({
+      where: { organizationId_userId: { organizationId, userId } },
+      select: { id: true },
+    }),
+    prisma.program.findFirst({
+      where: { id: programId, organizationId },
+      select: { id: true },
+    }),
+  ]);
+  if (!membership || !program) {
+    return { error: "Select a student and program from this organization." };
+  }
+  const offer = await prisma.programOffer.create({
     data: {
-      organizationId: session.user.organizationId,
+      organizationId,
       userId,
       programId,
-      customPrice: Number(formData.get("customPrice") || 0),
+      customPrice,
       tokenRequired: Number(formData.get("tokenRequired") || 0),
       discountAmount: Number(formData.get("discountAmount") || 0),
       discountType: String(formData.get("discountType") || "").trim() || null,
       status: OfferStatus.OFFERED,
     },
+  });
+  await recordAudit({
+    organizationId,
+    actor: session.user,
+    action: "PROGRAM_OFFER_CREATED",
+    entityType: "ProgramOffer",
+    entityId: offer.id,
+    metadata: { userId, programId, customPrice },
   });
   revalidatePath("/admin/offers");
   return { ok: true as const };

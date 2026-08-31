@@ -15,7 +15,11 @@ export default async function StudentAssignmentDetailPage({
   const session = await requireStudent();
 
   const assignment = await prisma.assignment.findFirst({
-    where: { id: assignmentId, isPublished: true },
+    where: {
+      id: assignmentId,
+      organizationId: session.user.organizationId,
+      isPublished: true,
+    },
     include: { program: { select: { id: true, title: true } } },
   });
   if (!assignment) notFound();
@@ -58,9 +62,20 @@ export default async function StudentAssignmentDetailPage({
           </Badge>
         ) : null}
         <Badge
-          tone={submission?.status === "SUBMITTED" ? "success" : "neutral"}
+          tone={
+            submission?.status === "SUBMITTED" ||
+            submission?.status === "GRADED"
+              ? "success"
+              : "neutral"
+          }
         >
-          {submission?.status === "SUBMITTED" ? "Submitted" : "Not submitted"}
+          {submission?.status === "GRADED"
+            ? submission.grade != null
+              ? `Graded · ${submission.grade}`
+              : "Feedback available"
+            : submission?.status === "SUBMITTED"
+              ? "Submitted"
+              : "Not submitted"}
         </Badge>
       </div>
 
@@ -75,10 +90,21 @@ export default async function StudentAssignmentDetailPage({
         <AssignmentSubmitForm
           assignmentId={assignment.id}
           initialContent={submission?.contentBody}
-          alreadySubmitted={submission?.status === "SUBMITTED"}
+          alreadySubmitted={
+            submission?.status === "SUBMITTED" ||
+            submission?.status === "GRADED"
+          }
           submittedAt={submission?.submittedAt}
         />
       </Panel>
+      {submission?.status === "GRADED" && submission.feedback ? (
+        <Panel className="mt-6 p-5">
+          <h2 className="mb-2 text-sm font-medium">Instructor feedback</h2>
+          <p className="whitespace-pre-wrap text-sm text-fg-muted">
+            {submission.feedback}
+          </p>
+        </Panel>
+      ) : null}
     </div>
   );
 }

@@ -15,7 +15,11 @@ export default async function StudentQuizDetailPage({
   const session = await requireStudent();
 
   const quiz = await prisma.quiz.findFirst({
-    where: { id, status: "PUBLISHED" },
+    where: {
+      id,
+      organizationId: session.user.organizationId,
+      status: "PUBLISHED",
+    },
     include: {
       program: { select: { id: true, title: true } },
       questions: { orderBy: { sortOrder: "asc" } },
@@ -70,16 +74,25 @@ export default async function StudentQuizDetailPage({
         </Panel>
       ) : null}
 
-      <Panel className="p-5">
-        <QuizTakeForm
-          quizId={quiz.id}
-          questions={quiz.questions.map((q) => ({
-            id: q.id,
-            prompt: q.prompt,
-            options: JSON.parse(q.optionsJson) as string[],
-          }))}
-        />
-      </Panel>
+      {attempts.length === 0 ? (
+        <Panel className="p-5">
+          <QuizTakeForm
+            quizId={quiz.id}
+            questions={quiz.questions.map((q) => ({
+              id: q.id,
+              prompt: q.prompt,
+              options: JSON.parse(q.optionsJson) as string[],
+            }))}
+          />
+        </Panel>
+      ) : (
+        <Panel className="p-5">
+          <p className="text-sm font-medium">Quiz completed</p>
+          <p className="mt-1 text-sm text-fg-muted">
+            This quiz allows one attempt. Your result is shown above.
+          </p>
+        </Panel>
+      )}
     </div>
   );
 }

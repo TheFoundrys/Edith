@@ -9,7 +9,11 @@ export default async function StudentSubmissionsPage() {
   const session = await requireStudent();
 
   const submissions = await prisma.assignmentSubmission.findMany({
-    where: { userId: session.user.id, status: "SUBMITTED" },
+    where: {
+      userId: session.user.id,
+      status: { in: ["SUBMITTED", "GRADED"] },
+      assignment: { organizationId: session.user.organizationId },
+    },
     include: {
       assignment: {
         include: { program: { select: { title: true } } },
@@ -54,8 +58,19 @@ export default async function StudentSubmissionsPage() {
                       : ""}
                   </p>
                 </div>
-                <Badge tone="success">Submitted</Badge>
+                <Badge tone="success">
+                  {submission.status === "GRADED"
+                    ? submission.grade != null
+                      ? `Graded · ${submission.grade}`
+                      : "Feedback available"
+                    : "Submitted"}
+                </Badge>
               </div>
+              {submission.feedback ? (
+                <p className="mt-3 border-t border-border pt-3 text-sm text-fg-muted">
+                  {submission.feedback}
+                </p>
+              ) : null}
             </Panel>
           ))}
         </div>

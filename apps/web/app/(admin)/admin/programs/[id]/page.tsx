@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ProgramDetailClient } from "@/components/admin/program-detail";
-import { can, requireCapability } from "@/lib/auth/session";
+import { canUser, requireCapability } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 
 export default async function ProgramDetailPage({
@@ -36,7 +36,7 @@ export default async function ProgramDetailPage({
       campuses={campuses}
       departments={departments}
       forms={forms}
-      canManagePricing={can(session.user.role, "managePricing")}
+      canManagePricing={canUser(session.user, "managePricing")}
     />
   );
 }

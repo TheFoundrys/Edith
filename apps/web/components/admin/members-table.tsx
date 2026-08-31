@@ -9,23 +9,28 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Dropdown,
   DropdownCheckboxItem,
-  DropdownSeparator,
 } from "@/components/ui/dropdown";
+import { Input, Label } from "@/components/ui/input";
 import { Panel } from "@/components/ui/page";
 import { useToast } from "@/components/ui/toast";
+import { InviteStaffPanel } from "@/components/admin/invite-staff-panel";
 import {
   addMember,
   bulkSetExpiry,
+  bulkSetMemberStatus,
   removeMembers,
   setMemberExpiry,
   setMemberRoles,
+  setMemberStaffRole,
+  setMemberStatus,
 } from "@/lib/actions/members";
-import { roleLabel } from "@/lib/auth/roles";
+import { ROLE_LABELS, type AppRole } from "@/lib/auth/roles";
 import {
   accessExpiryLabel,
   isExpired,
   toDateInputValue,
 } from "@/lib/members/access";
+import type { MembershipAccessState } from "@/lib/members/status";
 
 export type MemberRow = {
   kind: "member";
@@ -33,41 +38,45 @@ export type MemberRow = {
   name: string;
   email: string;
   programs: number;
-  /** ISO string so the server component can pass it across the boundary. */
   expiresAt: string | null;
   roleIds: string[];
   enumRole: string;
+  status: "ACTIVE" | "SUSPENDED";
+  accessState: MembershipAccessState;
   isSelf: boolean;
 };
 
-export type GroupRow = {
-  kind: "group";
-  id: string;
-  name: string;
-  subtitle: string;
-  programs: number;
-  isArchived: boolean;
-};
-
-export type MemberTableRow = MemberRow | GroupRow;
-
 type PermissionRoleOption = { id: string; name: string };
+
+const STAFF_ACCESS_OPTIONS: AppRole[] = [
+  "SUPER_ADMIN",
+  "ADMISSIONS_MANAGER",
+  "COUNSELOR",
+  "CONTENT_UPLOADER",
+  "STUDENT",
+];
 
 const cellClass = "px-5 py-3 align-middle";
 const dateInputClass =
   "h-8 rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated px-2 text-sm text-fg";
 
+function statusBadge(state: MembershipAccessState) {
+  if (state === "suspended") return { tone: "danger" as const, label: "Suspended" };
+  if (state === "expired") return { tone: "warning" as const, label: "Expired" };
+  return { tone: "success" as const, label: "Active" };
+}
+
 export function MembersTable({
   rows,
-  permissionRoles,
+  assignableRoles,
+  rolesSetupHref,
+  canInviteAdmins,
   footer,
 }: {
-  rows: MemberTableRow[];
-  permissionRoles: PermissionRoleOption[];
-  /**
-   * Pagination is rendered on the server and handed over as a slot, because the
-   * link builders it needs are functions and those cannot cross the RSC boundary.
-   */
+  rows: MemberRow[];
+  assignableRoles: PermissionRoleOption[];
+  rolesSetupHref?: string;
+  canInviteAdmins: boolean;
   footer?: React.ReactNode;
 }) {
   const router = useRouter();
@@ -77,26 +86,36 @@ export function MembersTable({
   const [confirming, setConfirming] = useState<
     { ids: string[]; label: string } | null
   >(null);
-  const [addOpen, setAddOpen] = useState(false);
-  const [addEmail, setAddEmail] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachEmail, setAttachEmail] = useState("");
 
-  const memberRows = useMemo(
-    () => rows.filter((r): r is MemberRow => r.kind === "member"),
-    [rows],
-  );
   const selectableIds = useMemo(
-    () => memberRows.filter((r) => !r.isSelf).map((r) => r.id),
-    [memberRows],
+    () => rows.filter((row) => !row.isSelf).map((row) => row.id),
+    [rows],
   );
   const allSelected =
     selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
-
   const roleNameById = useMemo(
-    () => new Map(permissionRoles.map((r) => [r.id, r.name])),
-    [permissionRoles],
+    () => new Map(assignableRoles.map((role) => [role.id, role.name])),
+    [assignableRoles],
+  );
+  const assignableRoleIds = useMemo(
+    () => new Set(assignableRoles.map((role) => role.id)),
+    [assignableRoles],
   );
 
-  /** Runs an action, surfacing its error as a toast and refreshing on success. */
+  function customRoleIds(row: MemberRow) {
+    return row.roleIds.filter((id) => assignableRoleIds.has(id));
+  }
+
+  function roleSummary(row: MemberRow) {
+    const ids = customRoleIds(row);
+    if (ids.length === 0) return "None";
+    if (ids.length === 1) return roleNameById.get(ids[0]) ?? "1 role";
+    return `${ids.length} roles`;
+  }
+
   function run(action: () => Promise<{ error?: string }>, successMessage?: string) {
     startTransition(async () => {
       const result = await action();
@@ -118,20 +137,8 @@ export function MembersTable({
     });
   }
 
-  function toggleAll(checked: boolean) {
-    setSelected(checked ? new Set(selectableIds) : new Set());
-  }
-
   function clearSelection() {
     setSelected(new Set());
-  }
-
-  function roleSummary(row: MemberRow) {
-    if (row.roleIds.length === 0) return "No roles";
-    if (row.roleIds.length === 1) {
-      return roleNameById.get(row.roleIds[0]) ?? "1 role";
-    }
-    return "Multiple roles";
   }
 
   const selectedIds = [...selected];
@@ -139,21 +146,29 @@ export function MembersTable({
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="primary"
             size="sm"
-            onClick={() => setAddOpen((v) => !v)}
-            aria-expanded={addOpen}
+            onClick={() => {
+              setInviteOpen((open) => !open);
+              setAttachOpen(false);
+            }}
+            aria-expanded={inviteOpen}
           >
-            Add member
+            Invite staff
           </Button>
-          <Link
-            href="/admin/roles"
-            className="text-sm text-fg-muted underline underline-offset-2 hover:text-fg"
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setAttachOpen((open) => !open);
+              setInviteOpen(false);
+            }}
+            aria-expanded={attachOpen}
           >
-            Edit roles
-          </Link>
+            Add existing student
+          </Button>
         </div>
 
         {selectedIds.length > 0 ? (
@@ -161,14 +176,36 @@ export function MembersTable({
             <span className="text-fg-muted tabular-nums">
               {selectedIds.length} selected
             </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={pending}
+              onClick={() => {
+                run(() => bulkSetMemberStatus(selectedIds, "SUSPENDED"), "Members suspended");
+                clearSelection();
+              }}
+            >
+              Suspend
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={pending}
+              onClick={() => {
+                run(() => bulkSetMemberStatus(selectedIds, "ACTIVE"), "Members restored");
+                clearSelection();
+              }}
+            >
+              Restore
+            </Button>
             <label className="flex items-center gap-1.5">
               <span className="text-fg-muted">Set expiry</span>
               <input
                 type="date"
                 className={dateInputClass}
                 disabled={pending}
-                onChange={(e) => {
-                  const value = e.target.value;
+                onChange={(event) => {
+                  const value = event.target.value;
                   if (!value) return;
                   run(
                     () => bulkSetExpiry(selectedIds, value),
@@ -178,17 +215,6 @@ export function MembersTable({
                 }}
               />
             </label>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={pending}
-              onClick={() => {
-                run(() => bulkSetExpiry(selectedIds, null), "Expiry cleared");
-                clearSelection();
-              }}
-            >
-              Clear expiry
-            </Button>
             <Button
               variant="danger"
               size="sm"
@@ -206,62 +232,37 @@ export function MembersTable({
         ) : null}
       </div>
 
-      {addOpen ? (
+      {inviteOpen ? <InviteStaffPanel canInviteAdmins={canInviteAdmins} /> : null}
+
+      {attachOpen ? (
         <Panel className="mb-3 p-4">
           <form
             className="flex flex-wrap items-end gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const email = addEmail.trim();
+            onSubmit={(event) => {
+              event.preventDefault();
+              const email = attachEmail.trim();
               if (!email) return;
-              startTransition(async () => {
-                const result = await addMember(email);
-                if (result?.error) {
-                  toast({
-                    title: "Could not add member",
-                    description: result.error,
-                    tone: "danger",
-                  });
-                  return;
-                }
-                toast({ title: "Member added", tone: "success" });
-                setAddEmail("");
-                setAddOpen(false);
-                router.refresh();
-              });
+              run(() => addMember(email), "Existing student added");
+              setAttachEmail("");
+              setAttachOpen(false);
             }}
           >
-            <div className="flex-1 min-w-[16rem]">
-              <label
-                htmlFor="add-member-email"
-                className="mb-1.5 block text-xs font-medium text-fg"
-              >
-                Email of an existing account
-              </label>
-              <input
-                id="add-member-email"
+            <div className="min-w-[16rem] flex-1">
+              <Label htmlFor="attach-email">Existing student email</Label>
+              <Input
+                id="attach-email"
                 type="email"
                 required
-                value={addEmail}
-                onChange={(e) => setAddEmail(e.target.value)}
-                placeholder="person@example.com"
-                className="h-9 w-full rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated px-3 text-sm"
+                value={attachEmail}
+                onChange={(event) => setAttachEmail(event.target.value)}
               />
             </div>
             <Button type="submit" size="sm" loading={pending}>
               Add
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setAddOpen(false)}
-            >
-              Cancel
-            </Button>
           </form>
           <p className="mt-2 text-xs text-fg-muted">
-            Joins as a student, then grant access with roles. Accounts sign up first.
+            Use this only for a student account that already exists. Staff must be invited.
           </p>
         </Panel>
       ) : null}
@@ -269,7 +270,7 @@ export function MembersTable({
       <Panel className="overflow-x-auto">
         <table className="w-full text-sm">
           <caption className="sr-only">
-            Organization members and groups, with roles and access expiry
+            Organization members with access, labels, and expiry
           </caption>
           <thead>
             <tr className="border-b border-border text-left text-xs text-fg-muted">
@@ -278,122 +279,107 @@ export function MembersTable({
                   type="checkbox"
                   checked={allSelected}
                   disabled={selectableIds.length === 0 || pending}
-                  onChange={(e) => toggleAll(e.target.checked)}
+                  onChange={(event) =>
+                    setSelected(event.target.checked ? new Set(selectableIds) : new Set())
+                  }
                   aria-label="Select all members on this page"
                 />
               </th>
               <th scope="col" className="px-5 py-3 font-medium">Account</th>
-              <th scope="col" className="px-5 py-3 font-medium">Programs</th>
-              <th scope="col" className="px-5 py-3 font-medium">Access expires</th>
-              <th scope="col" className="px-5 py-3 font-medium">Role</th>
-              <th scope="col" className="px-5 py-3 font-medium">Expiration</th>
+              <th scope="col" className="px-5 py-3 font-medium">Status</th>
+              <th scope="col" className="px-5 py-3 font-medium">Access</th>
+              <th scope="col" className="px-5 py-3 font-medium">Labels</th>
+              <th scope="col" className="px-5 py-3 font-medium">Expires</th>
               <th scope="col" className="px-5 py-3 font-medium">
                 <span className="sr-only">Actions</span>
               </th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) =>
-              row.kind === "group" ? (
-                <tr key={`group-${row.id}`} className="border-b border-border last:border-0">
-                  <td className={cellClass} />
-                  <td className={cellClass}>
-                    <p className="font-medium">
-                      {row.name}
-                      <Badge tone="info" className="ml-2">Group</Badge>
-                      {row.isArchived ? (
-                        <Badge tone="neutral" className="ml-1">Archived</Badge>
-                      ) : null}
-                    </p>
-                    <p className="text-xs text-fg-muted">{row.subtitle}</p>
-                  </td>
-                  <td className={`${cellClass} tabular-nums text-fg-muted`}>
-                    {row.programs}
-                  </td>
-                  <td colSpan={4} className={`${cellClass} text-xs text-fg-muted`}>
-                    Groups carry no roles or expiry of their own.
-                  </td>
-                </tr>
-              ) : (
+            {rows.map((row) => {
+              const badge = statusBadge(row.accessState);
+              return (
                 <tr key={row.id} className="border-b border-border last:border-0">
                   <td className={cellClass}>
                     <input
                       type="checkbox"
                       checked={selected.has(row.id)}
                       disabled={row.isSelf || pending}
-                      onChange={(e) => toggleRow(row.id, e.target.checked)}
+                      onChange={(event) => toggleRow(row.id, event.target.checked)}
                       aria-label={`Select ${row.name}`}
                     />
                   </td>
-
                   <td className={cellClass}>
                     <p className="font-medium">
                       {row.name}
-                      {row.isSelf ? (
-                        <Badge tone="neutral" className="ml-2">You</Badge>
-                      ) : null}
+                      {row.isSelf ? <Badge tone="neutral" className="ml-2">You</Badge> : null}
                     </p>
                     <p className="text-xs text-fg-muted">{row.email}</p>
+                    <p className="text-xs text-fg-muted">{row.programs} enrolled programs</p>
                   </td>
-
-                  <td className={`${cellClass} tabular-nums text-fg-muted`}>
-                    {row.programs}
-                  </td>
-
                   <td className={cellClass}>
-                    <span
-                      className={
-                        isExpired(row.expiresAt) ? "text-fg" : "text-fg-muted"
+                    <Badge tone={badge.tone}>{badge.label}</Badge>
+                  </td>
+                  <td className={`${cellClass} min-w-[10rem]`}>
+                    <select
+                      className="h-8 w-full max-w-[11rem] rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated px-2 text-sm"
+                      value={row.enumRole}
+                      disabled={pending || (row.isSelf && row.enumRole === "SUPER_ADMIN")}
+                      aria-label={`Staff access for ${row.name}`}
+                      onChange={(event) =>
+                        run(() => setMemberStaffRole(row.id, event.target.value))
                       }
                     >
-                      {accessExpiryLabel(row.expiresAt)}
-                    </span>
-                    <span className="ml-2 text-xs text-fg-muted">
-                      {roleLabel(row.enumRole)}
-                    </span>
+                      {STAFF_ACCESS_OPTIONS.map((role) => (
+                        <option key={role} value={role}>
+                          {ROLE_LABELS[role]}
+                        </option>
+                      ))}
+                    </select>
                   </td>
-
                   <td className={`${cellClass} min-w-[12rem]`}>
-                    {permissionRoles.length === 0 ? (
-                      <Link
-                        href="/admin/roles"
-                        className="text-xs text-fg-muted underline underline-offset-2"
-                      >
-                        No roles defined
-                      </Link>
+                    {assignableRoles.length === 0 ? (
+                      rolesSetupHref ? (
+                        <Link
+                          href={rolesSetupHref}
+                          className="text-xs text-fg-muted underline underline-offset-2"
+                        >
+                          Set up roles
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-fg-muted">—</span>
+                      )
                     ) : (
                       <Dropdown
                         label={roleSummary(row)}
                         disabled={pending}
-                        ariaLabel={`Roles for ${row.name}`}
+                        ariaLabel={`Labels for ${row.name}`}
                         panelClassName="w-56"
                       >
-                        {permissionRoles.map((role) => (
+                        {assignableRoles.map((role) => (
                           <DropdownCheckboxItem
                             key={role.id}
-                            checked={row.roleIds.includes(role.id)}
+                            checked={customRoleIds(row).includes(role.id)}
                             disabled={pending}
                             onChange={(checked) => {
-                              const next = checked
-                                ? [...row.roleIds, role.id]
-                                : row.roleIds.filter((id) => id !== role.id);
-                              run(() => setMemberRoles(row.id, next));
+                              const custom = customRoleIds(row);
+                              const systemIds = row.roleIds.filter(
+                                (id) => !assignableRoleIds.has(id),
+                              );
+                              const nextCustom = checked
+                                ? [...custom, role.id]
+                                : custom.filter((id) => id !== role.id);
+                              run(() =>
+                                setMemberRoles(row.id, [...systemIds, ...nextCustom]),
+                              );
                             }}
                           >
                             {role.name}
                           </DropdownCheckboxItem>
                         ))}
-                        <DropdownSeparator />
-                        <Link
-                          href="/admin/roles"
-                          className="block px-2 py-1.5 text-sm text-fg-muted underline underline-offset-2 hover:text-fg"
-                        >
-                          Edit roles
-                        </Link>
                       </Dropdown>
                     )}
                   </td>
-
                   <td className={cellClass}>
                     <div className="flex items-center gap-1.5">
                       <input
@@ -402,8 +388,8 @@ export function MembersTable({
                         value={toDateInputValue(row.expiresAt)}
                         disabled={pending}
                         aria-label={`Access expiry for ${row.name}`}
-                        onChange={(e) =>
-                          run(() => setMemberExpiry(row.id, e.target.value || null))
+                        onChange={(event) =>
+                          run(() => setMemberExpiry(row.id, event.target.value || null))
                         }
                       />
                       {row.expiresAt ? (
@@ -418,30 +404,48 @@ export function MembersTable({
                         </button>
                       ) : null}
                     </div>
+                    <p className={`mt-1 text-xs ${isExpired(row.expiresAt) ? "text-fg" : "text-fg-muted"}`}>
+                      {accessExpiryLabel(row.expiresAt)}
+                    </p>
                   </td>
-
                   <td className={`${cellClass} text-right`}>
                     {row.isSelf ? (
                       <span className="text-xs text-fg-muted">—</span>
                     ) : (
-                      <button
-                        type="button"
-                        disabled={pending}
-                        onClick={() =>
-                          setConfirming({ ids: [row.id], label: row.name })
-                        }
-                        className="text-sm text-fg underline underline-offset-2 hover:text-fg-muted"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex flex-col items-end gap-1">
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() =>
+                            run(
+                              () =>
+                                setMemberStatus(
+                                  row.id,
+                                  row.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED",
+                                ),
+                              row.status === "SUSPENDED" ? "Access restored" : "Member suspended",
+                            )
+                          }
+                          className="text-sm text-fg underline underline-offset-2 hover:text-fg-muted"
+                        >
+                          {row.status === "SUSPENDED" ? "Restore" : "Suspend"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => setConfirming({ ids: [row.id], label: row.name })}
+                          className="text-sm text-fg-muted underline underline-offset-2 hover:text-fg"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
-              ),
-            )}
+              );
+            })}
           </tbody>
         </table>
-
         {footer ? <div className="border-t border-border">{footer}</div> : null}
       </Panel>
 

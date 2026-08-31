@@ -25,7 +25,7 @@ env:
 
 jobs:
   quality:
-    name: Lint & typecheck
+    name: Lint, test & typecheck
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -47,6 +47,12 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Verify database migrations
+        run: npm run db:verify-migrations
 
   build:
     name: Build

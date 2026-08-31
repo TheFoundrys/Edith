@@ -21,7 +21,7 @@ export default async function AdminFormsPage() {
   const published = forms.filter((f) => f.versions[0]?.isPublished).length;
 
   return (
-    <div className="peak-rise">
+    <div>
       <PageHeader
         title="Application forms"
         description="Versioned dynamic forms attached to programs."

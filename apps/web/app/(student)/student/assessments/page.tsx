@@ -5,19 +5,31 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import {
+  PERSONALITY_PROFILE_HREF,
+  PERSONALITY_PROFILE_SLUG,
+  personalityProgress,
+  type PersonalityResponses,
+} from "@/lib/assessments/personality-profile";
 
 export default async function StudentAssessmentsPage() {
   const session = await requireStudent();
 
   const enrollments = await prisma.enrollment.findMany({
     where: { userId: session.user.id, status: "ACTIVE" },
-    select: { programId: true },
+    select: {
+      programId: true,
+      program: { select: { slug: true, title: true } },
+    },
   });
   const programIds = enrollments.map((e) => e.programId);
+  const personalityEnrollment = enrollments.find(
+    (e) => e.program.slug === PERSONALITY_PROFILE_SLUG,
+  );
 
-  const [assignments, quizzes] = programIds.length
-    ? await Promise.all([
-        prisma.assignment.findMany({
+  const [assignments, quizzes, personalityAttempt] = await Promise.all([
+    programIds.length
+      ? prisma.assignment.findMany({
           where: { programId: { in: programIds }, isPublished: true },
           include: {
             program: { select: { title: true } },
@@ -27,8 +39,10 @@ export default async function StudentAssessmentsPage() {
             },
           },
           orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
-        }),
-        prisma.quiz.findMany({
+        })
+      : Promise.resolve([]),
+    programIds.length
+      ? prisma.quiz.findMany({
           where: { programId: { in: programIds }, status: "PUBLISHED" },
           include: {
             program: { select: { title: true } },
@@ -40,14 +54,29 @@ export default async function StudentAssessmentsPage() {
             },
           },
           orderBy: { updatedAt: "desc" },
-        }),
-      ])
-    : [[], []];
+        })
+      : Promise.resolve([]),
+    personalityEnrollment
+      ? prisma.cliftonAssessment.findFirst({
+          where: {
+            userId: session.user.id,
+            organizationId: session.user.organizationId,
+          },
+          orderBy: { createdAt: "desc" },
+          select: { responses: true, status: true },
+        })
+      : Promise.resolve(null),
+  ]);
 
-  const empty = assignments.length === 0 && quizzes.length === 0;
+  const personality = personalityEnrollment
+    ? personalityProgress((personalityAttempt?.responses ?? {}) as PersonalityResponses)
+    : null;
+
+  const empty =
+    assignments.length === 0 && quizzes.length === 0 && !personality;
 
   return (
-    <div className="peak-rise">
+    <div>
       <PageHeader
         title="Assignments & Quizzes"
         description="Course work from your enrollments — submit assignments and take quizzes here."
@@ -65,6 +94,47 @@ export default async function StudentAssessmentsPage() {
         />
       ) : (
         <div className="space-y-[var(--grid-pad)]">
+          {personality && personalityEnrollment ? (
+            <section>
+              <h2 className="mb-[var(--grid-gap)] font-display text-xl text-fg">
+                Personality profile
+              </h2>
+              <article className="peak-card">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
+                  Aptitude · Quantitative · Psyche
+                </p>
+                <h3 className="mt-[var(--grid-gap)] font-display text-xl leading-snug">
+                  <Link
+                    href={
+                      personality.pct === 100
+                        ? `${PERSONALITY_PROFILE_HREF}/report`
+                        : PERSONALITY_PROFILE_HREF
+                    }
+                    className="hover:underline underline-offset-2"
+                  >
+                    {personalityEnrollment.program.title}
+                  </Link>
+                </h3>
+                <p className="mt-2 text-sm text-fg-muted">
+                  {personality.done} of {personality.total} sections complete
+                </p>
+                <div className="mt-auto pt-[var(--grid-pad)]">
+                  <Link
+                    href={
+                      personality.pct === 100
+                        ? `${PERSONALITY_PROFILE_HREF}/report`
+                        : PERSONALITY_PROFILE_HREF
+                    }
+                  >
+                    <Button size="sm">
+                      {personality.pct === 100 ? "View report" : "Continue"}
+                    </Button>
+                  </Link>
+                </div>
+              </article>
+            </section>
+          ) : null}
+
           <section>
             <div className="mb-[var(--grid-gap)] flex items-end justify-between gap-3">
               <h2 className="font-display text-xl text-fg">Assignments</h2>

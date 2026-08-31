@@ -1,19 +1,19 @@
-import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { isStaffRole } from "@/lib/auth/session";
+import { getHomePageData } from "@/lib/marketing/home-data";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { HomeHeader } from "@/components/layout/home-header";
+import { SiteHeader } from "@/components/layout/home-header";
 import { HomeEmblemArt } from "@/components/layout/home-emblem-art";
 import { HomeHeroBackdrop } from "@/components/layout/home-hero-backdrop";
-import { Button } from "@/components/ui/button";
-import {
-  APP_HEADLINE,
-  APP_NAME,
-  APP_SUBHEAD,
-} from "@/lib/brand";
+import { HomeHero } from "@/components/layout/home-hero";
+import { HomeFeatureBar } from "@/components/marketing/home-feature-bar";
+import { HomeCourseShowcase } from "@/components/marketing/home-featured-course-card";
+import { HomeStatsBar } from "@/components/marketing/home-stats-bar";
+import { HomeTestimonials } from "@/components/marketing/home-testimonials";
+import { HomeCtaBand } from "@/components/marketing/home-cta-band";
 
 export default async function HomePage() {
-  const session = await auth();
+  const [session, homeData] = await Promise.all([auth(), getHomePageData()]);
   const loggedIn =
     Boolean(session?.user?.id) && session?.error !== "InvalidSession";
   const href = loggedIn
@@ -22,52 +22,51 @@ export default async function HomePage() {
       : "/student/dashboard"
     : "/courses";
 
+  const continueHref = loggedIn
+    ? href
+    : "/login";
+
   return (
     <div className="home-page min-h-full flex flex-col">
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <HomeHeader
+      <SiteHeader
         loggedIn={loggedIn}
         workspaceHref={href}
         workspaceLabel={
           isStaffRole(session?.user?.role) ? "Workspace" : "Continue learning"
         }
+        variant="overlay"
       />
 
-      <main
-        id="main-content"
-        className="relative flex-1 flex flex-col peak-atmosphere min-h-[72svh]"
-      >
-        <HomeHeroBackdrop />
+      <main id="main-content" className="relative flex-1 flex flex-col">
+        <div className="home-hero-bridge">
+          <section className="home-hero-viewport peak-atmosphere">
+            <HomeHeroBackdrop />
 
-        <div className="home-hero relative flex-1 flex items-center justify-between gap-10 px-5 sm:px-8 lg:px-12 max-w-7xl w-full mx-auto py-20 sm:py-24">
-          <div>
-            <p className="home-wordmark peak-rise">{APP_NAME}</p>
-            <div className="home-hero-rule peak-rise" aria-hidden />
-            <h1 className="home-headline peak-rise-delay">{APP_HEADLINE}</h1>
-            <p className="home-tagline max-w-md peak-rise-delay">
-              {APP_SUBHEAD}
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3 peak-rise-delay-2">
-              <Link href="/courses">
-                <Button className="home-cta-primary h-11 px-5 text-sm">
-                  Browse courses
-                </Button>
-              </Link>
-              <Link href={loggedIn ? href : "/login"}>
-                <Button
-                  variant="secondary"
-                  className="home-cta-secondary h-11 px-5 text-sm"
-                >
-                  {loggedIn ? "Continue learning" : "Sign in"}
-                </Button>
-              </Link>
+            <div className="home-container home-hero-shell">
+              <div className="home-hero-copy">
+                <HomeHero
+                  continueHref={continueHref}
+                  socialProof={homeData.socialProof}
+                />
+              </div>
+              <HomeEmblemArt placement="inline" />
             </div>
-          </div>
-          <HomeEmblemArt placement="inline" />
+          </section>
+
+          <HomeFeatureBar highlights={homeData.featureHighlights} />
+        </div>
+
+        <div className="home-landing-body">
+          <HomeCourseShowcase courses={homeData.featuredCourses} />
+          <HomeStatsBar stats={homeData.stats} />
+          <HomeTestimonials items={homeData.testimonials} />
+          <HomeCtaBand loggedIn={loggedIn} />
         </div>
       </main>
+
       <SiteFooter />
     </div>
   );

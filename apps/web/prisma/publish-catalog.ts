@@ -120,6 +120,23 @@ async function ensureDepartments(organizationId: string) {
   return byCode;
 }
 
+async function ensurePaymentSettings(organizationId: string) {
+  const existing = await prisma.paymentSettings.findUnique({
+    where: { organizationId },
+  });
+  if (existing) return;
+  console.log("  + payment settings (INR · 18% GST)");
+  if (dryRun) return;
+  await prisma.paymentSettings.create({
+    data: {
+      organizationId,
+      currency: "INR",
+      gstPercent: 18,
+      convenienceFeePercent: 0,
+    },
+  });
+}
+
 /**
  * Reuses whatever application form the organization already publishes. This
  * script deliberately does not invent one: the form schema is owned by the
@@ -156,7 +173,8 @@ function programCreateData(
     organizationId: ids.organizationId,
     campusId: ids.campusId,
     departmentId: ids.departmentId,
-    formDefinitionId: ids.formDefinitionId,
+    formDefinitionId:
+      program.requiresApplication === false ? null : ids.formDefinitionId,
     title: program.name,
     slug: program.slug,
     category: program.category,
@@ -220,26 +238,30 @@ function programCreateData(
           },
         }
       : {}),
-    intakes: {
-      create: [
-        {
-          name: "Fall 2026",
-          startDate: new Date("2026-09-01"),
-          applicationOpen: new Date("2026-01-01"),
-          applicationClose: new Date("2026-07-31"),
-          capacity: program.capacity,
-          isActive: true,
-        },
-        {
-          name: "Spring 2027",
-          startDate: new Date("2027-01-15"),
-          applicationOpen: new Date("2026-08-01"),
-          applicationClose: new Date("2026-11-30"),
-          capacity: Math.round(program.capacity * 0.7),
-          isActive: true,
-        },
-      ],
-    },
+    ...(program.skipIntakes
+      ? {}
+      : {
+          intakes: {
+            create: [
+              {
+                name: "Fall 2026",
+                startDate: new Date("2026-09-01"),
+                applicationOpen: new Date("2026-01-01"),
+                applicationClose: new Date("2026-07-31"),
+                capacity: program.capacity,
+                isActive: true,
+              },
+              {
+                name: "Spring 2027",
+                startDate: new Date("2027-01-15"),
+                applicationOpen: new Date("2026-08-01"),
+                applicationClose: new Date("2026-11-30"),
+                capacity: Math.round(program.capacity * 0.7),
+                isActive: true,
+              },
+            ],
+          },
+        }),
   };
 }
 
@@ -292,6 +314,7 @@ async function main() {
   const campusByCode = await ensureCampuses(org.id);
   const deptByCode = await ensureDepartments(org.id);
   const form = await findApplicationForm(org.id);
+  await ensurePaymentSettings(org.id);
 
   const created: string[] = [];
   const updated: string[] = [];

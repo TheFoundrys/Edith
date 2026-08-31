@@ -9,9 +9,8 @@ export type PaymentConfig = {
   webhookSecret?: string;
 };
 
-/** Mock checkout is for local/dev only unless explicitly allowed. */
+/** Mock checkout is strictly limited to non-production environments. */
 export function isMockPaymentsAllowed(): boolean {
-  if (process.env.ALLOW_MOCK_PAYMENTS === "true") return true;
   return process.env.NODE_ENV !== "production";
 }
 
@@ -50,7 +49,7 @@ export function getPaymentAdapter(): PaymentPort {
 
   if (!isMockPaymentsAllowed()) {
     throw new Error(
-      "Mock payments are disabled in production. Set PAYMENT_ADAPTER=razorpay with keys, or ALLOW_MOCK_PAYMENTS=true only for an approved non-prod environment.",
+      "Mock payments are disabled in production. Configure Razorpay credentials.",
     );
   }
 

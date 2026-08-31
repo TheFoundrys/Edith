@@ -38,7 +38,7 @@ export default async function AdminSyllabusListPage() {
   ).length;
 
   return (
-    <div className="peak-rise">
+    <div>
       <PageHeader
         title="Syllabus"
         description="Course outline for each program: sections and activities. Learners see published courses after enrolment."

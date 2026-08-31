@@ -6,8 +6,46 @@ import { requireSession, requireCapability } from "@/lib/auth/session";
 import { crmSyncStatusSafe, crmUpsertLeadSafe } from "@/lib/crm";
 import { prisma } from "@/lib/db";
 import { parseFormSchema, validateAnswers } from "@/lib/forms/schema";
+import { upsertEnrollmentAccess } from "@/lib/enrollment/activation";
 import { saveApplicationDocument } from "@/lib/storage";
 import { canTransition } from "@/lib/workflows/status";
+import { recordAudit } from "@/lib/audit";
+
+function intakeWindowError(intake: {
+  applicationOpen: Date | null;
+  applicationClose: Date | null;
+}) {
+  const now = Date.now();
+  if (intake.applicationOpen && intake.applicationOpen.getTime() > now) {
+    return "Applications for this intake are not open yet.";
+  }
+  if (intake.applicationClose && intake.applicationClose.getTime() < now) {
+    return "Applications for this intake are closed.";
+  }
+  return null;
+}
+
+async function applicationCapacityError(input: {
+  programId: string;
+  intakeId: string;
+  capacity: number | null;
+  excludeApplicationId?: string;
+}) {
+  if (input.capacity == null) return null;
+  const reserved = await prisma.application.count({
+    where: {
+      programId: input.programId,
+      intakeId: input.intakeId,
+      id: input.excludeApplicationId
+        ? { not: input.excludeApplicationId }
+        : undefined,
+      status: { not: "REJECTED" },
+    },
+  });
+  return reserved >= input.capacity
+    ? "This intake has reached its application capacity."
+    : null;
+}
 
 export async function startApplication(programId: string, intakeId?: string) {
   const session = await requireSession();
@@ -51,16 +89,26 @@ export async function startApplication(programId: string, intakeId?: string) {
     return { ok: true as const, id: existing.id };
   }
 
-  const resolvedIntake =
-    intakeId ||
-    program.intakes[0]?.id ||
-    null;
+  const selectedIntake = intakeId
+    ? program.intakes.find((intake) => intake.id === intakeId)
+    : program.intakes[0];
+  if (!selectedIntake) {
+    return { error: "Select an active intake before applying." };
+  }
+  const windowError = intakeWindowError(selectedIntake);
+  if (windowError) return { error: windowError };
+  const capacityError = await applicationCapacityError({
+    programId,
+    intakeId: selectedIntake.id,
+    capacity: selectedIntake.capacity ?? program.capacity,
+  });
+  if (capacityError) return { error: capacityError };
 
   const application = await prisma.application.create({
     data: {
       organizationId: session.user.organizationId,
       programId,
-      intakeId: resolvedIntake,
+      intakeId: selectedIntake.id,
       applicantId: session.user.id,
       formVersionId: program.formDefinition.versions[0].id,
       status: "DRAFT",
@@ -166,6 +214,18 @@ export async function submitApplication(applicationId: string) {
   });
   if (!application) return { error: "Application not found." };
   if (application.status !== "DRAFT") return { error: "Already submitted." };
+  if (!application.intake || !application.intake.isActive) {
+    return { error: "The selected intake is no longer active." };
+  }
+  const windowError = intakeWindowError(application.intake);
+  if (windowError) return { error: windowError };
+  const capacityError = await applicationCapacityError({
+    programId: application.programId,
+    intakeId: application.intake.id,
+    capacity: application.intake.capacity ?? application.program.capacity,
+    excludeApplicationId: application.id,
+  });
+  if (capacityError) return { error: capacityError };
 
   const schema = parseFormSchema(application.formVersion.schemaJson);
   const answers = JSON.parse(application.answersJson) as Record<string, unknown>;
@@ -241,19 +301,31 @@ export async function transitionApplicationStatus(
     return { error: `Cannot move from ${application.status} to ${toStatus}.` };
   }
 
-  await prisma.application.update({
-    where: { id: applicationId },
-    data: {
-      status: toStatus,
-      events: {
-        create: {
-          fromStatus: application.status,
-          toStatus,
-          note: note || null,
-          actorId: session.user.id,
+  await prisma.$transaction(async (tx) => {
+    await tx.application.update({
+      where: { id: applicationId },
+      data: {
+        status: toStatus,
+        events: {
+          create: {
+            fromStatus: application.status,
+            toStatus,
+            note: note || null,
+            actorId: session.user.id,
+          },
         },
       },
-    },
+    });
+
+    if (toStatus === "ENROLLED") {
+      await upsertEnrollmentAccess(tx, {
+        organizationId: application.organizationId,
+        programId: application.programId,
+        userId: application.applicantId,
+        intakeId: application.intakeId,
+        status: "ACTIVE",
+      });
+    }
   });
 
   await crmSyncStatusSafe({
@@ -263,6 +335,14 @@ export async function transitionApplicationStatus(
     externalApplicationId: application.crmApplicationId,
     status: toStatus,
     note,
+  });
+  await recordAudit({
+    organizationId: application.organizationId,
+    actor: session.user,
+    action: "APPLICATION_STATUS_UPDATED",
+    entityType: "Application",
+    entityId: application.id,
+    metadata: { from: application.status, to: toStatus, note: note ?? null },
   });
 
   revalidatePath(`/admin/applications/${applicationId}`);
@@ -289,6 +369,14 @@ export async function setDocumentVerification(
     data: verified
       ? { verifiedAt: new Date(), verifiedById: session.user.id }
       : { verifiedAt: null, verifiedById: null },
+  });
+  await recordAudit({
+    organizationId: session.user.organizationId,
+    actor: session.user,
+    action: verified ? "DOCUMENT_VERIFIED" : "DOCUMENT_VERIFICATION_CLEARED",
+    entityType: "Document",
+    entityId: doc.id,
+    metadata: { applicationId: doc.applicationId },
   });
 
   revalidatePath(`/admin/applications/${doc.applicationId}`);

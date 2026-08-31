@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel } from "@/components/ui/page";
@@ -9,6 +9,10 @@ import {
   findContinueActivityId,
   flattenPublishedActivities,
 } from "@/lib/learning/outline";
+import {
+  afterEnrollmentHref,
+  isPersonalityProfileProgram,
+} from "@/lib/assessments/personality-profile";
 
 export default async function MyCourseHubPage({
   params,
@@ -50,6 +54,10 @@ export default async function MyCourseHubPage({
     },
   });
   if (!enrollment) notFound();
+
+  if (isPersonalityProfileProgram(enrollment.program)) {
+    redirect(afterEnrollmentHref(enrollment.program));
+  }
 
   const awaitingCrm =
     enrollment.status === "PENDING" && enrollment.program.requiresCrmCallback;

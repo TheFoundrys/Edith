@@ -1,9 +1,19 @@
+import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import {
   activateEnrollmentFromCrm,
   rejectEnrollmentFromCrm,
 } from "@/lib/crm/enrollment-callback";
 import { prisma } from "@/lib/db";
+
+function secretsMatch(candidate: string, expected: string) {
+  const candidateBuffer = Buffer.from(candidate);
+  const expectedBuffer = Buffer.from(expected);
+  return (
+    candidateBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(candidateBuffer, expectedBuffer)
+  );
+}
 
 /**
  * Inbound CentraCRM callback to approve/reject course enrollments that
@@ -34,7 +44,10 @@ export async function POST(req: Request) {
     ? auth.slice(7).trim()
     : "";
   const headerSecret = req.headers.get("x-crm-webhook-secret")?.trim() ?? "";
-  if (bearer !== secret && headerSecret !== secret) {
+  if (
+    !secretsMatch(bearer, secret) &&
+    !secretsMatch(headerSecret, secret)
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

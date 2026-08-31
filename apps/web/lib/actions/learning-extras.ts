@@ -15,7 +15,11 @@ export async function submitAssignment(
   }
 
   const assignment = await prisma.assignment.findFirst({
-    where: { id: assignmentId, isPublished: true },
+    where: {
+      id: assignmentId,
+      organizationId: session.user.organizationId,
+      isPublished: true,
+    },
   });
   if (!assignment) return { error: "Assignment not found." };
 
@@ -36,7 +40,10 @@ export async function submitAssignment(
       userId: session.user.id,
     },
   });
-  if (existing?.status === "SUBMITTED") {
+  if (
+    existing?.status === "SUBMITTED" ||
+    existing?.status === "GRADED"
+  ) {
     return {
       error:
         "This assignment is already submitted and locked. You cannot change it.",
@@ -130,6 +137,56 @@ export async function maybeIssueCertificate(opts: {
     },
   });
   if (completed < lessonIds.length) return;
+
+  const [assignments, quizzes] = await Promise.all([
+    prisma.assignment.findMany({
+      where: {
+        organizationId: opts.organizationId,
+        programId: opts.programId,
+        isPublished: true,
+      },
+      select: {
+        submissions: {
+          where: { userId: opts.userId },
+          select: { status: true },
+          take: 1,
+        },
+      },
+    }),
+    prisma.quiz.findMany({
+      where: {
+        organizationId: opts.organizationId,
+        programId: opts.programId,
+        status: "PUBLISHED",
+      },
+      select: {
+        attempts: {
+          where: { userId: opts.userId },
+          select: { score: true, maxScore: true },
+          take: 1,
+        },
+      },
+    }),
+  ]);
+  if (
+    assignments.some(
+      (assignment) => assignment.submissions[0]?.status !== "GRADED",
+    )
+  ) {
+    return;
+  }
+  if (
+    quizzes.some((quiz) => {
+      const attempt = quiz.attempts[0];
+      return (
+        !attempt ||
+        attempt.maxScore <= 0 ||
+        (attempt.score / attempt.maxScore) * 100 < 70
+      );
+    })
+  ) {
+    return;
+  }
 
   const existing = await prisma.certificate.findUnique({
     where: {

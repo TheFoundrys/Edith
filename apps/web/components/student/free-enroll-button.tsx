@@ -6,7 +6,13 @@ import { enrollFree } from "@/lib/actions/enrollments";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/input";
 
-export function FreeEnrollButton({ courseSlug }: { courseSlug: string }) {
+export function FreeEnrollButton({
+  courseSlug,
+  intakeId,
+}: {
+  courseSlug: string;
+  intakeId?: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +25,7 @@ export function FreeEnrollButton({ courseSlug }: { courseSlug: string }) {
         onClick={() => {
           setError(null);
           startTransition(async () => {
-            const result = await enrollFree(courseSlug);
+            const result = await enrollFree(courseSlug, intakeId);
             if (result.error) {
               setError(result.error);
               return;

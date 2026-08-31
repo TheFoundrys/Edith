@@ -2,21 +2,36 @@ import { AppShell } from "@/components/layout/app-shell";
 import { requireStudent } from "@/lib/auth/session";
 import { APP_NAME } from "@/lib/brand";
 
-/** Student workspace navigation. */
-const nav = [
-  { href: "/student/dashboard", label: "Home" },
-  { href: "/student/enroll", label: "Enroll" },
-  { href: "/student/my-courses", label: "My Courses" },
-  { href: "/student/progress", label: "Progress" },
-  { href: "/student/assessments", label: "Assignments & Quizzes" },
-  { href: "/student/certificates", label: "Certificates" },
-  { href: "/student/applications", label: "Applications" },
-  { href: "/student/payment", label: "Payment" },
-  { href: "/student/announcements", label: "Announcements" },
-  { href: "/student/forums", label: "Forums" },
-  { href: "/student/tickets", label: "Support" },
-  { href: "/student/profile", label: "Profile" },
-  { href: "/student/settings", label: "Settings" },
+const navGroups = [
+  {
+    label: "Learn",
+    items: [
+      { href: "/student/dashboard", label: "Dashboard" },
+      { href: "/student/my-courses", label: "My Learning" },
+      { href: "/student/enroll", label: "Courses" },
+      { href: "/student/personality-profile", label: "Personality Profile" },
+      { href: "/student/assessments", label: "Assessments" },
+      { href: "/student/progress", label: "Progress" },
+      { href: "/student/submissions", label: "Submissions" },
+      { href: "/student/certificates", label: "Certificates" },
+    ],
+  },
+  {
+    label: "Admissions",
+    items: [
+      { href: "/student/applications", label: "Applications" },
+      { href: "/student/payment", label: "Payments" },
+    ],
+  },
+  {
+    label: "Support",
+    items: [
+      { href: "/student/notifications", label: "Notifications" },
+      { href: "/student/announcements", label: "Announcements" },
+      { href: "/student/tickets", label: "Help tickets" },
+      { href: "/student/settings", label: "Settings" },
+    ],
+  },
 ];
 
 export default async function StudentLayout({
@@ -24,16 +39,14 @@ export default async function StudentLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await requireStudent();
+  await requireStudent();
   return (
     <AppShell
       brand={APP_NAME}
-      nav={nav}
-      user={{
-        name: session.user.name,
-        email: session.user.email,
-        role: session.user.role,
-      }}
+      navGroups={navGroups}
+      profileHref="/student/profile"
+      workspaceHref="/student/dashboard"
+      workspaceLabel="Continue learning"
     >
       {children}
     </AppShell>

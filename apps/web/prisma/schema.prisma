@@ -145,6 +145,18 @@ enum UserStatus {
   DELETED
 }
 
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum MembershipInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
 enum CertificateStatus {
   ACTIVE
   REVOKED
@@ -373,6 +385,7 @@ model Organization {
   emailTemplates   EmailTemplate[]
   forumCategories  ForumCategory[]
   groups           Group[]
+  membershipInvites MembershipInvite[]
   installments     Installment[]
   ipRules          IpRule[]
   lessonMcqs       LessonMcq[]
@@ -438,6 +451,7 @@ model User {
   groupMessages        GroupMessage[] @relation("GroupMessageAuthor")
   groupMentions        GroupMessageMention[]
   userGroups           UserGroup[]
+  membershipInvites    MembershipInvite[]
   tickets              Ticket[]
   ticketMessages       TicketMessage[]
   payments             Payment[] @relation("PaymentUser")
@@ -459,20 +473,54 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+model RateLimitBucket {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
+}
+
 model Membership {
-  id             String   @id @default(cuid())
+  id             String           @id @default(cuid())
   organizationId String
   userId         String
   role           Role
+  status         MembershipStatus @default(ACTIVE)
   /// null means access never expires
   expiresAt      DateTime?
-  createdAt      DateTime @default(now())
+  suspendedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   roles        MembershipRole[]
   @@unique([organizationId, userId])
   @@index([userId])
   @@index([expiresAt])
+  @@index([organizationId, status])
+}
+
+/// Pending staff invitation. Students self-register; staff join by invite only.
+model MembershipInvite {
+  id             String                 @id @default(cuid())
+  organizationId String
+  email          String
+  name           String?
+  role           Role
+  tokenHash      String                 @unique
+  status         MembershipInviteStatus @default(PENDING)
+  expiresAt      DateTime
+  invitedById    String
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+  @@index([organizationId, email, status])
+  @@index([organizationId, status])
 }
 
 /// Lets one membership hold several PermissionRoles at once. Kept separate from
@@ -597,6 +645,7 @@ model Enrollment {
   id             String           @id @default(cuid())
   organizationId String
   programId      String
+  intakeId       String?
   userId         String
   status         EnrollmentStatus @default(PENDING)
   enrolledAt     DateTime?
@@ -619,6 +668,7 @@ model Enrollment {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   program      Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  intake       Intake?      @relation(fields: [intakeId], references: [id], onDelete: SetNull)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments     Payment[]
   crmSyncLogs  CrmSyncLog[]
@@ -626,6 +676,7 @@ model Enrollment {
   @@unique([userId, programId])
   @@index([organizationId, status])
   @@index([programId])
+  @@index([intakeId])
   @@index([userId])
   @@index([crmLeadId])
 }
@@ -718,6 +769,7 @@ model Intake {
   updatedAt        DateTime  @updatedAt
   program      Program       @relation(fields: [programId], references: [id], onDelete: Cascade)
   applications Application[]
+  enrollments  Enrollment[]
   @@index([programId])
 }
 
@@ -1017,7 +1069,7 @@ model QuizAttempt {
   createdAt   DateTime @default(now())
   quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  @@index([quizId, userId])
+  @@unique([quizId, userId])
   @@index([userId])
 }
 
@@ -1510,6 +1562,7 @@ model Group {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   members      UserGroup[]
   messages     GroupMessage[]
+  @@unique([organizationId, name])
   @@index([organizationId])
 }
 

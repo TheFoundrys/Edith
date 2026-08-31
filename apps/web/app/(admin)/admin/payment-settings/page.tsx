@@ -16,6 +16,9 @@ export default async function AdminPaymentSettingsPage() {
       <PageHeader title="Payment settings" description="GST, fees, and provider toggles." />
       <Panel className="p-5 max-w-lg">
         <form action={upsertPaymentSettingsAction} className="space-y-3">
+          <p className="text-sm text-fg-muted">
+            These values are applied to new course checkout quotes.
+          </p>
           <div>
             <Label htmlFor="currency">Currency</Label>
             <Input id="currency" name="currency" defaultValue={settings?.currency ?? "INR"} />
@@ -37,10 +40,6 @@ export default async function AdminPaymentSettingsPage() {
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="razorpayEnabled" defaultChecked={settings?.razorpayEnabled} />
             Razorpay enabled
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="stripeEnabled" defaultChecked={settings?.stripeEnabled} />
-            Stripe enabled
           </label>
           <Button type="submit">Save settings</Button>
         </form>

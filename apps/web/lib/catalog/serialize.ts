@@ -22,6 +22,7 @@ import {
   catalogExperienceLabel,
   catalogMode,
 } from "@/lib/programs/catalog-meta";
+import { catalogHrefForProgram } from "@/lib/assessments/personality-profile";
 
 type CatalogBase = Pick<
   Program,
@@ -81,6 +82,8 @@ function catalogMeta(program: {
   degreeLevel: DegreeLevel;
   eligibilitySummary: string | null;
   campus: { name: string } | null;
+  duration?: string | null;
+  isHybridOnly?: boolean | null;
 }) {
   return {
     mode: catalogMode(program),
@@ -138,7 +141,7 @@ export function serializeCatalogCourse(program: CatalogBase) {
       experienceLabel: meta.experienceLabel,
       experienceKey: meta.experienceKey,
     },
-    href: `/courses/${program.slug}`,
+    href: catalogHrefForProgram(program),
   };
 }
 

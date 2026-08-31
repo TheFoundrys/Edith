@@ -7,6 +7,8 @@
     "start": "npm run start --prefix apps/web",
     "lint": "npm run lint --prefix apps/web",
     "typecheck": "npm run typecheck --prefix apps/web",
+    "test": "npm run test --prefix apps/web",
+    "db:verify-migrations": "npm run db:verify-migrations --prefix apps/web",
     "db:generate": "npm run db:generate --prefix apps/web",
     "db:push": "npm run db:push --prefix apps/web",
     "db:seed": "npm run db:seed --prefix apps/web",

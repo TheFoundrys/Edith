@@ -267,6 +267,17 @@ async function main() {
     },
   });
 
+  await prisma.paymentSettings.create({
+    data: {
+      organizationId: org.id,
+      currency: "INR",
+      gstPercent: 18,
+      convenienceFeePercent: 0,
+      razorpayEnabled: false,
+      stripeEnabled: false,
+    },
+  });
+
   // Assignable roles for the members console. Membership.role stays the enum the
   // session checks read; these are the extra roles an admin can grant per member.
   const defaultPermissionRoles = [
@@ -274,26 +285,45 @@ async function main() {
       slug: "administrator",
       name: "Administrator",
       description: "Full access to every admin area.",
+      permissions: [
+        "managePricing",
+        "managePrograms",
+        "manageContent",
+        "manageApplications",
+        "manageForms",
+        "manageAiPlugins",
+        "manageMembers",
+      ],
     },
     {
       slug: "admissions",
       name: "Admissions",
       description: "Applications, forms, offers and fees.",
+      permissions: [
+        "managePricing",
+        "managePrograms",
+        "manageApplications",
+        "manageForms",
+        "manageMembers",
+      ],
     },
     {
       slug: "counsellor",
       name: "Counsellor",
       description: "Applicant counselling and follow-ups.",
+      permissions: ["manageApplications"],
     },
     {
       slug: "content-author",
       name: "Content author",
       description: "Syllabus, assignments, quizzes and announcements.",
+      permissions: ["manageContent"],
     },
     {
       slug: "member",
       name: "Member",
       description: "Standard learner access.",
+      permissions: ["learnAsStudent"],
     },
   ];
 
@@ -467,7 +497,8 @@ async function main() {
         organizationId: org.id,
         campusId: campus?.id ?? null,
         departmentId: department.id,
-        formDefinitionId: form.id,
+        formDefinitionId:
+          program.requiresApplication === false ? null : form.id,
         title: program.name,
         slug: program.slug,
         category: program.category,
@@ -532,32 +563,36 @@ async function main() {
               },
             }
           : {}),
-        intakes: {
-          create: [
-            {
-              name: "Fall 2026",
-              startDate: new Date("2026-09-01"),
-              applicationOpen: new Date("2026-01-01"),
-              applicationClose: new Date("2026-07-31"),
-              capacity: program.capacity,
-              isActive: true,
-            },
-            {
-              name: "Spring 2027",
-              startDate: new Date("2027-01-15"),
-              applicationOpen: new Date("2026-08-01"),
-              applicationClose: new Date("2026-11-30"),
-              capacity: Math.round(program.capacity * 0.7),
-              isActive: true,
-            },
-          ],
-        },
+        ...(program.skipIntakes
+          ? {}
+          : {
+              intakes: {
+                create: [
+                  {
+                    name: "Fall 2026",
+                    startDate: new Date("2026-09-01"),
+                    applicationOpen: new Date("2026-01-01"),
+                    applicationClose: new Date("2026-07-31"),
+                    capacity: program.capacity,
+                    isActive: true,
+                  },
+                  {
+                    name: "Spring 2027",
+                    startDate: new Date("2027-01-15"),
+                    applicationOpen: new Date("2026-08-01"),
+                    applicationClose: new Date("2026-11-30"),
+                    capacity: Math.round(program.capacity * 0.7),
+                    isActive: true,
+                  },
+                ],
+              },
+            }),
       },
     });
   }
 
-  const aiProgram = await prisma.program.findFirst({
-    where: { organizationId: org.id, slug: "ygp-applied-ai-genai" },
+  const demoProgram = await prisma.program.findFirst({
+    where: { organizationId: org.id, slug: "edith-demo-cybersecurity-essentials" },
     include: {
       intakes: { where: { isActive: true }, take: 1 },
       syllabus: {
@@ -575,12 +610,12 @@ async function main() {
     where: { formDefinitionId: form.id, isPublished: true },
   });
 
-    if (aiProgram && formVersion) {
+    if (demoProgram && formVersion) {
     const enrolledApp = await prisma.application.create({
       data: {
         organizationId: org.id,
-        programId: aiProgram.id,
-        intakeId: aiProgram.intakes[0]?.id ?? null,
+        programId: demoProgram.id,
+        intakeId: demoProgram.intakes[0]?.id ?? null,
         applicantId: student.id,
         formVersionId: formVersion.id,
         status: ApplicationStatus.ENROLLED,
@@ -626,14 +661,14 @@ async function main() {
     const enrollment = await prisma.enrollment.create({
       data: {
         organizationId: org.id,
-        programId: aiProgram.id,
+        programId: demoProgram.id,
         userId: student.id,
         status: "ACTIVE",
         enrolledAt: new Date(),
       },
     });
 
-    const firstLesson = aiProgram.syllabus?.modules[0]?.lessons[0];
+    const firstLesson = demoProgram.syllabus?.modules[0]?.lessons[0];
     if (firstLesson) {
       await prisma.lessonProgress.create({
         data: {
@@ -651,10 +686,10 @@ async function main() {
     await prisma.assignment.create({
       data: {
         organizationId: org.id,
-        programId: aiProgram.id,
-        title: "Intro reflection",
+        programId: demoProgram.id,
+        title: "Module 4 capstone — incident report",
         description:
-          "Write a short reflection (at least a few sentences) on what you hope to learn in this Applied AI & GenAI course.",
+          "Submit your one-page incident report for the suspicious login scenario (summary, timeline, actions, recommendations).",
         dueAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         isPublished: true,
       },
@@ -665,8 +700,8 @@ async function main() {
         userId: student.id,
         title: "Welcome to your course",
         message:
-          "You’re enrolled in the YGP in Applied AI & GenAI. Open learning to continue.",
-        actionUrl: `/student/learning/${aiProgram.id}`,
+          "You're enrolled in Cybersecurity Essentials. Open Learning to start the demo syllabus.",
+        actionUrl: `/student/learning/${demoProgram.id}`,
       },
     });
   }
@@ -687,7 +722,7 @@ async function main() {
   console.log("Counsellor:  counsellor@thefoundrys.com / password123");
   console.log("Content:     content@thefoundrys.com / password123");
   console.log(
-    "Student:     student@example.com / password123 (ENROLLED in YGP Applied AI & GenAI)",
+    "Student:     student@example.com / password123 (ENROLLED in Cybersecurity Essentials demo)",
   );
   console.log(
     `Users: ${admin.email}, ${manager.email}, ${counsellor.email}, ${contentUploader.email}, ${student.email}`,

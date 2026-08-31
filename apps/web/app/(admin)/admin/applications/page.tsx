@@ -78,7 +78,7 @@ export default async function AdminApplicationsPage({
   }
 
   return (
-    <div className="peak-rise">
+    <div>
       <PageHeader
         title="Applications"
         description="Review submissions and advance workflow status."

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import { Button } from "@/components/ui/button";
+import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { afterEnrollmentHref, isPersonalityProfileProgram } from "@/lib/assessments/personality-profile";
 
 export default async function PaymentSuccessPage({
   searchParams,
@@ -13,18 +15,23 @@ export default async function PaymentSuccessPage({
     enrollment: enrollmentId,
     pending,
   } = await searchParams;
+  const session = await requireStudent();
 
-  const course = courseId
-    ? await prisma.program.findUnique({
-        where: { id: courseId },
-        select: { id: true, title: true, requiresCrmCallback: true },
+  const enrollment = enrollmentId
+    ? await prisma.enrollment.findFirst({
+        where: {
+          id: enrollmentId,
+          userId: session.user.id,
+          organizationId: session.user.organizationId,
+        },
+        select: { id: true, status: true, programId: true },
       })
     : null;
 
-  const enrollment = enrollmentId
-    ? await prisma.enrollment.findUnique({
-        where: { id: enrollmentId },
-        select: { id: true, status: true, programId: true },
+  const course = courseId && enrollment?.programId === courseId
+    ? await prisma.program.findUnique({
+        where: { id: courseId },
+        select: { id: true, title: true, slug: true, sku: true, domainSlug: true, requiresCrmCallback: true },
       })
     : null;
 
@@ -46,7 +53,9 @@ export default async function PaymentSuccessPage({
       <p className="mt-3 text-sm text-fg-muted">
         {awaitingCrm
           ? `Your payment went through${course ? ` for ${course.title}` : ""}. Learning unlocks after CRM confirms your enrollment.`
-          : "Your payment went through. Open your dashboard to start learning."}
+          : course
+            ? `Your payment went through. Open ${course.title} to continue.`
+            : "Your payment went through. Open your dashboard to start learning."}
         {enrollmentId ? ` Enrollment reference: ${enrollmentId.slice(0, 8)}…` : ""}
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
@@ -59,8 +68,12 @@ export default async function PaymentSuccessPage({
               <Button variant="secondary">View status</Button>
             </Link>
           ) : (
-            <Link href={`/student/learning/${course.id}`}>
-              <Button variant="secondary">Start learning</Button>
+            <Link href={afterEnrollmentHref(course)}>
+              <Button variant="secondary">
+                {isPersonalityProfileProgram(course)
+                  ? "Start assessment"
+                  : "Start learning"}
+              </Button>
             </Link>
           )
         ) : (

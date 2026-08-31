@@ -75,6 +75,8 @@ export function SyllabusEditor({
   const [pending, startTransition] = useTransition();
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
 
+  const modules = syllabus?.modules ?? [];
+
   function refresh() {
     router.refresh();
   }
@@ -158,12 +160,18 @@ export function SyllabusEditor({
       />
 
       {syllabus ? (
-        <div className="mb-4">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <Badge tone={statusTone(syllabus.status)}>{syllabus.status}</Badge>
+          {syllabus.status !== "PUBLISHED" ? (
+            <p className="text-sm text-fg-muted">
+              Draft — publish when ready for learners and the public course page.
+            </p>
+          ) : null}
         </div>
       ) : (
         <p className="mb-4 text-sm text-fg-muted">
-          No syllabus yet — save details below to create a draft.
+          Add sections and activities below. Publish when ready for learners and
+          the public course page.
         </p>
       )}
 
@@ -198,26 +206,24 @@ export function SyllabusEditor({
         </form>
       </Panel>
 
-      {syllabus ? (
-        <>
-          <Panel className="mb-6">
-            <form onSubmit={onAddModule} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-end">
-              <div className="flex-1">
-                <Label htmlFor="moduleTitle">New section</Label>
-                <Input id="moduleTitle" name="title" placeholder="Section title" required />
-              </div>
-              <div className="flex-1">
-                <Label htmlFor="moduleSummary">Summary</Label>
-                <Input id="moduleSummary" name="summary" placeholder="Optional" />
-              </div>
-              <Button type="submit" loading={pending}>
-                {pending ? "Adding…" : "Add section"}
-              </Button>
-            </form>
-          </Panel>
+      <Panel className="mb-6">
+        <form onSubmit={onAddModule} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <Label htmlFor="moduleTitle">New section</Label>
+            <Input id="moduleTitle" name="title" placeholder="Section title" required />
+          </div>
+          <div className="flex-1">
+            <Label htmlFor="moduleSummary">Summary</Label>
+            <Input id="moduleSummary" name="summary" placeholder="Optional" />
+          </div>
+          <Button type="submit" loading={pending}>
+            {pending ? "Adding…" : "Add section"}
+          </Button>
+        </form>
+      </Panel>
 
-          <div className="space-y-6">
-            {syllabus.modules.map((mod, modIndex) => (
+      <div className="space-y-6">
+        {modules.map((mod, modIndex) => (
               <Panel key={mod.id}>
                 <div className="border-b border-border p-5">
                   <form
@@ -257,7 +263,7 @@ export function SyllabusEditor({
                           variant="ghost"
                           size="sm"
                           disabled={
-                            modIndex === syllabus.modules.length - 1 || pending
+                            modIndex === modules.length - 1 || pending
                           }
                           onClick={() =>
                             startTransition(async () => {
@@ -441,14 +447,12 @@ export function SyllabusEditor({
               </Panel>
             ))}
 
-            {syllabus.modules.length === 0 ? (
-              <p className="text-sm text-fg-muted">
-                Add a section to start building activities.
-              </p>
-            ) : null}
-          </div>
-        </>
-      ) : null}
+        {modules.length === 0 ? (
+          <p className="text-sm text-fg-muted">
+            Add a section to start building activities.
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

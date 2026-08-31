@@ -32,6 +32,7 @@ export const SUITE_OPTIONS: FinderFilterOption[] = PROGRAM_CATEGORIES.map(
 );
 
 export const DURATION_OPTIONS: FinderFilterOption[] = [
+  { value: "session", label: "Single session" },
   { value: "days", label: "A few days" },
   { value: "upto6w", label: "Up to 6 weeks" },
   { value: "6to13w", label: "6–13 weeks" },

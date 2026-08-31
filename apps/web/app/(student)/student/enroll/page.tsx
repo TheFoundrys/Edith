@@ -1,37 +1,37 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page";
+import { DashboardCourseTrack } from "@/components/student/dashboard-course-track";
+import { DashboardRecommendedCard } from "@/components/student/dashboard-recommended-card";
+import {
+  ProgramCatalogCard,
+  ProgramCatalogGrid,
+  ProgramCatalogGridItem,
+} from "@/components/programs/program-catalog-card";
+import { Button } from "@/components/ui/button";
+import { loadPublishedCatalogPrograms } from "@/lib/catalog/service";
+import { getCourseRecommendationsForUser } from "@/lib/learning/recommendations";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
-import { programCategoryLabel } from "@/lib/programs/categories";
-import { formatCurrency } from "@/lib/utils";
-
-function coursePrice(program: {
-  price: number | null;
-  applicationFee: number | null;
-}) {
-  if (program.price != null && program.price > 0) {
-    return program.price;
-  }
-  if (program.applicationFee != null && program.applicationFee > 0) {
-    return program.applicationFee;
-  }
-  return 0;
-}
 
 export default async function StudentEnrollPage() {
   const session = await requireStudent();
 
-  const [courses, enrollments] = await Promise.all([
-    prisma.program.findMany({
-      where: { status: "PUBLISHED" },
-      orderBy: { title: "asc" },
+  const [courses, enrollments, recommended] = await Promise.all([
+    loadPublishedCatalogPrograms({
+      organizationId: session.user.organizationId,
     }),
     prisma.enrollment.findMany({
-      where: { userId: session.user.id, status: "ACTIVE" },
+      where: {
+        userId: session.user.id,
+        organizationId: session.user.organizationId,
+        status: "ACTIVE",
+      },
       select: { programId: true },
+    }),
+    getCourseRecommendationsForUser(session.user.id, {
+      organizationId: session.user.organizationId,
+      limit: 6,
     }),
   ]);
 
@@ -39,11 +39,26 @@ export default async function StudentEnrollPage() {
   const available = courses.filter((c) => !enrolled.has(c.id));
 
   return (
-    <div className="peak-rise">
+    <div className="space-y-8 courses-theme">
       <PageHeader
         title="Enroll"
         description="Choose a course to join — free courses unlock immediately; paid ones continue to Payment."
       />
+
+      {recommended.length > 0 ? (
+        <DashboardCourseTrack title="Recommended for You">
+          {recommended.map((course) => (
+            <DashboardRecommendedCard
+              key={course.id}
+              title={course.title}
+              href={course.href}
+              category={course.category}
+              durationLabel={course.durationLabel}
+              reason={course.reason}
+            />
+          ))}
+        </DashboardCourseTrack>
+      ) : null}
 
       {available.length === 0 ? (
         <EmptyState
@@ -60,46 +75,39 @@ export default async function StudentEnrollPage() {
           }
         />
       ) : (
-        <div className="cm-grid">
-          {available.map((course) => {
-            const price = coursePrice(course);
-            const free = price === 0;
-            return (
-              <article key={course.id} className="peak-card">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
-                    {programCategoryLabel(course.category)}
-                  </p>
-                  <Badge tone={free ? "success" : "neutral"}>
-                    {free
-                      ? "Free"
-                      : formatCurrency(price, course.tuitionCurrency)}
-                  </Badge>
-                </div>
-
-                <h2 className="mt-[var(--grid-gap)] font-display text-xl leading-snug text-fg">
-                  {course.title}
-                </h2>
-                {course.description ? (
-                  <p className="mt-2 text-sm text-fg-muted line-clamp-3 leading-relaxed">
-                    {course.description}
-                  </p>
-                ) : null}
-
-                <div className="mt-auto pt-[var(--grid-pad)] flex flex-wrap gap-2">
-                  <Link href={`/enroll/${course.slug}`}>
-                    <Button size="sm">Enroll</Button>
-                  </Link>
-                  <Link href={`/courses/${course.slug}`}>
-                    <Button size="sm" variant="secondary">
-                      Details
-                    </Button>
-                  </Link>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        <section>
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <h2 className="text-base font-semibold tracking-tight text-fg">
+              All available courses
+            </h2>
+            <Link href="/courses" className="courses-cta text-sm">
+              Browse full catalogue →
+            </Link>
+          </div>
+          <ProgramCatalogGrid>
+            {available.map((course) => (
+              <ProgramCatalogGridItem key={course.id}>
+                <ProgramCatalogCard
+                  program={course}
+                  href={`/courses/${course.slug}`}
+                  action={
+                    <div className="flex flex-wrap gap-2">
+                      <Link href={`/enroll/${course.slug}`}>
+                        <Button size="sm">Enroll</Button>
+                      </Link>
+                      <Link
+                        href={`/courses/${course.slug}`}
+                        className="courses-cta self-center"
+                      >
+                        View course →
+                      </Link>
+                    </div>
+                  }
+                />
+              </ProgramCatalogGridItem>
+            ))}
+          </ProgramCatalogGrid>
+        </section>
       )}
     </div>
   );

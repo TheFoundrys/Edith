@@ -6,6 +6,7 @@ import {
 } from "@/lib/ai/plugins/registry";
 import type { AiPort } from "@/lib/ai/types";
 import { prisma } from "@/lib/db";
+import { decryptConfig } from "@/lib/security/encrypted-config";
 
 export type OrgAiPluginState = {
   pluginId: string;
@@ -15,17 +16,13 @@ export type OrgAiPluginState = {
 };
 
 function parseConfig(configJson: string): Record<string, string> {
-  try {
-    const raw = JSON.parse(configJson) as Record<string, unknown>;
-    const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(raw)) {
-      if (typeof v === "string") out[k] = v;
-      else if (v != null) out[k] = String(v);
-    }
-    return out;
-  } catch {
-    return {};
+  const raw = decryptConfig(configJson) as Record<string, unknown>;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === "string") out[k] = v;
+    else if (v != null) out[k] = String(v);
   }
+  return out;
 }
 
 export async function getOrgAiPluginState(

@@ -1,12 +1,11 @@
 /** Safe post-auth destinations for students and staff. */
+import { isStaffRole } from "@/lib/auth/roles";
+
 export function resolveAuthRedirect(
   role: string | undefined | null,
   callbackUrl: string | null | undefined,
 ): string {
-  const isStaff =
-    role === "SUPER_ADMIN" ||
-    role === "ADMISSIONS_MANAGER" ||
-    role === "COUNSELOR";
+  const isStaff = isStaffRole(role);
   const home = isStaff ? "/admin" : "/student/dashboard";
 
   if (!callbackUrl || !callbackUrl.startsWith("/") || callbackUrl.startsWith("//")) {

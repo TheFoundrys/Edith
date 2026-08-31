@@ -122,7 +122,7 @@ export function ProgramDetailClient({
   }
 
   return (
-    <div className="peak-rise">
+    <div>
       <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
         <Link href="/admin/programs" className="hover:text-fg">
           Programs

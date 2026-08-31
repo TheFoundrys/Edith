@@ -37,7 +37,7 @@ export async function requestCrmEnrollmentCallback(opts: {
       status: "PENDING",
       enrolledAt: null,
       crmLeadId: lead?.externalLeadId ?? undefined,
-      crmRequestedAt: new Date(),
+      crmRequestedAt: lead ? new Date() : null,
       crmCallbackAt: null,
     },
   });
@@ -45,8 +45,12 @@ export async function requestCrmEnrollmentCallback(opts: {
   await prisma.notification.create({
     data: {
       userId: opts.user.id,
-      title: "Enrollment pending confirmation",
-      message: `${opts.program.title} needs CRM confirmation before learning unlocks.`,
+      title: lead
+        ? "Enrollment pending confirmation"
+        : "Enrollment confirmation needs attention",
+      message: lead
+        ? `${opts.program.title} needs CRM confirmation before learning unlocks.`
+        : `${opts.program.title} could not be sent for confirmation. Our team has been notified.`,
       actionUrl: `/student/my-courses/${opts.program.id}`,
     },
   });
@@ -54,6 +58,7 @@ export async function requestCrmEnrollmentCallback(opts: {
   return {
     awaitingCrm: true as const,
     crmLeadId: lead?.externalLeadId ?? null,
+    deliveryFailed: !lead,
   };
 }
 
@@ -75,18 +80,47 @@ export async function activateEnrollmentFromCrm(opts: {
       programId: enrollment.programId,
     };
   }
-  if (enrollment.status === "CANCELLED") {
-    return { error: "Enrollment was cancelled." as const };
+  if (enrollment.status !== "PENDING") {
+    return {
+      error: `Only pending enrollments can be approved (current: ${enrollment.status}).` as const,
+    };
   }
 
-  await prisma.enrollment.update({
-    where: { id: enrollment.id },
-    data: {
-      status: "ACTIVE",
-      enrolledAt: new Date(),
-      crmLeadId: opts.leadId ?? enrollment.crmLeadId,
-      crmCallbackAt: new Date(),
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.enrollment.update({
+      where: { id: enrollment.id },
+      data: {
+        status: "ACTIVE",
+        enrolledAt: new Date(),
+        crmLeadId: opts.leadId ?? enrollment.crmLeadId,
+        crmCallbackAt: new Date(),
+      },
+    });
+
+    const application = await tx.application.findFirst({
+      where: {
+        organizationId: enrollment.organizationId,
+        applicantId: enrollment.userId,
+        programId: enrollment.programId,
+        status: "PAID",
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+    if (application) {
+      await tx.application.update({
+        where: { id: application.id },
+        data: {
+          status: "ENROLLED",
+          events: {
+            create: {
+              fromStatus: "PAID",
+              toStatus: "ENROLLED",
+              note: opts.note?.trim() || "CRM confirmed enrollment",
+            },
+          },
+        },
+      });
+    }
   });
 
   await prisma.notification.create({
@@ -118,6 +152,33 @@ export async function rejectEnrollmentFromCrm(opts: {
   if (!enrollment) return { error: "Enrollment not found." as const };
   if (enrollment.status === "CANCELLED") {
     return { ok: true as const, alreadyCancelled: true as const };
+  }
+  if (enrollment.status !== "PENDING") {
+    return {
+      error: `Only pending enrollments can be rejected (current: ${enrollment.status}).` as const,
+    };
+  }
+
+  const paidPayment = await prisma.payment.findFirst({
+    where: {
+      status: "PAID",
+      OR: [
+        { enrollmentId: enrollment.id },
+        {
+          application: {
+            applicantId: enrollment.userId,
+            programId: enrollment.programId,
+          },
+        },
+      ],
+    },
+    select: { id: true },
+  });
+  if (paidPayment) {
+    return {
+      error:
+        "A paid enrollment cannot be rejected until its payment is refunded." as const,
+    };
   }
 
   await prisma.enrollment.update({

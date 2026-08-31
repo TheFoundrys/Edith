@@ -1,5 +1,7 @@
-/** Product brand — keep UI copy and CRM lead source in sync. */
-export const APP_NAME = "EDITH";
+/** Product brand — keep UI copy in sync; use APP_NAME_SYSTEM for CRM/API slugs. */
+export const APP_NAME = "Edith";
+export const APP_NAME_SYSTEM = "EDITH";
+/** @deprecated Use APP_NAME — kept for any legacy lowercase references. */
 export const APP_NAME_LOWER = "edith";
 /** Parent organisation — internal reference only. */
 export const APP_PARENT = "The Foundrys";

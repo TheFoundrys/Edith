@@ -1,5 +1,5 @@
 import { NewProgramForm } from "@/components/admin/new-program-form";
-import { can, requireCapability } from "@/lib/auth/session";
+import { canUser, requireCapability } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 
 export default async function NewProgramPage() {
@@ -22,7 +22,7 @@ export default async function NewProgramPage() {
       campuses={campuses}
       departments={departments}
       forms={forms}
-      canManagePricing={can(session.user.role, "managePricing")}
+      canManagePricing={canUser(session.user, "managePricing")}
     />
   );
 }

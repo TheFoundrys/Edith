@@ -5,28 +5,31 @@ import { MockCrmAdapter } from "./mock";
 import type { CrmPort, SyncStatusInput, UpsertLeadInput } from "./types";
 
 function createAdapter(): CrmPort {
-  const kind = (process.env.CRM_ADAPTER ?? "mock").toLowerCase();
+  const configured = process.env.CRM_ADAPTER?.trim().toLowerCase();
+  const kind = configured || (process.env.NODE_ENV === "production" ? "" : "mock");
   switch (kind) {
     case "centracrm":
     case "foundrys":
     case "onecrm":
       return new CentraCrmAdapter();
     case "mock":
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("Mock CRM is disabled in production.");
+      }
       return new MockCrmAdapter();
+    case "":
+      throw new Error("CRM_ADAPTER must be configured in production.");
     default:
-      console.warn(`[CRM] Unknown adapter "${kind}" — using mock`);
-      return new MockCrmAdapter();
+      throw new Error(`Unsupported CRM adapter: ${kind}`);
   }
 }
-
-export const crm: CrmPort = createAdapter();
 
 export async function crmUpsertLeadSafe(input: UpsertLeadInput) {
   const action = input.enrollmentId
     ? CrmSyncAction.ENROLL_NOTIFY
     : CrmSyncAction.UPSERT_LEAD;
   try {
-    const result = await crm.upsertLead(input);
+    const result = await createAdapter().upsertLead(input);
     await prisma.crmSyncLog.create({
       data: {
         organizationId: input.organizationId,
@@ -59,7 +62,7 @@ export async function crmUpsertLeadSafe(input: UpsertLeadInput) {
 
 export async function crmSyncStatusSafe(input: SyncStatusInput) {
   try {
-    await crm.syncApplicationStatus(input);
+    await createAdapter().syncApplicationStatus(input);
     await prisma.crmSyncLog.create({
       data: {
         organizationId: input.organizationId,

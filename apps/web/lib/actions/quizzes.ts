@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { getAiAdapterForOrg } from "@/lib/ai";
 import { requireCapability, requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
@@ -192,7 +193,11 @@ export async function submitQuizAttempt(
 ) {
   const session = await requireStudent();
   const quiz = await prisma.quiz.findFirst({
-    where: { id: quizId, status: "PUBLISHED" },
+    where: {
+      id: quizId,
+      organizationId: session.user.organizationId,
+      status: "PUBLISHED",
+    },
     include: {
       questions: { orderBy: { sortOrder: "asc" } },
     },
@@ -207,21 +212,38 @@ export async function submitQuizAttempt(
     },
   });
   if (!enrolled) return { error: "You must be enrolled to take this quiz." };
+  const existingAttempt = await prisma.quizAttempt.findFirst({
+    where: { quizId: quiz.id, userId: session.user.id },
+  });
+  if (existingAttempt) {
+    return { error: "You have already submitted this quiz." };
+  }
 
   let score = 0;
   for (const q of quiz.questions) {
     if (answers[q.id] === q.correctIndex) score += 1;
   }
 
-  const attempt = await prisma.quizAttempt.create({
-    data: {
-      quizId: quiz.id,
-      userId: session.user.id,
-      answersJson: JSON.stringify(answers),
-      score,
-      maxScore: quiz.questions.length,
-    },
-  });
+  let attempt;
+  try {
+    attempt = await prisma.quizAttempt.create({
+      data: {
+        quizId: quiz.id,
+        userId: session.user.id,
+        answersJson: JSON.stringify(answers),
+        score,
+        maxScore: quiz.questions.length,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { error: "You have already submitted this quiz." };
+    }
+    throw error;
+  }
 
   await prisma.notification.create({
     data: {
