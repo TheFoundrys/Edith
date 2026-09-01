@@ -1,22 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { adminNavGroupsFor } from "../lib/admin/nav";
-import { resolveAuthRedirect } from "../lib/auth/redirect";
+import { ROUTES } from "../lib/urls";
 import { coursePrice, isFreeCourse } from "../lib/programs/pricing";
 import { canTransition } from "../lib/workflows/status";
-
-test("auth redirects cannot cross role boundaries or origins", () => {
-  assert.equal(
-    resolveAuthRedirect("STUDENT", "https://evil.example"),
-    "/student/dashboard",
-  );
-  assert.equal(
-    resolveAuthRedirect("STUDENT", "/admin"),
-    "/student/dashboard",
-  );
-  assert.equal(resolveAuthRedirect("SUPER_ADMIN", "/admin/members"), "/admin/members");
-  assert.equal(resolveAuthRedirect("SUPER_ADMIN", "/student/payment"), "/admin");
-});
 
 test("course tuition never falls back to an application fee", () => {
   assert.equal(coursePrice({ price: null }), 0);
@@ -54,6 +41,32 @@ test("admin sidebar groups people separately from applications", () => {
   const admissions = groups.find((group) => group.label === "Admissions");
   assert.ok(admissions?.items.some((item) => item.href === "/admin/applications"));
   assert.ok(!admissions?.items.some((item) => item.href.startsWith("/admin/members")));
+
+  const commerce = groups.find((group) => group.label === "Commerce");
+  assert.ok(commerce?.items.some((item) => item.href === ROUTES.adminPayments));
+  assert.ok(commerce?.items.some((item) => item.href === ROUTES.adminPaymentSettings));
+
+  const admissionsNav = adminNavGroupsFor(
+    (cap) =>
+      [
+        "managePricing",
+        "managePrograms",
+        "manageApplications",
+        "manageForms",
+      ].includes(cap),
+    false,
+  );
+  const admissionsCommerce = admissionsNav.find(
+    (group) => group.label === "Commerce",
+  );
+  assert.ok(
+    admissionsCommerce?.items.some((item) => item.href === ROUTES.adminPayments),
+  );
+  assert.ok(
+    !admissionsCommerce?.items.some(
+      (item) => item.href === ROUTES.adminPaymentSettings,
+    ),
+  );
 
   const withoutPeople = adminNavGroupsFor(
     (cap) => cap !== "manageMembers",

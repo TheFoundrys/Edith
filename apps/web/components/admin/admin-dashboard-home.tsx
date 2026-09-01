@@ -45,7 +45,7 @@ export function AdminDashboardHome({ data }: { data: AdminDashboardData }) {
           centerValue={String(categoryTotal)}
           centerLabel="Courses"
           slices={data.categorySlices}
-          href="/admin/programs"
+          href="/courses"
         />
         <AdminDonutChart
           title="Users by Role"

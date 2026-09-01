@@ -299,7 +299,7 @@ export async function getAdminDashboardData(
       value: totalEnrollments.toLocaleString("en-IN"),
       changePct: pctChange(enrollmentsThisWeek, enrollmentsPrevWeek),
       tone: "green",
-      href: "/admin/programs",
+      href: "/admin/enrollments",
     },
     {
       id: "revenue",

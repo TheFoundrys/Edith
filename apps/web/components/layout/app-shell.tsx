@@ -2,8 +2,6 @@
 
 import { signOut } from "next-auth/react";
 import { useTransition } from "react";
-import { SiteHeader } from "@/components/layout/home-header";
-import { SiteFooter } from "@/components/layout/site-footer";
 import { VintageBackdrop } from "@/components/layout/vintage-backdrop";
 import {
   WorkspaceSidebar,
@@ -13,6 +11,7 @@ import {
 import {
   SidebarInset,
   SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -23,8 +22,6 @@ export function AppShell({
   profileHref,
   variant = "student",
   userRoleLabel,
-  workspaceHref = "/student/dashboard",
-  workspaceLabel = "Continue learning",
 }: {
   brand?: string;
   nav?: NavItem[];
@@ -44,43 +41,39 @@ export function AppShell({
     });
   }
 
-  const accountHref = profileHref;
-
   return (
-    <div className="neo-workspace flex min-h-svh flex-col">
+    <div className="workspace-shell neo-workspace">
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <SiteHeader
-        loggedIn
-        workspaceHref={workspaceHref}
-        workspaceLabel={workspaceLabel}
-        variant="sticky"
-      />
-      <SidebarProvider className="flex min-h-0 flex-1">
+
+      <SidebarProvider className="workspace-shell-provider">
         <WorkspaceSidebar
           nav={nav}
           navGroups={navGroups}
-          profileHref={accountHref}
+          profileHref={profileHref}
           variant={variant}
           userRoleLabel={userRoleLabel}
           onSignOut={handleSignOut}
           signingOut={signingOut}
-          hideBrand
         />
 
-        <SidebarInset className="peak-atmosphere flex min-h-0 flex-col">
+        <SidebarInset className="workspace-shell-main peak-atmosphere">
           <VintageBackdrop variant="workspace" />
+
+          <SidebarTrigger className="workspace-mobile-trigger md:hidden" />
+
           <div
             id="main-content"
             className={cn(
-              "flex-1 px-4 py-5 md:px-6 md:py-6 w-full mx-auto overflow-auto",
-              variant === "admin" ? "max-w-[90rem]" : "max-w-7xl",
+              "workspace-shell-content",
+              variant === "admin"
+                ? "workspace-shell-content-admin"
+                : "workspace-shell-content-student",
             )}
           >
             {children}
           </div>
-          <SiteFooter />
         </SidebarInset>
       </SidebarProvider>
     </div>

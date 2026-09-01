@@ -49,6 +49,11 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         label: "Programs",
         anyOf: ["managePrograms", "managePricing"],
       },
+      {
+        href: "/admin/enrollments",
+        label: "Enrollments",
+        anyOf: ["managePrograms", "manageApplications"],
+      },
       { href: "/admin/syllabus", label: "Syllabus", anyOf: ["manageContent"] },
     ],
   },
@@ -75,9 +80,14 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/coupons", label: "Coupons", anyOf: ["managePricing"] },
       { href: "/admin/offers", label: "Offers", anyOf: ["managePricing"] },
       {
-        href: "/admin/payment-settings",
+        href: "/admin/payments",
         label: "Payments",
         anyOf: ["managePricing"],
+      },
+      {
+        href: "/admin/payment-settings",
+        label: "Payment settings",
+        requiresSuperAdmin: true,
       },
     ],
   },

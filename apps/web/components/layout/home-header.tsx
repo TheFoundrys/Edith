@@ -20,9 +20,6 @@ export function SiteNav({
         <Link href="/courses" className="nav-link">
           Courses
         </Link>
-        <Link href="/programs" className="nav-link">
-          Programs
-        </Link>
       </nav>
 
       <Suspense

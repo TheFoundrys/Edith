@@ -209,7 +209,7 @@ export function Sidebar({
         <div
           data-sidebar="sidebar"
           className={cn(
-            "flex h-full w-full flex-col bg-bg",
+            "flex h-full min-h-0 w-full flex-col bg-bg",
             variant === "floating" &&
               "rounded-[var(--radius)] shadow-[var(--neo-raised-sm)]",
           )}
@@ -252,7 +252,7 @@ export function SidebarInset({
   return (
     <main
       className={cn(
-        "relative flex min-h-svh min-w-0 flex-1 flex-col bg-bg",
+        "relative flex h-full min-h-0 min-w-0 flex-1 flex-col bg-bg",
         className,
       )}
       {...props}
@@ -280,7 +280,7 @@ export function SidebarFooter({
   return (
     <div
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-3", className)}
+      className={cn("mt-auto flex shrink-0 flex-col gap-2 p-3", className)}
       {...props}
     />
   );
@@ -293,10 +293,7 @@ export function SidebarContent({
   return (
     <div
       data-sidebar="content"
-      className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto px-2 py-2",
-        className,
-      )}
+      className={cn("flex min-h-0 flex-1 flex-col gap-2 overflow-auto px-2 py-2", className)}
       {...props}
     />
   );

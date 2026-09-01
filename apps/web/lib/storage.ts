@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { uploadUrl } from "@/lib/urls";
 
 export const UPLOAD_ROOT = path.join(process.cwd(), "uploads");
 
@@ -21,10 +22,6 @@ export type StoredUpload = {
   mimeType: string;
   sizeBytes: number;
 };
-
-function toUrlPath(storagePath: string) {
-  return storagePath.split(path.sep).join("/");
-}
 
 async function writeUpload(
   file: File,
@@ -62,7 +59,7 @@ export async function saveProgramImage(
 
   const stored = await writeUpload(file, "public");
   return {
-    imageUrl: `/api/uploads/${toUrlPath(stored.storagePath)}`,
+    imageUrl: uploadUrl(stored.storagePath),
   };
 }
 

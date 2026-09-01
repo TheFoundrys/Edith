@@ -16,6 +16,7 @@ import { DocumentUploadField } from "@/components/ui/document-upload";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Panel } from "@/components/ui/page";
 import { useToast } from "@/components/ui/toast";
+import { uploadUrl } from "@/lib/urls";
 
 type Doc = { fieldKey: string; fileName: string; storagePath: string };
 
@@ -312,9 +313,7 @@ export function ApplicationForm({
                   error={fieldErrors[field.key]}
                   fileName={docs[field.key]?.fileName || String(answers[field.key] ?? "")}
                   downloadHref={
-                    docs[field.key]
-                      ? `/api/uploads/${docs[field.key].storagePath.split("\\").join("/")}`
-                      : null
+                    docs[field.key] ? uploadUrl(docs[field.key].storagePath) : null
                   }
                   disabled={readOnly}
                   pending={pending}

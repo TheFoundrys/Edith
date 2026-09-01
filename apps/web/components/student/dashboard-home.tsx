@@ -117,7 +117,7 @@ export function DashboardHome({
 
       <DashboardCourseTrack
         title="Recommended for You"
-        actionHref="/student/enroll"
+        actionHref="/student/recommendations"
       >
         {recommended.length === 0 ? (
           <div className="dash-track-empty">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Instrument_Serif, Manrope } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { APP_LOCKUP, APP_NAME } from "@/lib/brand";
+import { getSiteOrigin } from "@/lib/urls";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -23,6 +24,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: getSiteOrigin() ? new URL(getSiteOrigin()) : undefined,
   title: {
     default: APP_LOCKUP,
     template: `%s · ${APP_NAME}`,

@@ -200,11 +200,6 @@ export const STAFF_NAV: StaffNavItem[] = [
     anyOf: ["managePricing"],
   },
   {
-    href: "/admin/payment-settings",
-    label: "Payment settings",
-    anyOf: ["managePricing"],
-  },
-  {
     href: "/admin/plugins/ai",
     label: "AI plugins",
     anyOf: ["manageAiPlugins"],

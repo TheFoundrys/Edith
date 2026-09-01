@@ -1,12 +1,13 @@
 /** Safe post-auth destinations for students and staff. */
 import { isStaffRole } from "@/lib/auth/roles";
+import { ROUTES, STUDENT_CALLBACK_PREFIXES, STAFF_CALLBACK_PREFIX } from "@/lib/urls";
 
 export function resolveAuthRedirect(
   role: string | undefined | null,
   callbackUrl: string | null | undefined,
 ): string {
   const isStaff = isStaffRole(role);
-  const home = isStaff ? "/admin" : "/student/dashboard";
+  const home = isStaff ? ROUTES.admin : ROUTES.studentDashboard;
 
   if (!callbackUrl || !callbackUrl.startsWith("/") || callbackUrl.startsWith("//")) {
     return home;
@@ -16,15 +17,12 @@ export function resolveAuthRedirect(
   if (callbackUrl.includes("://")) return home;
 
   if (isStaff) {
-    return callbackUrl.startsWith("/admin") ? callbackUrl : home;
+    return callbackUrl.startsWith(STAFF_CALLBACK_PREFIX) ? callbackUrl : home;
   }
 
-  const studentAllowed =
-    callbackUrl.startsWith("/student") ||
-    callbackUrl.startsWith("/enroll") ||
-    callbackUrl.startsWith("/checkout") ||
-    callbackUrl.startsWith("/payment/") ||
-    callbackUrl.startsWith("/courses");
+  const studentAllowed = STUDENT_CALLBACK_PREFIXES.some((prefix) =>
+    callbackUrl.startsWith(prefix),
+  );
 
   return studentAllowed ? callbackUrl : home;
 }

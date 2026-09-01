@@ -1,19 +1,28 @@
 import { upsertPaymentSettingsAction } from "@/lib/actions/compass-modules";
-import { requireCapability } from "@/lib/auth/session";
+import { requireSuperAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { PageHeader, Panel } from "@/components/ui/page";
 
 export default async function AdminPaymentSettingsPage() {
-  const session = await requireCapability("managePricing");
+  const session = await requireSuperAdmin();
   const settings = await prisma.paymentSettings.findUnique({
     where: { organizationId: session.user.organizationId },
   });
 
   return (
     <div>
-      <PageHeader title="Payment settings" description="GST, fees, and provider toggles." />
+      <PageHeader
+        title="Payment settings"
+        description="GST, fees, and provider toggles."
+        actions={
+          <Link href="/admin/payments" className="text-sm text-fg-muted underline">
+            All payments
+          </Link>
+        }
+      />
       <Panel className="p-5 max-w-lg">
         <form action={upsertPaymentSettingsAction} className="space-y-3">
           <p className="text-sm text-fg-muted">

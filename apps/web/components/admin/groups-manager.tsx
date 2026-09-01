@@ -51,7 +51,7 @@ export function GroupsManager({
     [memberOptions],
   );
 
-  function run(action: () => Promise<{ error?: string }>, success: string) {
+  function run(action: () => Promise<{ error?: string; ok?: true }>, success: string) {
     startTransition(async () => {
       const result = await action();
       if (result.error) {

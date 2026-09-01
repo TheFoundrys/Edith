@@ -32,7 +32,7 @@ export function RolesPanel({ roles }: { roles: PermissionRoleRow[] }) {
   const [editDescription, setEditDescription] = useState("");
   const [deleting, setDeleting] = useState<PermissionRoleRow | null>(null);
 
-  function run(action: () => Promise<{ error?: string }>, successMessage: string) {
+  function run(action: () => Promise<{ error?: string; ok?: true }>, successMessage: string) {
     startTransition(async () => {
       const result = await action();
       if (result?.error) {

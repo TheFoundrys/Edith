@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setDocumentVerification } from "@/lib/actions/applications";
+import { uploadUrl } from "@/lib/urls";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
@@ -29,7 +30,7 @@ export function DocumentReviewList({
   return (
     <ul className="space-y-3 text-sm">
       {documents.map((doc) => {
-        const href = `/api/uploads/${doc.storagePath.split("\\").join("/")}`;
+        const href = uploadUrl(doc.storagePath);
         return (
           <li
             key={doc.id}

@@ -12,16 +12,22 @@ function initials(name: string) {
 
 export function AdminRecentEnrollmentsTable({
   rows,
+  showViewAll = true,
+  title = "Recent Enrollments",
 }: {
   rows: AdminRecentEnrollment[];
+  showViewAll?: boolean;
+  title?: string;
 }) {
   return (
     <section className="admin-dash-panel">
       <div className="admin-dash-panel-head">
-        <h2 className="admin-dash-panel-title">Recent Enrollments</h2>
-        <Link href="/admin/members" className="admin-dash-panel-link">
-          View all
-        </Link>
+        <h2 className="admin-dash-panel-title">{title}</h2>
+        {showViewAll ? (
+          <Link href="/admin/enrollments" className="admin-dash-panel-link">
+            View all
+          </Link>
+        ) : null}
       </div>
 
       {rows.length === 0 ? (
