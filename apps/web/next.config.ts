@@ -31,6 +31,12 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     const isProduction = process.env.NODE_ENV === "production";
+    // next.config is evaluated at build time. Only force HTTPS when the public
+    // origin is actually HTTPS — otherwise Docker (HOSTNAME=0.0.0.0, HTTP :3059)
+    // gets upgraded to https://0.0.0.0:3059 and sessions look expired.
+    const publicOrigin =
+      process.env.SITE_URL || process.env.AUTH_URL || process.env.NEXTAUTH_URL || "";
+    const publicHttps = publicOrigin.startsWith("https://");
     const scriptPolicy =
       isProduction
         ? "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com"
@@ -49,7 +55,7 @@ const nextConfig: NextConfig = {
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
-      ...(isProduction ? ["upgrade-insecure-requests"] : []),
+      ...(publicHttps ? ["upgrade-insecure-requests"] : []),
     ].join("; ");
     const securityHeaders = [
       { key: "Content-Security-Policy", value: contentSecurityPolicy },
@@ -60,7 +66,7 @@ const nextConfig: NextConfig = {
         key: "Permissions-Policy",
         value: "camera=(), microphone=(), geolocation=()",
       },
-      ...(isProduction
+      ...(publicHttps
         ? [
             {
               key: "Strict-Transport-Security",

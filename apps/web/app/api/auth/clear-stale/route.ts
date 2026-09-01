@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { publicRequestUrl } from "@/lib/urls";
 
 const AUTH_SESSION_COOKIES = [
   "authjs.session-token",
@@ -10,7 +11,7 @@ const AUTH_SESSION_COOKIES = [
 /** Clears a stale Auth.js cookie then sends the user to a stable login URL. */
 export async function GET(request: Request) {
   const incoming = new URL(request.url);
-  const dest = new URL("/login", incoming.origin);
+  const dest = publicRequestUrl(request, "/login");
   dest.searchParams.set("notice", "session_expired");
   const reason = incoming.searchParams.get("reason");
   if (reason === "membership_suspended" || reason === "membership_expired") {
@@ -21,7 +22,11 @@ export async function GET(request: Request) {
 
   const res = NextResponse.redirect(dest);
   for (const name of AUTH_SESSION_COOKIES) {
-    res.cookies.set(name, "", { expires: new Date(0), path: "/" });
+    res.cookies.set(name, "", {
+      expires: new Date(0),
+      path: "/",
+      secure: name.startsWith("__Secure-"),
+    });
   }
   return res;
 }
