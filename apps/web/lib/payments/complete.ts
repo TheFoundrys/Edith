@@ -4,6 +4,7 @@ import { crmSyncStatusSafe } from "@/lib/crm";
 import type { PaymentProvider } from "@prisma/client";
 import { upsertEnrollmentAccess } from "@/lib/enrollment/activation";
 import { afterEnrollmentHref, isPersonalityProfileProgram } from "@/lib/assessments/personality-profile";
+import { assignInvoiceId } from "@/lib/payments/invoice";
 
 /** Mark a payment paid and enroll the application (idempotent). */
 export async function completePaidPayment(opts: {
@@ -46,6 +47,7 @@ export async function completePaidPayment(opts: {
   const needsCrm = app.program.requiresCrmCallback;
   const targetApplicationStatus = needsCrm ? "PAID" : "ENROLLED";
 
+  const paidAt = new Date();
   const completed = await prisma.$transaction(async (tx) => {
     const claimed = await tx.payment.updateMany({
       where: { id: payment.id, status: { not: "PAID" } },
@@ -53,11 +55,13 @@ export async function completePaidPayment(opts: {
         status: "PAID",
         providerPaymentId: opts.providerPaymentId ?? payment.providerPaymentId,
         providerSignature: opts.providerSignature ?? payment.providerSignature,
-        paymentDate: new Date(),
+        paymentDate: paidAt,
         failureReason: null,
       },
     });
     if (claimed.count === 0) return false;
+
+    await assignInvoiceId(payment.id, paidAt, tx);
 
     if (app.status !== targetApplicationStatus) {
       await tx.application.update({
@@ -193,6 +197,7 @@ export async function completeCoursePayment(opts: {
 
   const needsCrm = program.requiresCrmCallback;
 
+  const paidAt = new Date();
   const completed = await prisma.$transaction(async (tx) => {
     const claimed = await tx.payment.updateMany({
       where: { id: payment.id, status: { not: "PAID" } },
@@ -200,11 +205,13 @@ export async function completeCoursePayment(opts: {
         status: "PAID",
         providerPaymentId: opts.providerPaymentId ?? payment.providerPaymentId,
         providerSignature: opts.providerSignature ?? payment.providerSignature,
-        paymentDate: new Date(),
+        paymentDate: paidAt,
         failureReason: null,
       },
     });
     if (claimed.count === 0) return false;
+
+    await assignInvoiceId(payment.id, paidAt, tx);
 
     if (!needsCrm && enrollment.status !== "ACTIVE") {
       await tx.enrollment.update({

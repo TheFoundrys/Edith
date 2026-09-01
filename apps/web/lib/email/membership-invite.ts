@@ -49,10 +49,6 @@ export async function sendMembershipInviteEmail(input: {
   }
 }
 
-export function publicAppOrigin() {
-  return (
-    process.env.AUTH_URL ||
-    process.env.NEXTAUTH_URL ||
-    ""
-  ).replace(/\/$/, "");
-}
+import { getSiteOrigin, publicAppOrigin } from "@/lib/urls";
+
+export { publicAppOrigin, getSiteOrigin };

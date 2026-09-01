@@ -4216,18 +4216,101 @@ h6 {
 }
 
 /* Neomorphism — workspace shell overrides */
+.workspace-shell {
+  height: 100svh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.workspace-shell-provider {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.workspace-shell-main {
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.workspace-mobile-trigger {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2;
+}
+
+.workspace-shell-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+  overflow-x: hidden;
+  padding: 1.25rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .workspace-shell-content {
+    padding: 1.5rem;
+  }
+}
+
+.workspace-shell-content-admin {
+  max-width: 90rem;
+  margin-inline: auto;
+}
+
+.workspace-shell-content-student {
+  max-width: 80rem;
+  margin-inline: auto;
+}
+
+.workspace-sidebar [data-sidebar="sidebar"] {
+  height: 100svh;
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.workspace-sidebar-header {
+  background: var(--bg-elevated);
+}
+
+.workspace-sidebar-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace-sidebar-footer {
+  background: var(--bg-elevated);
+}
+
+.workspace-sidebar-user .lms-user-menu {
+  display: flex;
+  width: 100%;
+  box-shadow: none;
+  background: transparent;
+  padding-inline: 0.25rem;
+}
+
 .neo-workspace [data-sidebar="sidebar"] {
   box-shadow: inset -1px 0 0 var(--neo-dark-soft);
 }
 
 .neo-workspace [data-sidebar="menu-button"][data-active="true"] {
-  background: var(--bg);
-  box-shadow: var(--neo-inset-sm);
+  background: color-mix(in srgb, var(--brand) 12%, var(--bg-elevated));
+  box-shadow: none;
   color: var(--brand);
+  font-weight: 500;
 }
 
 .neo-workspace [data-sidebar="menu-button"]:not([data-active="true"]):hover {
-  background: var(--bg);
+  background: color-mix(in srgb, var(--fg) 4%, var(--bg-elevated));
 }
 
 .neo-workspace .progress-track {
@@ -4580,12 +4663,6 @@ h6 {
 }
 
 /* Admin dashboard */
-.admin-sidebar-kicker {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--fg-muted);
-}
-
 .admin-sidebar-user-wrap .lms-user-menu {
   display: flex;
   width: 100%;

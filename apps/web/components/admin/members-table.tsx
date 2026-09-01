@@ -116,10 +116,13 @@ export function MembersTable({
     return `${ids.length} roles`;
   }
 
-  function run(action: () => Promise<{ error?: string }>, successMessage?: string) {
+  function run(
+    action: () => Promise<{ error?: string; ok?: true }>,
+    successMessage?: string,
+  ) {
     startTransition(async () => {
       const result = await action();
-      if (result?.error) {
+      if (result.error) {
         toast({ title: "Could not save", description: result.error, tone: "danger" });
         return;
       }

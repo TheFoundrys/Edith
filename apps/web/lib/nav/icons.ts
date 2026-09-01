@@ -84,6 +84,7 @@ const ICON_BY_PREFIX: [string, LucideIcon][] = [
   ["/admin/badges", Award],
   ["/admin/coupons", BadgePercent],
   ["/admin/offers", Sparkles],
+  ["/admin/payments", CreditCard],
   ["/admin/payment-settings", Wallet],
   ["/admin/plugins/ai", Bot],
   ["/admin/forms", FileInput],

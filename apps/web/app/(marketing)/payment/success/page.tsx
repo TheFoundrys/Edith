@@ -28,6 +28,17 @@ export default async function PaymentSuccessPage({
       })
     : null;
 
+  const latestPaidPayment = enrollmentId
+    ? await prisma.payment.findFirst({
+        where: {
+          enrollmentId,
+          status: "PAID",
+        },
+        orderBy: { paymentDate: "desc" },
+        select: { id: true },
+      })
+    : null;
+
   const course = courseId && enrollment?.programId === courseId
     ? await prisma.program.findUnique({
         where: { id: courseId },
@@ -81,6 +92,11 @@ export default async function PaymentSuccessPage({
             <Button variant="secondary">My courses</Button>
           </Link>
         )}
+        {latestPaidPayment ? (
+          <Link href={`/student/payment/invoices/${latestPaidPayment.id}`}>
+            <Button variant="secondary">View invoice</Button>
+          </Link>
+        ) : null}
       </div>
     </MarketingShell>
   );

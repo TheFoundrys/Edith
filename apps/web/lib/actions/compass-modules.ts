@@ -10,7 +10,7 @@ import {
   TicketPriority,
   TicketStatus,
 } from "@prisma/client";
-import { requireCapability, requireStudent } from "@/lib/auth/session";
+import { requireCapability, requireStudent, requireSuperAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { recordAudit } from "@/lib/audit";
 
@@ -419,7 +419,7 @@ export async function createForumThread(formData: FormData) {
 }
 
 export async function upsertPaymentSettings(formData: FormData) {
-  const session = await requireCapability("managePricing");
+  const session = await requireSuperAdmin();
   const orgId = session.user.organizationId;
   const gstPercent = Number(formData.get("gstPercent") || 0);
   const convenienceFeePercent = Number(

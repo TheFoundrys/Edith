@@ -21,7 +21,7 @@ export function DashboardAchievements({ items }: { items: DashboardAchievement[]
     <section className="dash-widget dash-list-widget">
       <div className="dash-widget-head">
         <h2 className="dash-widget-title">Recent Achievements</h2>
-        <Link href="/student/certificates" className="dash-widget-link">
+        <Link href="/student/achievements" className="dash-widget-link">
           View all
         </Link>
       </div>

@@ -15,7 +15,7 @@ export function DashboardDeadlines({ items }: { items: DashboardDeadline[] }) {
     <section className="dash-widget dash-list-widget">
       <div className="dash-widget-head">
         <h2 className="dash-widget-title">Upcoming Deadlines</h2>
-        <Link href="/student/assessments" className="dash-widget-link">
+        <Link href="/student/deadlines" className="dash-widget-link">
           View all
         </Link>
       </div>

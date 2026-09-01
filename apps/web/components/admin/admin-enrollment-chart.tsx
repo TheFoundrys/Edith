@@ -21,7 +21,13 @@ function buildLinePath(
     .join(" ");
 }
 
-export function AdminEnrollmentChart({ points }: { points: AdminChartPoint[] }) {
+export function AdminEnrollmentChart({
+  points,
+  showViewAll = true,
+}: {
+  points: AdminChartPoint[];
+  showViewAll?: boolean;
+}) {
   const width = 560;
   const height = 220;
   const max = Math.max(...points.flatMap((point) => [point.thisWeek, point.lastWeek]), 1);
@@ -52,9 +58,11 @@ export function AdminEnrollmentChart({ points }: { points: AdminChartPoint[] }) 
           <span>
             <i className="admin-dash-legend-line is-dashed" aria-hidden /> Last Week
           </span>
-          <Link href="/admin/programs" className="admin-dash-panel-link">
-            View courses
-          </Link>
+          {showViewAll ? (
+            <Link href="/admin/analytics/enrollments" className="admin-dash-panel-link">
+              View all
+            </Link>
+          ) : null}
         </div>
       </div>
 

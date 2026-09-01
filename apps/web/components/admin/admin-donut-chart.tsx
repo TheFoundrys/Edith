@@ -29,6 +29,7 @@ export function AdminDonutChart({
   centerValue,
   slices,
   href,
+  showViewAll = true,
 }: {
   title: string;
   subtitle?: string;
@@ -36,6 +37,7 @@ export function AdminDonutChart({
   centerValue: string;
   slices: AdminDonutSlice[];
   href?: string;
+  showViewAll?: boolean;
 }) {
   const total = slices.reduce((sum, slice) => sum + slice.value, 0) || 1;
   const cx = 90;
@@ -59,7 +61,7 @@ export function AdminDonutChart({
           <h2 className="admin-dash-panel-title">{title}</h2>
           {subtitle ? <p className="admin-dash-panel-lead">{subtitle}</p> : null}
         </div>
-        {href ? (
+        {href && showViewAll ? (
           <Link href={href} className="admin-dash-panel-link">
             View all
           </Link>

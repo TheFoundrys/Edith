@@ -63,7 +63,6 @@ export function WorkspaceSidebar({
   userRoleLabel,
   onSignOut,
   signingOut,
-  hideBrand = false,
 }: {
   nav?: WorkspaceNavItem[];
   navGroups?: WorkspaceNavGroup[];
@@ -72,10 +71,9 @@ export function WorkspaceSidebar({
   userRoleLabel?: string;
   onSignOut: () => void;
   signingOut: boolean;
-  hideBrand?: boolean;
 }) {
   const pathname = usePathname();
-  const { state, isMobile, setOpen, setOpenMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = !isMobile && state === "collapsed";
   const brandHref = pathname.startsWith("/admin")
     ? "/admin"
@@ -88,43 +86,26 @@ export function WorkspaceSidebar({
   const allHrefs = groups.flatMap((group) => group.items.map((item) => item.href));
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className={cn("neo-bar shrink-0 gap-0 p-0", variant === "admin" ? "h-auto min-h-14" : "h-14")}>
+    <Sidebar collapsible="icon" className="workspace-sidebar">
+      <SidebarHeader className="workspace-sidebar-header shrink-0 gap-0 border-b border-border p-0">
         <div
           className={cn(
-            "flex w-full min-w-0 px-2 md:px-3",
-            collapsed ? "h-14 items-center justify-center" : "flex-col items-start justify-center gap-0.5 py-3",
-            !collapsed && variant !== "admin" && "h-14 flex-row items-center justify-between gap-2",
+            "flex h-14 w-full items-center px-3",
+            collapsed ? "justify-center" : "justify-between gap-2",
           )}
         >
-          <div className={cn("flex w-full items-center", collapsed ? "justify-center" : "justify-between gap-2")}>
-            {hideBrand ? (
-              <SidebarTrigger className="shrink-0" />
-            ) : (
-              <>
-                <BrandMark
-                  href={brandHref}
-                  onClick={collapsed ? () => setOpen(true) : undefined}
-                  className={cn(
-                    "inline-flex flex-row items-center",
-                    collapsed
-                      ? "w-full justify-center [&_.brand-wordmark]:text-[11px] [&_.brand-wordmark]:leading-none"
-                      : "min-w-0 flex-1 [&_.brand-wordmark]:text-base [&_.brand-wordmark]:leading-none",
-                  )}
-                />
-                {!collapsed ? (
-                  <SidebarTrigger className="hidden shrink-0 md:inline-flex" />
-                ) : null}
-              </>
-            )}
-          </div>
-          {!collapsed && variant === "admin" ? (
-            <span className="admin-sidebar-kicker">Admin Panel</span>
-          ) : null}
+          {collapsed ? (
+            <SidebarTrigger className="shrink-0" />
+          ) : (
+            <>
+              <BrandMark href={brandHref} className="min-w-0 flex-1" />
+              <SidebarTrigger className="hidden shrink-0 md:inline-flex" />
+            </>
+          )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className={variant === "admin" ? "admin-sidebar-nav" : undefined}>
+      <SidebarContent className="workspace-sidebar-content">
         {groups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
@@ -160,16 +141,16 @@ export function WorkspaceSidebar({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border admin-sidebar-footer">
+      <SidebarFooter className="workspace-sidebar-footer mt-auto shrink-0 border-t border-border">
         {variant === "admin" && !collapsed ? (
-          <div className="admin-sidebar-user-wrap px-2 py-2">
+          <div className="workspace-sidebar-user px-2 pt-2">
             <LmsUserMenu
               profileHref={profileHref}
-              roleLabel={userRoleLabel ?? "Admin"}
+              roleLabel={userRoleLabel ?? "Staff"}
             />
           </div>
         ) : null}
-        <SidebarMenu>
+        <SidebarMenu className="px-1 pb-2">
           {profileHref && variant !== "admin" ? (
             <SidebarMenuItem>
               <SidebarMenuButton

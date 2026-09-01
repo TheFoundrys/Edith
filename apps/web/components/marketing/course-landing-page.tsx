@@ -298,7 +298,7 @@ export function CourseLandingPage({
                   </li>
                 ))}
               </ul>
-              <Link href={`/enroll/${course.slug}`} className="course-landing-side-link">
+              <Link href={`/courses/${course.slug}/intakes`} className="course-landing-side-link">
                 View all intakes
                 <ArrowRight className="size-3.5" strokeWidth={1.75} aria-hidden />
               </Link>

@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email/password-reset";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { absoluteUrl, getSiteOrigin } from "@/lib/urls";
 import { z } from "zod";
 
 const passwordSchema = z
@@ -140,11 +141,7 @@ export async function requestPasswordReset(formData: FormData) {
     return { ...RESET_GENERIC, resetUrl: resetPath };
   }
 
-  const publicOrigin = (
-    process.env.AUTH_URL ||
-    process.env.NEXTAUTH_URL ||
-    ""
-  ).replace(/\/$/, "");
+  const publicOrigin = getSiteOrigin();
   if (!publicOrigin) {
     console.error("[password-reset] AUTH_URL is required for email delivery");
     return RESET_GENERIC;
@@ -152,7 +149,7 @@ export async function requestPasswordReset(formData: FormData) {
 
   await sendPasswordResetEmail({
     email: user.email,
-    resetUrl: `${publicOrigin}${resetPath}`,
+    resetUrl: absoluteUrl(resetPath),
   });
   return RESET_GENERIC;
 }
