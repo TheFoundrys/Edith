@@ -18,7 +18,7 @@ Conventions worth knowing:
 - Client components never import Prisma; anything touching the database stays on
   the server.
 - Role capabilities are centralised in `lib/auth/roles.ts` and enforced in
-  `middleware.ts` plus per-route checks.
+  `proxy.ts` plus per-route checks.
 - External systems are behind adapters selected by environment variable, each
   with a `mock` implementation for local work: see `lib/crm`, `lib/payments`,
   and `lib/ai`.

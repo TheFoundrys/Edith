@@ -4,6 +4,7 @@ import { PersonalityLeaderboardTable } from "@/components/student/personality-le
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { loadPersonalityLeaderboard } from "@/lib/assessments/personality-board";
+import { isPrismaUnreachable } from "@/lib/db";
 import {
   paginateItems,
   parsePage,
@@ -16,16 +17,21 @@ import {
 } from "@/lib/assessments/personality-profile";
 import { getDefaultOrganizationId } from "@/lib/organizations/default";
 
+/** Live board — do not prerender against the Docker/CI placeholder DATABASE_URL. */
+export const dynamic = "force-dynamic";
+
 export default async function PersonalityPublicRankPage({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string; pageSize?: string }>;
 }) {
-  const organizationId = await getDefaultOrganizationId();
+  let rows: Awaited<ReturnType<typeof loadPersonalityLeaderboard>> = [];
+  try {
+    rows = await loadPersonalityLeaderboard(await getDefaultOrganizationId());
+  } catch (error) {
+    if (!isPrismaUnreachable(error)) throw error;
+  }
   const sp = await searchParams;
-  const rows = organizationId
-    ? await loadPersonalityLeaderboard(organizationId)
-    : [];
   const pageSize = resolvePageSize(sp.pageSize);
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
   const page = parsePage(sp.page, totalPages);

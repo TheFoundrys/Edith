@@ -4,10 +4,10 @@ import { authConfig } from "@/lib/auth/config";
 import { isStaffRole } from "@/lib/auth/roles";
 import { publicRequestOrigin } from "@/lib/urls";
 
-// Edge-safe instance only — never import `@/lib/auth` (Prisma) from middleware.
+// Edge-safe instance only — never import `@/lib/auth` (Prisma) from proxy.
 const { auth } = NextAuth(authConfig);
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
   const origin = publicRequestOrigin(req);
@@ -30,7 +30,7 @@ export default auth((req) => {
     Boolean(session?.user?.id) && session?.error !== "InvalidSession";
 
   // Stale JWT after DB reseed: bounce through a Node route that can clear the
-  // cookie (Auth.js middleware would re-set it if we cleared here).
+  // cookie (Auth.js would re-set it if we cleared it here).
   if (forceReauth) {
     const url = new URL("/api/auth/clear-stale", origin);
     const callbackUrl = req.nextUrl.searchParams.get("callbackUrl");
