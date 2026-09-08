@@ -3,7 +3,10 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { uploadUrl } from "@/lib/urls";
 
-export const UPLOAD_ROOT = path.join(process.cwd(), "uploads");
+export const UPLOAD_ROOT = path.join(
+  /* turbopackIgnore: true */ process.cwd(),
+  "uploads",
+);
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const DOCUMENT_TYPES = new Set([
