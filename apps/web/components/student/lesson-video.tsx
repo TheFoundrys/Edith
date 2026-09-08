@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { markLessonComplete } from "@/lib/actions/syllabus";
 import {
   isEmbeddedPlayerEnded,
+  withYouTubePlayerOrigin,
   type LessonVideo as LessonVideoSource,
 } from "@/lib/learning/video-embed";
 
@@ -22,16 +23,16 @@ export function LessonVideo({
   const finishedRef = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [finished, setFinished] = useState(false);
-  const [src, setSrc] = useState(video.src);
+  const [src, setSrc] = useState(
+    video.kind === "youtube" ? "" : video.src,
+  );
 
   useEffect(() => {
     if (video.kind !== "youtube") {
       setSrc(video.src);
       return;
     }
-    const next = new URL(video.src);
-    next.searchParams.set("origin", window.location.origin);
-    setSrc(next.toString());
+    setSrc(withYouTubePlayerOrigin(video.src, window.location.origin));
   }, [video]);
 
   useEffect(() => {
@@ -64,16 +65,21 @@ export function LessonVideo({
         }),
         "*",
       );
+      win.postMessage(
+        JSON.stringify({ event: "command", func: "playVideo", args: [] }),
+        "*",
+      );
     }
     if (video.kind === "vimeo") {
       win.postMessage(
         JSON.stringify({ method: "addEventListener", value: "finish" }),
         "*",
       );
+      win.postMessage(JSON.stringify({ method: "play" }), "*");
     }
   }
 
-  const showFrame = playing && !finished;
+  const showFrame = playing && !finished && Boolean(src);
   const poster =
     video.kind === "youtube"
       ? { backgroundImage: `url(${video.poster})` }
@@ -86,20 +92,15 @@ export function LessonVideo({
         onContextMenu={(event) => event.preventDefault()}
       >
         {showFrame ? (
-          <>
-            <iframe
-              ref={iframeRef}
-              title="Activity video"
-              src={src}
-              tabIndex={-1}
-              className="pointer-events-none absolute left-0 w-full border-0"
-              style={{ top: "-12.5%", height: "125%" }}
-              allow="autoplay; encrypted-media"
-              referrerPolicy="strict-origin-when-cross-origin"
-              onLoad={onFrameLoad}
-            />
-            <div className="absolute inset-0" aria-hidden />
-          </>
+          <iframe
+            ref={iframeRef}
+            title="Activity video"
+            src={src}
+            className="absolute inset-0 h-full w-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            onLoad={onFrameLoad}
+          />
         ) : finished ? (
           <div
             className="absolute inset-0 bg-fg bg-cover bg-center"
