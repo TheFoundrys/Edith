@@ -29,16 +29,15 @@ export function PageHeader({
 export function Panel({
   children,
   className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
         "rounded-[var(--radius)] border border-border bg-bg-elevated",
         className,
       )}
+      {...props}
     >
       {children}
     </div>

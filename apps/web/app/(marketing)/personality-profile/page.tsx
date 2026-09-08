@@ -66,8 +66,9 @@ export default async function PersonalityProfilePublicPage() {
           Edith Personality Profile
         </h1>
         <p className="mt-3 text-sm text-fg-muted leading-relaxed">
-          Aptitude, quantitative reasoning and qualitative psyche analysis. ₹3,500
-          + GST · 90 minutes · every career stage.
+          Aptitude, quantitative reasoning and qualitative psyche analysis.
+          ₹3,500 + GST · Aadhaar / PAN · resume skills · one 90-question sitting
+          · percentile on your profile.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href={PERSONALITY_PROFILE_ENROLL_HREF}>

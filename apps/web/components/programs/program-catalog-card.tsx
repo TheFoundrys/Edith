@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CourseVisualIllustration } from "@/components/marketing/course-visual-illustration";
 import {
   PROGRAM_CATEGORIES,
   displayProgramName,
@@ -11,8 +12,12 @@ import {
   catalogLevelBadge,
   catalogModeBadge,
 } from "@/lib/programs/catalog-meta";
-import { programTrack } from "@/lib/programs/track";
+import {
+  courseVisualToneClass,
+  resolveCourseVisualTheme,
+} from "@/lib/programs/course-visual";
 import type { DegreeLevel, ProgramCategory } from "@prisma/client";
+import { cn } from "@/lib/utils";
 
 export type ProgramCatalogItem = {
   id: string;
@@ -55,7 +60,10 @@ export function ProgramCatalogCard({
   action?: ReactNode;
 }) {
   const category = categoryMeta(program.category);
-  const track = programTrack(program.title);
+  const theme = resolveCourseVisualTheme({
+    title: program.title,
+    category: program.category,
+  });
   const badges = [
     category.shortLabel,
     catalogDurationLabel(program),
@@ -66,10 +74,20 @@ export function ProgramCatalogCard({
   return (
     <article
       className="group catalog-card cm-box !p-0 !min-h-0 h-full overflow-hidden"
-      data-track={track}
+      data-track={theme}
     >
-      <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
-        <Link href={href} className="flex min-h-0 flex-1 flex-col">
+      <Link href={href} className="flex min-h-0 flex-1 flex-col">
+        <div className={cn("catalog-card-cover", courseVisualToneClass(theme))}>
+          <CourseVisualIllustration
+            track={theme}
+            title={program.title}
+            category={program.category}
+            variant="card"
+            overlay={false}
+            className="catalog-card-cover-image"
+          />
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
           <div className="flex flex-wrap gap-1.5">
             {badges.map((badge) => (
               <span key={badge} className="catalog-badge">
@@ -85,12 +103,12 @@ export function ProgramCatalogCard({
           <p className="courses-desc mt-3 line-clamp-3 min-h-[4.27rem] text-sm leading-relaxed text-fg-muted">
             {program.description ? truncate(program.description, 120) : ""}
           </p>
-        </Link>
+        </div>
+      </Link>
 
-        {action ? (
-          <div className="mt-auto pt-5">{action}</div>
-        ) : null}
-      </div>
+      {action ? (
+        <div className="px-5 pb-5 sm:px-6">{action}</div>
+      ) : null}
     </article>
   );
 }

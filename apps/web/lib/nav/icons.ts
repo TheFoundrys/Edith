@@ -47,6 +47,8 @@ const ICON_BY_LABEL: Record<string, LucideIcon> = {
   "Roles & access": Shield,
   Users: Users,
   Courses: BookOpen,
+  Course: BookOpen,
+  Person: Users,
   Programs: FolderKanban,
   Categories: Tags,
   Instructors: GraduationCap,
@@ -62,6 +64,7 @@ const ICON_BY_LABEL: Record<string, LucideIcon> = {
   Tickets: Ticket,
   "Support Tickets": Ticket,
   Announcements: Megaphone,
+  Notifications: Bell,
   Email: Mail,
   Settings: Settings,
 };
@@ -90,6 +93,8 @@ const ICON_BY_PREFIX: [string, LucideIcon][] = [
   ["/admin/forms", FileInput],
   ["/admin/tickets", Ticket],
   ["/admin", LayoutDashboard],
+  ["/courses", BookOpen],
+  ["/personality-profile", Compass],
   ["/student/dashboard", Home],
   ["/student/enroll", GraduationCap],
   ["/student/my-courses", BookOpen],
@@ -114,9 +119,10 @@ const ICON_BY_PREFIX: [string, LucideIcon][] = [
 export function navIconFor(href: string, label?: string): LucideIcon {
   if (label && ICON_BY_LABEL[label]) return ICON_BY_LABEL[label];
 
+  const path = href.split(/[?#]/)[0] ?? href;
   const sorted = [...ICON_BY_PREFIX].sort((a, b) => b[0].length - a[0].length);
   for (const [prefix, icon] of sorted) {
-    if (href === prefix || href.startsWith(`${prefix}/`)) return icon;
+    if (path === prefix || path.startsWith(`${prefix}/`)) return icon;
   }
   return Shield;
 }

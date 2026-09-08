@@ -1,12 +1,9 @@
 import { MembersAdminHeader } from "@/components/admin/members-admin-header";
 import { MembersTable, type MemberRow } from "@/components/admin/members-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  DEFAULT_PAGE_SIZE,
-  Pagination,
-  resolvePageSize,
-} from "@/components/ui/pagination";
+import { Pagination } from "@/components/ui/pagination";
 import { memberWorkspaceCounts } from "@/lib/admin/member-workspace";
+import { DEFAULT_PAGE_SIZE, resolvePageSize } from "@/lib/pagination";
 import { requireCapability } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { membershipAccessState } from "@/lib/members/status";
@@ -125,28 +122,11 @@ export default async function AdminMembersPage({
     isSelf: membership.userId === session.user.id,
   }));
 
-  function hrefFor(overrides: Record<string, string | number | undefined> = {}) {
-    const next = {
-      q,
-      roleId,
-      sort,
-      status,
-      page,
-      pageSize,
-      ...overrides,
-    };
-    const params = new URLSearchParams();
-    if (next.q) params.set("q", String(next.q));
-    if (next.roleId) params.set("roleId", String(next.roleId));
-    if (next.sort !== "account") params.set("sort", String(next.sort));
-    if (next.status !== "all") params.set("status", String(next.status));
-    if (Number(next.pageSize) !== DEFAULT_PAGE_SIZE) {
-      params.set("pageSize", String(next.pageSize));
-    }
-    if (Number(next.page) > 1) params.set("page", String(next.page));
-    const qs = params.toString();
-    return qs ? `/admin/members?${qs}` : "/admin/members";
-  }
+  const query: Record<string, string> = {};
+  if (q) query.q = q;
+  if (roleId) query.roleId = roleId;
+  if (sort !== "account") query.sort = sort;
+  if (status !== "all") query.status = status;
 
   return (
     <div>
@@ -232,8 +212,8 @@ export default async function AdminMembersPage({
               totalPages={totalPages}
               pageSize={pageSize}
               total={memberTotal}
-              hrefFor={(nextPage) => hrefFor({ page: nextPage })}
-              pageSizeHrefFor={(nextSize) => hrefFor({ pageSize: nextSize, page: 1 })}
+              pathname="/admin/members"
+              query={query}
             />
           }
         />

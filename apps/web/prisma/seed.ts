@@ -283,8 +283,9 @@ async function main() {
   const defaultPermissionRoles = [
     {
       slug: "administrator",
-      name: "Administrator",
-      description: "Full access to every admin area.",
+      name: "Super Administrator",
+      description:
+        "Institution-wide control, including system keys, audit, and staff access.",
       permissions: [
         "managePricing",
         "managePrograms",
@@ -297,27 +298,37 @@ async function main() {
     },
     {
       slug: "admissions",
-      name: "Admissions",
-      description: "Applications, forms, offers and fees.",
+      name: "Academic Dean / Head",
+      description:
+        "Catalog, syllabi, admissions, exams, and faculty allocation. Fees stay with finance.",
       permissions: [
-        "managePricing",
         "managePrograms",
+        "manageContent",
         "manageApplications",
         "manageForms",
         "manageMembers",
       ],
     },
     {
+      slug: "bursar",
+      name: "Bursar & Finance",
+      description:
+        "Tuition invoicing, scholarships, concessions, refunds, and gateway reconciliation.",
+      permissions: ["managePricing"],
+    },
+    {
       slug: "counsellor",
-      name: "Counsellor",
-      description: "Applicant counselling and follow-ups.",
-      permissions: ["manageApplications"],
+      name: "Admissions Staff",
+      description:
+        "Student admissions, intakes, applications, and counselling follow-ups.",
+      permissions: ["manageApplications", "manageForms"],
     },
     {
       slug: "content-author",
-      name: "Content author",
-      description: "Syllabus, assignments, quizzes and announcements.",
-      permissions: ["manageContent"],
+      name: "Lead Faculty / Teachers",
+      description:
+        "Course catalog, syllabi, curriculum publishing, and examination materials.",
+      permissions: ["managePrograms", "manageContent"],
     },
     {
       slug: "member",
@@ -351,7 +362,7 @@ async function main() {
   const manager = await prisma.user.create({
     data: {
       email: "admissions@thefoundrys.com",
-      name: "Admissions Manager",
+      name: "Asha Dean",
       password,
       memberships: {
         create: { organizationId: org.id, role: Role.ADMISSIONS_MANAGER },
@@ -359,10 +370,21 @@ async function main() {
     },
   });
 
+  const bursar = await prisma.user.create({
+    data: {
+      email: "bursar@thefoundrys.com",
+      name: "Blair Bursar",
+      password,
+      memberships: {
+        create: { organizationId: org.id, role: Role.BURSAR },
+      },
+    },
+  });
+
   const counsellor = await prisma.user.create({
     data: {
       email: "counsellor@thefoundrys.com",
-      name: "Casey Counsellor",
+      name: "Casey Admissions",
       password,
       memberships: {
         create: { organizationId: org.id, role: Role.COUNSELOR },
@@ -373,7 +395,7 @@ async function main() {
   const contentUploader = await prisma.user.create({
     data: {
       email: "content@thefoundrys.com",
-      name: "Chris Content",
+      name: "Chris Faculty",
       password,
       memberships: {
         create: { organizationId: org.id, role: Role.CONTENT_UPLOADER },
@@ -404,6 +426,7 @@ async function main() {
   const seededRoleGrants: [string, string][] = [
     [admin.id, "administrator"],
     [manager.id, "admissions"],
+    [bursar.id, "bursar"],
     [counsellor.id, "counsellor"],
     [contentUploader.id, "content-author"],
     [student.id, "member"],
@@ -717,15 +740,16 @@ async function main() {
   console.log("Seeded The Foundry's published catalogue");
   console.log(`Programs: ${FOUNDRYS_PROGRAMS.length}`);
   console.log("By category:", byCategory);
-  console.log("Admin:       admin@thefoundrys.com / password123");
-  console.log("Admissions:  admissions@thefoundrys.com / password123");
-  console.log("Counsellor:  counsellor@thefoundrys.com / password123");
-  console.log("Content:     content@thefoundrys.com / password123");
+  console.log("Super Admin:     admin@thefoundrys.com / password123");
+  console.log("Academic Dean:   admissions@thefoundrys.com / password123");
+  console.log("Bursar:          bursar@thefoundrys.com / password123");
+  console.log("Admissions:      counsellor@thefoundrys.com / password123");
+  console.log("Lead Faculty:    content@thefoundrys.com / password123");
   console.log(
-    "Student:     student@example.com / password123 (ENROLLED in Cybersecurity Essentials demo)",
+    "Student:         student@example.com / password123 (ENROLLED in Cybersecurity Essentials demo)",
   );
   console.log(
-    `Users: ${admin.email}, ${manager.email}, ${counsellor.email}, ${contentUploader.email}, ${student.email}`,
+    `Users: ${admin.email}, ${manager.email}, ${bursar.email}, ${counsellor.email}, ${contentUploader.email}, ${student.email}`,
   );
 }
 

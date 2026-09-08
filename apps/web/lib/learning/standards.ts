@@ -20,7 +20,7 @@ export const LEARNING_MODEL_MAP = {
   Program: "Course (catalog offering)",
   ProgramSyllabus: "Course content outline (published for learners)",
   SyllabusModule: "Section / topic",
-  SyllabusLesson: "Activity (resource: text, video URL, or link)",
+  SyllabusLesson: "Activity (resource: text, video, PDF, or link)",
   LessonProgress: "Activity completion",
   ApplicationENROLLED: "Legacy admissions enrol",
   EnrollmentACTIVE: "Enrolment",
@@ -33,6 +33,8 @@ export function activityTypeLabel(contentType: string): string {
       return "Video";
     case "EXTERNAL_LINK":
       return "Link";
+    case "PDF_FILE":
+      return "PDF";
     case "RICH_TEXT":
     default:
       return "Reading";

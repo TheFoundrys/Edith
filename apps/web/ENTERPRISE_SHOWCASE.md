@@ -138,7 +138,7 @@ Enterprise-grade back office for programme owners, admissions, content teams, an
 
 ### Member & access management
 - Member directory with roles and groups
-- **Enterprise RBAC** — Super Admin, Admissions, Counsellor, Content Author, Student
+- **Enterprise RBAC** — Super Administrator, Academic Dean, Bursar, Admissions Staff, Lead Faculty, Student
 - **Customisable capability matrix** — fine-grained permissions per role (pricing, programmes, content, applications, forms, AI, members)
 - Custom permission roles
 - Membership expiry management (individual and bulk)

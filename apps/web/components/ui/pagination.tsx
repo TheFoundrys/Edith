@@ -1,83 +1,63 @@
+"use client";
+
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
-export const DEFAULT_PAGE_SIZE = 10;
-
-/** Clamps an untrusted `pageSize` search param to a supported option. */
-export function resolvePageSize(raw: string | undefined): number {
-  const parsed = Number(raw);
-  return (PAGE_SIZE_OPTIONS as readonly number[]).includes(parsed)
-    ? parsed
-    : DEFAULT_PAGE_SIZE;
-}
-
-/**
- * Page numbers with ellipses, always showing first page, last page, and the
- * window either side of the current page. `null` marks a gap.
- */
-export function pageWindow(
-  current: number,
-  totalPages: number,
-  span = 1,
-): (number | null)[] {
-  if (totalPages <= 1) return [1];
-
-  const wanted = new Set<number>([1, totalPages, current]);
-  for (let offset = 1; offset <= span; offset += 1) {
-    if (current - offset >= 1) wanted.add(current - offset);
-    if (current + offset <= totalPages) wanted.add(current + offset);
-  }
-
-  const pages = [...wanted].sort((a, b) => a - b);
-  const out: (number | null)[] = [];
-  let previous = 0;
-  for (const page of pages) {
-    if (previous && page - previous > 1) out.push(null);
-    out.push(page);
-    previous = page;
-  }
-  return out;
-}
+import {
+  PAGE_SIZE_OPTIONS,
+  pageHref,
+  pageWindow,
+} from "@/lib/pagination";
 
 const cellClass =
   "inline-flex h-8 min-w-8 items-center justify-center rounded-[var(--radius-sm)] px-2 text-sm";
+
+type PaginationProps = {
+  page: number;
+  totalPages: number;
+  pageSize: number;
+  total: number;
+  unit?: string;
+  /** URL-driven paging. Pass serializable data from Server Components. */
+  pathname?: string;
+  query?: Record<string, string>;
+  onPage?: (page: number) => void;
+  onPageSize?: (pageSize: number) => void;
+};
 
 export function Pagination({
   page,
   totalPages,
   pageSize,
   total,
-  hrefFor,
-  pageSizeHrefFor,
-}: {
-  page: number;
-  totalPages: number;
-  pageSize: number;
-  total: number;
-  hrefFor: (page: number) => string;
-  /** Switching page size returns to page 1, since offsets no longer line up. */
-  pageSizeHrefFor: (pageSize: number) => string;
-}) {
+  unit = "rows",
+  pathname,
+  query,
+  onPage,
+  onPageSize,
+}: PaginationProps) {
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
+
+  const hrefForPage = (nextPage: number) =>
+    pathname ? pageHref(pathname, nextPage, pageSize, query) : undefined;
+
+  const goPage = (next: number) => {
+    if (onPage) onPage(next);
+  };
+  const goSize = (next: number) => {
+    if (onPageSize) onPageSize(next);
+  };
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm text-fg-muted">
       <div className="flex items-center gap-1">
-        {page > 1 ? (
-          <Link
-            href={hrefFor(page - 1)}
-            aria-label="Previous page"
-            className={cn(cellClass, "border border-border hover:border-fg")}
-          >
-            ‹
-          </Link>
-        ) : (
-          <span aria-hidden className={cn(cellClass, "border border-border opacity-40")}>
-            ‹
-          </span>
-        )}
+        <StepControl
+          label="‹"
+          ariaLabel="Previous page"
+          disabled={page <= 1}
+          href={page > 1 ? hrefForPage(page - 1) : undefined}
+          onClick={onPage && page > 1 ? () => goPage(page - 1) : undefined}
+        />
 
         {pageWindow(page, totalPages).map((entry, i) =>
           entry === null ? (
@@ -93,55 +73,109 @@ export function Pagination({
               {entry}
             </span>
           ) : (
-            <Link
+            <StepControl
               key={entry}
-              href={hrefFor(entry)}
-              className={cn(cellClass, "border border-border text-fg hover:border-fg")}
-            >
-              {entry}
-            </Link>
+              label={String(entry)}
+              href={hrefForPage(entry)}
+              onClick={onPage ? () => goPage(entry) : undefined}
+            />
           ),
         )}
 
-        {page < totalPages ? (
-          <Link
-            href={hrefFor(page + 1)}
-            aria-label="Next page"
-            className={cn(cellClass, "border border-border hover:border-fg")}
-          >
-            ›
-          </Link>
-        ) : (
-          <span aria-hidden className={cn(cellClass, "border border-border opacity-40")}>
-            ›
-          </span>
-        )}
+        <StepControl
+          label="›"
+          ariaLabel="Next page"
+          disabled={page >= totalPages}
+          href={page < totalPages ? hrefForPage(page + 1) : undefined}
+          onClick={onPage && page < totalPages ? () => goPage(page + 1) : undefined}
+        />
       </div>
 
       <div className="flex items-center gap-4">
         <p className="tabular-nums">
-          {total === 0 ? "No rows" : `${from}–${to} of ${total}`}
+          {total === 0 ? `No ${unit}` : `${from}–${to} of ${total}`}
         </p>
         <div className="flex items-center gap-2">
           <span>Show</span>
-          {PAGE_SIZE_OPTIONS.map((size) =>
-            size === pageSize ? (
-              <span key={size} className="font-medium text-fg tabular-nums">
-                {size}
-              </span>
-            ) : (
-              <Link
-                key={size}
-                href={pageSizeHrefFor(size)}
-                className="tabular-nums underline underline-offset-2 hover:text-fg"
-              >
-                {size}
-              </Link>
-            ),
-          )}
-          <span>rows</span>
+          {PAGE_SIZE_OPTIONS.map((size) => {
+            if (size === pageSize) {
+              return (
+                <span key={size} className="font-medium text-fg tabular-nums">
+                  {size}
+                </span>
+              );
+            }
+            if (pathname) {
+              return (
+                <Link
+                  key={size}
+                  href={pageHref(pathname, 1, size, query)}
+                  className="tabular-nums underline underline-offset-2 hover:text-fg"
+                >
+                  {size}
+                </Link>
+              );
+            }
+            if (onPageSize) {
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => goSize(size)}
+                  className="tabular-nums underline underline-offset-2 hover:text-fg"
+                >
+                  {size}
+                </button>
+              );
+            }
+            return null;
+          })}
+          <span>{unit}</span>
         </div>
       </div>
     </div>
+  );
+}
+
+function StepControl({
+  label,
+  ariaLabel,
+  disabled,
+  href,
+  onClick,
+}: {
+  label: string;
+  ariaLabel?: string;
+  disabled?: boolean;
+  href?: string;
+  onClick?: () => void;
+}) {
+  if (disabled) {
+    return (
+      <span aria-hidden className={cn(cellClass, "border border-border opacity-40")}>
+        {label}
+      </span>
+    );
+  }
+  if (href) {
+    return (
+      <Link
+        href={href}
+        aria-label={ariaLabel}
+        className={cn(cellClass, "border border-border hover:border-fg")}
+      >
+        {label}
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      onClick={onClick}
+      className={cn(cellClass, "border border-border hover:border-fg")}
+    >
+      {label}
+    </button>
   );
 }

@@ -627,14 +627,19 @@ export const FOUNDRYS_PROGRAMS: SeedProgram[] = [
             title: "Welcome & program overview",
             summary: "What you will build and how to succeed.",
             contentType: LessonContentType.RICH_TEXT,
-            content: `# Welcome
+            content: `# Welcome to the Young Graduate Program
 
-Welcome to the **Young Graduate Program in Applied AI & GenAI**.
+You are on a year-long path through applied AI and GenAI: foundations, research methods, engineering practice, and a launchpad project you can defend in front of faculty.
 
-## What you'll do
-- Follow each **section** in order
-- Open **activities** and mark them complete
-- Use **Continue** from Learning to resume`,
+## How the year is structured
+Each **section** in Learning is a certification track or a studio block. Activities inside a section are meant to be finished in order — later labs assume you can already name the system boundary, the data, and the failure mode.
+
+- Use **Continue** from the dashboard; do not skip to a capstone because the title looks impressive.
+- Videos complete when they finish playing. Readings, PDFs and labs need you to mark complete once you have actually done the work.
+- Faculty will upload reading packs as PDFs on some activities. Treat those as source material for critiques, not optional decoration.
+
+## What "done" looks like here
+You can explain a model’s limits to a non-technical stakeholder, show a small system you built, and point at the evaluation set you used — not a screenshot of a chat window. Keep a lab notebook. The viva will ask what you tried that failed.`,
             durationMin: 15,
           },
           {
@@ -655,12 +660,18 @@ Welcome to the **Young Graduate Program in Applied AI & GenAI**.
             title: "Thinking in systems",
             summary: "Mental models for AI products.",
             contentType: LessonContentType.RICH_TEXT,
-            content: `## Systems thinking
+            content: `## Systems thinking for AI products
 
-Treat models, data, and product surface as one system.
+A model is not a product. The product is the loop: input, retrieval or tools, the model, the guardrails, the human who sees the output, and the log you keep when it is wrong.
 
-- Inputs and outputs must be explicit
-- Prefer small, shippable increments`,
+Write those pieces down before you pick a framework.
+
+- **Inputs** must be typed. Free text from a student is not the same artefact as a structured application record.
+- **Outputs** must have a contract: JSON schema, citation list, or a refusal. "A helpful answer" is not a contract.
+- **Failure** is a first-class path. Timeouts, empty retrieval, and policy blocks need UX, not an apology in the system prompt.
+- Ship the smallest loop that a faculty member can break in ten minutes. Then add evaluation. Then add another tool.
+
+If you cannot sketch the loop on one page, you are not ready to train or fine-tune anything.`,
             durationMin: 20,
           },
           {
@@ -2172,19 +2183,20 @@ Two deliverables:
             contentType: LessonContentType.RICH_TEXT,
             content: `# Welcome to Cybersecurity Essentials
 
-This is a **complete end-to-end course** in EDITH. Work through each module in order.
+This course trains you to think like a defender: name the asset, name the threat, choose a control, and write down why. Work the modules in order. Each activity is either a reading, a video, or a short lab.
 
-## What you will learn
-- How security teams think about risk (CIA triad)
-- Common threats and practical defences
-- How to document an incident clearly
+## What you will be able to do
+- Frame any system in terms of confidentiality, integrity and availability, including the trade-offs those three create.
+- Separate threat, vulnerability and risk so a standup conversation stays precise under pressure.
+- Apply MFA, least privilege and an offboarding rule that actually closes accounts.
+- Triage a suspicious-login alert the way a junior SOC analyst would, then write a one-page incident note a manager can act on.
 
-## How to use EDITH
-1. Open **Learning** from your dashboard.
-2. Complete each **activity** and mark it done.
-3. Use **Continue** to pick up where you left off.
+## How to use Learning
+1. Open the course from **My courses**. Complete activities in order — later labs assume earlier vocabulary.
+2. Videos mark complete when they finish. Readings and labs use **Mark complete**.
+3. Faculty can attach PDFs (playbooks, policy extracts, lab sheets) on any activity. Open them in the player; download only if you need a local copy.
 
-> Tip: The first activity is marked complete so you can see progress immediately.`,
+Keep a scratch pad. The capstone asks for a timeline, not a slogan.`,
             durationMin: 10,
           },
           {
@@ -2203,17 +2215,24 @@ This is a **complete end-to-end course** in EDITH. Work through each module in o
         lessons: [
           {
             title: "The CIA triad",
-            summary: "Confidentiality, integrity, and availability — defined.",
+            summary: "How defenders describe risk when a control helps one pillar and hurts another.",
             contentType: LessonContentType.RICH_TEXT,
             content: `## Confidentiality, integrity, availability
 
-| Pillar | Question it answers | Example control |
-|--------|---------------------|-----------------|
-| **Confidentiality** | Who can read this? | Encryption, access control |
-| **Integrity** | Has this been altered? | Hashing, code signing |
-| **Availability** | Can authorised users reach it? | Backups, redundancy |
+Every control you will meet in this course maps to at least one of these questions:
 
-When you evaluate any system, ask all three questions. A control that helps one pillar can hurt another — document the trade-off.`,
+| Pillar | Question | Typical control | Failure mode |
+|--------|----------|-----------------|--------------|
+| **Confidentiality** | Who can read this? | Encryption at rest, TLS, access lists | Over-sharing, leaked backups |
+| **Integrity** | Has this been altered? | Hashing, signed packages, audit logs | Silent tampering, poisoned updates |
+| **Availability** | Can authorised people reach it? | Redundancy, backups, rate limits | Ransomware, a single overloaded API |
+
+A control that helps one pillar often taxes another. Encrypting a laptop protects confidentiality; lose the recovery key and you have destroyed availability for that user. Turning off a compromised account protects integrity of the tenant; if it is the only admin, you may have locked the organisation out.
+
+## How to write it down
+When you evaluate a system, write three sentences — one per pillar — then name the trade-off you accepted. "We require hardware keys for admins (confidentiality) knowing that lost keys add a 30-minute recovery path (availability)." That sentence is more useful than a slide titled "we take security seriously."
+
+NIST SP 800-12 and the CIS Controls both start here. If you cannot name the pillar, you are not ready to pick a product.`,
             durationMin: 20,
           },
           {
@@ -2222,11 +2241,20 @@ When you evaluate any system, ask all three questions. A control that helps one 
             contentType: LessonContentType.RICH_TEXT,
             content: `## Speak the same language
 
-- **Threat** — something that *could* cause harm (phishing, ransomware operator).
-- **Vulnerability** — a weakness that *could* be exploited (unpatched server, reused password).
-- **Risk** — likelihood × impact if the threat exploits the vulnerability.
+Teams collapse under incident pressure when they mix these three words:
 
-Security work is prioritisation: fix what reduces the most risk first, not what is easiest to tick off.`,
+- **Threat** — an actor or event that *could* cause harm. A phishing kit, a ransomware affiliate, a disgruntled contractor with residual VPN access.
+- **Vulnerability** — a weakness that *could* be exploited. An unpatched VPN appliance, a reused password, an S3 bucket with public ACLs.
+- **Risk** — the combination of likelihood and impact *if* the threat exploits the vulnerability. "If that affiliate phishes finance, they can instruct a ₹40 lakh payment" is a risk statement. "Phishing exists" is not.
+
+## A worked example
+Threat: credential stuffing against the student portal.
+Vulnerability: 18% of accounts still have passwords that appeared in 2024 breach corpora; MFA is optional for learners.
+Risk: an attacker takes over a bursar-adjacent mailbox and issues a fee-waiver that posts to the ledger.
+
+The work is then prioritisation. Forcing MFA on staff this week reduces more risk than rewriting the public "we use encryption" page. STRIDE (spoofing, tampering, repudiation, information disclosure, denial of service, elevation of privilege) is a useful prompt when you are staring at a blank threat model — walk each letter against the asset.
+
+Write risk as: *actor + action + asset + consequence*. If any of those four is missing, the statement will not survive a steering committee.`,
             durationMin: 25,
           },
         ],
@@ -2242,14 +2270,21 @@ Security work is prioritisation: fix what reduces the most risk first, not what 
             contentType: LessonContentType.RICH_TEXT,
             content: `## Defend the front door
 
-**Multi-factor authentication (MFA)** blocks most credential-stuffing attacks. Enable it everywhere you can.
+Most account takeovers in education and SaaS still start with a password and a missing second factor. Treat identity as the perimeter.
 
-**Least privilege** means accounts get only the access they need for their job — not admin by default.
+**Multi-factor authentication.** Prefer phishing-resistant factors (hardware keys, passkeys) for anyone who can move money, change DNS, or reset other admins. SMS OTP is better than nothing and worse than a key — attackers run MFA-fatigue prompts against it. If you cannot roll hardware keys this quarter, at least turn off "remember this browser" on admin consoles.
 
-### Quick audit checklist
-- [ ] MFA on email and admin consoles
-- [ ] No shared root/service accounts without rotation
-- [ ] Offboarding removes access within 24 hours`,
+**Least privilege.** Role-based access should match the job, not the org chart. Academic Dean does not need bursar refunds; faculty does not need identity-provider admin. Service accounts get a unique identity, a vaulted secret, and a named owner — never a shared "admin@".
+
+**Joiner–mover–leaver.** Access granted on day one must have a removal path. Offboarding that takes more than 24 hours for email, VPN, Git and cloud consoles is an incident waiting for a date.
+
+### Audit this week
+- MFA enforced on email and every console that can change production.
+- No standing domain-admin or root sessions; break-glass accounts are monitored and stored offline.
+- A leaver from the last 30 days has zero remaining tokens.
+- Password reset for privileged roles requires a second person.
+
+If your IdP cannot answer those four without a spreadsheet hunt, the control is theatre.`,
             durationMin: 30,
           },
           {
@@ -2272,15 +2307,30 @@ Security work is prioritisation: fix what reduces the most risk first, not what 
             contentType: LessonContentType.RICH_TEXT,
             content: `## Scenario
 
-Your SIEM fires: **"Impossible travel — user logged in from Hyderabad and Frankfurt within 10 minutes."**
+Your SIEM fires at 09:14 IST: **"Impossible travel — same user principal authenticated from Hyderabad (office egress) and Frankfurt (consumer VPN ASN) nine minutes apart."** The account belongs to a finance coordinator who can initiate fee refunds.
 
-### Steps
-1. **Verify** — Is the user on leave? VPN? Shared account?
-2. **Contain** — Disable session, force password reset if suspicious.
-3. **Investigate** — Pull auth logs, source IPs, user agent.
-4. **Document** — Timeline, actions taken, open questions.
+This is not a pop quiz. Work it as a junior analyst on a recorded shift.
 
-Write three sentences: what you checked first, what you would escalate, and what evidence you would attach.`,
+### 1. Verify before you panic
+- Is the user on leave, in an airport, or on the corporate VPN that egresses in the EU?
+- Shared mailbox or shared password? Check the last password-change and device list.
+- Compare user-agent and MFA method. A password + SMS from Frankfurt after a hardware-key login in Hyderabad is not "the same user."
+
+### 2. Contain if it still looks hostile
+- Revoke refresh tokens and active sessions for that principal.
+- Force a password reset *after* you have a channel to the real human (call the number on file, do not email the inbox you suspect is owned).
+- If refunds or payouts are in flight, freeze the maker-checker queue and tell bursar.
+
+### 3. Investigate
+Pull auth logs for 24 hours: source IPs, ASN, geolocation, success/failure, MFA result. Note the first failure that precedes the Frankfurt success — stuffing often shows up as a burst. Preserve the original alert payload; do not overwrite it by "closing" the ticket.
+
+### 4. Write it down
+Three sentences on a pad now, full report in the capstone:
+1. What you checked first and why it was or was not the user.
+2. What you contained, with timestamps.
+3. What evidence you would attach (log export IDs, ticket number, who you called).
+
+Impossible travel is a *hypothesis generator*, not a verdict. Plenty of false positives come from split-tunnel VPNs. Plenty of true positives look exactly like a tired colleague. Your job is the evidence trail.`,
             durationMin: 45,
           },
           {
@@ -2289,15 +2339,17 @@ Write three sentences: what you checked first, what you would escalate, and what
             contentType: LessonContentType.RICH_TEXT,
             content: `## Capstone deliverable
 
-Draft a **one-page incident report** for the login alert in the previous activity.
+Write a **one-page incident report** for the impossible-travel alert in the previous lab. Use the house voice of a SOC that has to brief bursar and the academic dean in the same document.
 
-Include:
-1. **Summary** — one paragraph, non-technical audience.
-2. **Timeline** — bullet list with timestamps (use placeholders if needed).
-3. **Actions taken** — what you did and why.
-4. **Recommendations** — two controls to prevent recurrence.
+Required sections:
 
-Congratulations — you have completed the full syllabus. Mark this activity done to finish the course.`,
+1. **Summary** — five to eight lines, no jargon. Who, what, when, current status. A non-technical reader should know whether money moved.
+2. **Timeline** — bullets with IST timestamps. Include the alert, each check, containment, and who you notified. Placeholders are fine (e.g. T+12 min).
+3. **Evidence** — log sources, IPs/ASNs, MFA method, whether sessions were revoked. Do not paste secrets.
+4. **Actions taken** — what you did, in order, and what you explicitly did *not* do (and why).
+5. **Recommendations** — two controls that would have reduced this risk *before* the alert. Tie each to a CIA pillar or to identity (MFA, token lifetime, geo-velocity policy).
+
+Mark this activity complete when the draft is on paper or in your notes. That is the end of the syllabus; the badge is earned by the report, not by scrolling.`,
             durationMin: 60,
           },
         ],

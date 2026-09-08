@@ -2,61 +2,73 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LessonCompleteButton } from "@/components/student/lesson-complete-button";
 import { LessonTutorChat } from "@/components/student/lesson-tutor-chat";
+import { LessonVideo } from "@/components/student/lesson-video";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel } from "@/components/ui/page";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { loadCourseLessonContext } from "@/lib/learning/course-context";
+import { parseLessonVideo } from "@/lib/learning/video-embed";
+import { lessonPdfFileName } from "@/lib/learning/lesson-pdf";
 import { renderSimpleMarkdown } from "@/lib/learning/markdown";
 import { activityTypeLabel } from "@/lib/learning/standards";
-
-function videoEmbed(url: string): { kind: "iframe"; src: string } | { kind: "link"; href: string } {
-  const yt = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/,
-  );
-  if (yt) {
-    return { kind: "iframe", src: `https://www.youtube.com/embed/${yt[1]}` };
-  }
-  const vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vimeo) {
-    return { kind: "iframe", src: `https://player.vimeo.com/video/${vimeo[1]}` };
-  }
-  return { kind: "link", href: url };
-}
+import { uploadUrl } from "@/lib/urls";
 
 function LessonBody({
+  lessonId,
   contentType,
   contentBody,
+  completed,
 }: {
+  lessonId: string;
   contentType: string;
   contentBody: string;
+  completed: boolean;
 }) {
   if (!contentBody.trim()) {
     return <p className="text-sm text-fg-muted">No content for this activity yet.</p>;
   }
 
   if (contentType === "VIDEO_URL") {
-    const embed = videoEmbed(contentBody.trim());
-    if (embed.kind === "iframe") {
+    const video = parseLessonVideo(contentBody.trim());
+    if (video.kind !== "link") {
       return (
-        <div className="aspect-video overflow-hidden rounded-[var(--radius-sm)] border border-border">
-          <iframe
-            title="Activity video"
-            src={embed.src}
-            className="h-full w-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
+        <LessonVideo
+          video={video}
+          lessonId={lessonId}
+          completed={completed}
+        />
       );
     }
     return (
       <p className="text-sm">
-        <a href={embed.href} target="_blank" rel="noreferrer" className="underline">
+        <a href={video.href} target="_blank" rel="noreferrer" className="underline">
           Open video
         </a>
       </p>
+    );
+  }
+
+  if (contentType === "PDF_FILE") {
+    if (!contentBody.trim()) {
+      return <p className="text-sm text-fg-muted">No PDF has been uploaded yet.</p>;
+    }
+    const href = uploadUrl(contentBody.trim());
+    const fileName = lessonPdfFileName(contentBody.trim());
+    return (
+      <div className="space-y-3">
+        <iframe
+          title={fileName}
+          src={href}
+          className="h-[70vh] w-full rounded-[var(--radius-sm)] border border-border bg-bg"
+        />
+        <p className="text-sm">
+          <a href={href} target="_blank" rel="noreferrer" className="underline">
+            Download {fileName}
+          </a>
+        </p>
+      </div>
     );
   }
 
@@ -193,14 +205,18 @@ export default async function StudentLearningLessonPage({
 
       <Panel className="mb-6 p-5">
         <LessonBody
+          lessonId={lesson.id}
           contentType={lesson.contentType}
           contentBody={lesson.contentBody}
+          completed={completed}
         />
       </Panel>
 
-      <div className="mb-8">
-        <LessonCompleteButton lessonId={lesson.id} completed={completed} />
-      </div>
+      {lesson.contentType === "VIDEO_URL" ? null : (
+        <div className="mb-8">
+          <LessonCompleteButton lessonId={lesson.id} completed={completed} />
+        </div>
+      )}
 
       <div className="mb-8">
         <LessonTutorChat

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useTransition } from "react";
+import { Fragment, useMemo, useTransition } from "react";
 import { Panel } from "@/components/ui/page";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -9,9 +9,10 @@ import {
   setStaffRoleCapabilities,
 } from "@/lib/actions/capabilities";
 import {
-  ALL_CAPABILITIES,
+  CAPABILITY_GROUPS,
   CAPABILITY_LABELS,
   ROLE_LABELS,
+  ROLE_SHORT_LABELS,
   STAFF_PERMISSION_ROLES,
   type AppRole,
   type Capability,
@@ -65,15 +66,16 @@ export function CapabilityMatrixEditor({
   return (
     <Panel className="overflow-x-auto">
       <p className="border-b border-border px-4 py-3 text-sm text-fg-muted">
-        Choose what each access level can do in the admin workspace.
+        Every staff role can open the dashboard. Grant edit rights per module
+        below. Restricted cells have no write access.
       </p>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs text-fg-muted">
-            <th className="px-4 py-3 font-medium">Permission</th>
+            <th className="px-4 py-3 font-medium">Module &amp; security scope</th>
             {STAFF_PERMISSION_ROLES.map((role) => (
               <th key={role} className="px-3 py-3 font-medium">
-                <div>{ROLE_LABELS[role]}</div>
+                <div>{ROLE_SHORT_LABELS[role]}</div>
                 <button
                   type="button"
                   disabled={pending}
@@ -87,25 +89,37 @@ export function CapabilityMatrixEditor({
           </tr>
         </thead>
         <tbody>
-          {ALL_CAPABILITIES.filter((cap) => cap !== "learnAsStudent").map((cap) => (
-            <tr key={cap} className="border-b border-border last:border-0">
-              <td className="px-4 py-3 text-fg">{CAPABILITY_LABELS[cap]}</td>
-              {STAFF_PERMISSION_ROLES.map((role) => {
-                const checked = matrixMap.get(role)?.has(cap) ?? false;
-                return (
-                  <td key={role} className="px-3 py-3 text-center">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      disabled={pending}
-                      aria-label={`${ROLE_LABELS[role]} — ${CAPABILITY_LABELS[cap]}`}
-                      onChange={() => toggle(role, cap)}
-                      className="h-4 w-4 rounded border-border-strong accent-accent"
-                    />
-                  </td>
-                );
-              })}
-            </tr>
+          {CAPABILITY_GROUPS.map((group) => (
+            <Fragment key={group.label}>
+              <tr className="bg-bg">
+                <td
+                  className="px-4 py-2 text-[0.6875rem] font-bold uppercase tracking-wider text-fg-muted"
+                  colSpan={STAFF_PERMISSION_ROLES.length + 1}
+                >
+                  {group.label}
+                </td>
+              </tr>
+              {group.capabilities.map((cap) => (
+                <tr key={cap} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 text-fg">{CAPABILITY_LABELS[cap]}</td>
+                  {STAFF_PERMISSION_ROLES.map((role) => {
+                    const checked = matrixMap.get(role)?.has(cap) ?? false;
+                    return (
+                      <td key={role} className="px-3 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={pending}
+                          aria-label={`${ROLE_LABELS[role]} — ${CAPABILITY_LABELS[cap]}`}
+                          onChange={() => toggle(role, cap)}
+                          className="h-4 w-4 rounded border-border-strong accent-accent"
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </Fragment>
           ))}
         </tbody>
       </table>

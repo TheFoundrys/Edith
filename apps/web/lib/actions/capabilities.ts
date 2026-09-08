@@ -45,7 +45,8 @@ export async function setStaffRoleCapabilities(
   // Never leave the org without an admin who can manage access.
   if (appRole === "SUPER_ADMIN" && !parsed.data.includes("manageMembers")) {
     return {
-      error: "Admin must keep Members & access so someone can manage roles.",
+      error:
+        "Super Administrator must keep staff allocation so someone can manage roles.",
     };
   }
 

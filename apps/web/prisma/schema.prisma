@@ -7,10 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// EDITH staff membership role (unchanged)
+// EDITH staff membership role. Labels live in lib/auth/roles.ts.
 enum Role {
   SUPER_ADMIN
   ADMISSIONS_MANAGER
+  BURSAR
   COUNSELOR
   CONTENT_UPLOADER
   STUDENT
@@ -135,6 +136,7 @@ enum LessonContentType {
   RICH_TEXT
   VIDEO_URL
   EXTERNAL_LINK
+  PDF_FILE
 }
 
 enum UserStatus {
@@ -376,6 +378,7 @@ model Organization {
   bloomsAnalyses   BloomsAnalysis[]
   certificateTemplates CertificateTemplate[]
   cliftonAssessments CliftonAssessment[]
+  retrievalChunks  RetrievalChunk[]
   conversations    Conversation[]
   coupons          Coupon[]
   courseMcqs       CourseMcq[]
@@ -457,6 +460,7 @@ model User {
   payments             Payment[] @relation("PaymentUser")
   programOffers        ProgramOffer[]
   cliftonAssessments   CliftonAssessment[]
+  retrievalChunks      RetrievalChunk[]
   notificationPreference NotificationPreference?
   auditLogs            AuditLog[]
   courseAssessmentAttempts CourseAssessmentAttempt[]
@@ -1263,6 +1267,24 @@ model CliftonAssessment {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([organizationId])
   @@index([userId])
+}
+
+/** RAG chunks for ASSESS 001 (resume, profile, exam insights, catalogue). Vectors stored as JSON. */
+model RetrievalChunk {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  source         String
+  sourceId       String?
+  text           String
+  embedding      Json
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([organizationId, source])
+  @@index([organizationId, userId])
 }
 
 model Conversation {

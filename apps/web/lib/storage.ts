@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 import { uploadUrl } from "@/lib/urls";
@@ -15,6 +15,7 @@ const DOCUMENT_TYPES = new Set([
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const MAX_LESSON_PDF_BYTES = 25 * 1024 * 1024;
 
 export type StoredUpload = {
   storagePath: string;
@@ -80,6 +81,33 @@ export async function saveApplicationDocument(
   }
 
   return writeUpload(file, "private");
+}
+
+export async function saveLessonPdf(
+  file: File,
+): Promise<StoredUpload | { error: string }> {
+  const mimeType = file.type || "";
+  if (mimeType !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+    return { error: "Upload a PDF file." };
+  }
+  if (file.size > MAX_LESSON_PDF_BYTES) {
+    return { error: "PDF must be 25 MB or smaller." };
+  }
+  if (file.size === 0) {
+    return { error: "Choose a PDF to upload." };
+  }
+  return writeUpload(file, "private");
+}
+
+export async function readStoredUpload(storagePath: string) {
+  const relative = storagePath.replace(/\\/g, "/").replace(/^\/+/, "");
+  const resolved = resolveUploadPath(relative.split("/"));
+  if (!resolved) return null;
+  try {
+    return await readFile(resolved.absolute);
+  } catch {
+    return null;
+  }
 }
 
 export function resolveUploadPath(relativeParts: string[]) {

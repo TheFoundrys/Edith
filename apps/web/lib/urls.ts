@@ -115,6 +115,7 @@ export const ROUTES = {
   course: (slug: string) => `/courses/${slug}`,
   courseIntakes: (slug: string) => `/courses/${slug}/intakes`,
   personalityProfile: "/personality-profile",
+  personalityRank: "/personality-profile/rank",
   login: "/login",
   admin: "/admin",
   adminMembers: "/admin/members",

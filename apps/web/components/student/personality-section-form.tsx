@@ -34,7 +34,10 @@ export function PersonalitySectionForm({
           </p>
           <div className="space-y-2">
             {question.options.map((option, optionIndex) => (
-              <label key={option} className="flex items-start gap-2 text-sm">
+              <label
+                  key={`${question.id}-${optionIndex}`}
+                  className="flex items-start gap-2 text-sm"
+                >
                 <input
                   type="radio"
                   name={question.id}

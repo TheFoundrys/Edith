@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page";
-import { requireCapability } from "@/lib/auth/session";
+import { canUser, requireAnyCapability } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { programCategoryLabel } from "@/lib/programs/categories";
 import { formatCurrency } from "@/lib/utils";
@@ -15,7 +15,8 @@ function statusTone(status: string) {
 }
 
 export default async function AdminProgramsPage() {
-  const session = await requireCapability("managePrograms");
+  const session = await requireAnyCapability(["managePrograms", "managePricing"]);
+  const canEditCatalog = canUser(session.user, "managePrograms");
   const programs = await prisma.program.findMany({
     where: { organizationId: session.user.organizationId },
     include: {
@@ -35,11 +36,17 @@ export default async function AdminProgramsPage() {
     <div>
       <PageHeader
         title="Programs"
-        description="Build the catalog — set details and pricing, add a syllabus, then publish to go live."
+        description={
+          canEditCatalog
+            ? "Build the catalog — set details and pricing, add a syllabus, then publish to go live."
+            : "Review published tuition and catalog status. Catalog edits stay with academic staff."
+        }
         actions={
-          <Link href="/admin/programs/new">
-            <Button>New program</Button>
-          </Link>
+          canEditCatalog ? (
+            <Link href="/admin/programs/new">
+              <Button>New program</Button>
+            </Link>
+          ) : undefined
         }
       />
 
@@ -65,11 +72,17 @@ export default async function AdminProgramsPage() {
       {programs.length === 0 ? (
         <EmptyState
           title="No programs yet"
-          description="Create your first program, set pricing, then publish it to the course catalog."
+          description={
+            canEditCatalog
+              ? "Create your first program, set pricing, then publish it to the course catalog."
+              : "No programs are in the catalog yet."
+          }
           action={
-            <Link href="/admin/programs/new">
-              <Button>Create program</Button>
-            </Link>
+            canEditCatalog ? (
+              <Link href="/admin/programs/new">
+                <Button>Create program</Button>
+              </Link>
+            ) : undefined
           }
         />
       ) : (
@@ -89,12 +102,16 @@ export default async function AdminProgramsPage() {
                 </div>
 
                 <h2 className="mt-[var(--grid-gap)] font-display text-xl leading-snug text-fg">
-                  <Link
-                    href={`/admin/programs/${program.id}`}
-                    className="hover:underline underline-offset-2"
-                  >
-                    {program.title}
-                  </Link>
+                  {canEditCatalog ? (
+                    <Link
+                      href={`/admin/programs/${program.id}`}
+                      className="hover:underline underline-offset-2"
+                    >
+                      {program.title}
+                    </Link>
+                  ) : (
+                    program.title
+                  )}
                 </h2>
 
                 <p className="mt-1 text-xs text-fg-muted">
@@ -133,14 +150,18 @@ export default async function AdminProgramsPage() {
                 </dl>
 
                 <div className="mt-auto pt-[var(--grid-pad)] flex flex-wrap gap-2">
-                  <Link href={`/admin/programs/${program.id}`}>
-                    <Button size="sm">Edit</Button>
-                  </Link>
-                  <Link href={`/admin/syllabus/${program.id}`}>
-                    <Button size="sm" variant="secondary">
-                      Syllabus
-                    </Button>
-                  </Link>
+                  {canEditCatalog ? (
+                    <Link href={`/admin/programs/${program.id}`}>
+                      <Button size="sm">Edit</Button>
+                    </Link>
+                  ) : null}
+                  {canEditCatalog ? (
+                    <Link href={`/admin/syllabus/${program.id}`}>
+                      <Button size="sm" variant="secondary">
+                        Syllabus
+                      </Button>
+                    </Link>
+                  ) : null}
                   {program.status === "PUBLISHED" ? (
                     <Link href={`/courses/${program.slug}`} target="_blank">
                       <Button size="sm" variant="ghost">

@@ -16,6 +16,8 @@ export function Dropdown({
   disabled,
   className,
   panelClassName,
+  triggerClassName,
+  showCaret = true,
   ariaLabel,
 }: {
   label: React.ReactNode;
@@ -24,6 +26,8 @@ export function Dropdown({
   disabled?: boolean;
   className?: string;
   panelClassName?: string;
+  triggerClassName?: string;
+  showCaret?: boolean;
   ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -61,12 +65,15 @@ export function Dropdown({
           "border border-border bg-bg-elevated px-3 text-left text-sm text-fg",
           "transition-[border-color,box-shadow] duration-[var(--duration)] hover:border-border-strong disabled:opacity-50",
           "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+          triggerClassName,
         )}
       >
         <span className="truncate">{label}</span>
-        <span aria-hidden className="text-fg-muted">
-          {open ? "▴" : "▾"}
-        </span>
+        {showCaret ? (
+          <span aria-hidden className="text-fg-muted">
+            {open ? "▴" : "▾"}
+          </span>
+        ) : null}
       </button>
 
       {open ? (

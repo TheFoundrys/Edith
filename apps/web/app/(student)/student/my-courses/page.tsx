@@ -160,7 +160,7 @@ export default async function MyCoursesPage({
                       : PERSONALITY_PROFILE_HREF
                   }
                   category={enrollment.program.category}
-                  meta="Personality profile · 3 batteries"
+                  meta="Personality profile · 90-question exam"
                   done={progress.done}
                   total={progress.total}
                   pct={progress.pct}

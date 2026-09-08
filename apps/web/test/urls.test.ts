@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { resolveAuthRedirect } from "../lib/auth/redirect";
+import { courseCoverSrc } from "../lib/programs/course-visual";
 import {
   absoluteUrl,
   isBindAllHost,
@@ -97,4 +98,13 @@ test("auth redirects cannot cross role boundaries or origins", () => {
   assert.equal(resolveAuthRedirect("STUDENT", "/admin"), ROUTES.studentDashboard);
   assert.equal(resolveAuthRedirect("SUPER_ADMIN", "/admin/members"), "/admin/members");
   assert.equal(resolveAuthRedirect("SUPER_ADMIN", "/student/payment"), ROUTES.admin);
+});
+
+test("course cards load real Unsplash photographs by subject", () => {
+  const ai = courseCoverSrc("ai", "Applied AI");
+  const cyber = courseCoverSrc("cyber", "Cybersecurity Essentials");
+  assert.match(ai, /^https:\/\/images\.unsplash\.com\/photo-/);
+  assert.match(cyber, /^https:\/\/images\.unsplash\.com\/photo-/);
+  assert.notEqual(ai, cyber);
+  assert.equal(courseCoverSrc("ai", "Applied AI"), ai);
 });

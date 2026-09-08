@@ -24,7 +24,7 @@ import {
   setMemberStaffRole,
   setMemberStatus,
 } from "@/lib/actions/members";
-import { ROLE_LABELS, type AppRole } from "@/lib/auth/roles";
+import { ROLE_LABELS, STAFF_ROLES, type AppRole } from "@/lib/auth/roles";
 import {
   accessExpiryLabel,
   isExpired,
@@ -48,13 +48,7 @@ export type MemberRow = {
 
 type PermissionRoleOption = { id: string; name: string };
 
-const STAFF_ACCESS_OPTIONS: AppRole[] = [
-  "SUPER_ADMIN",
-  "ADMISSIONS_MANAGER",
-  "COUNSELOR",
-  "CONTENT_UPLOADER",
-  "STUDENT",
-];
+const STAFF_ACCESS_OPTIONS: AppRole[] = [...STAFF_ROLES, "STUDENT"];
 
 const cellClass = "px-5 py-3 align-middle";
 const dateInputClass =
@@ -323,9 +317,9 @@ export function MembersTable({
                   <td className={cellClass}>
                     <Badge tone={badge.tone}>{badge.label}</Badge>
                   </td>
-                  <td className={`${cellClass} min-w-[10rem]`}>
+                  <td className={`${cellClass} min-w-[14rem]`}>
                     <select
-                      className="h-8 w-full max-w-[11rem] rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated px-2 text-sm"
+                      className="h-8 w-full max-w-[16rem] rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated px-2 text-sm"
                       value={row.enumRole}
                       disabled={pending || (row.isSelf && row.enumRole === "SUPER_ADMIN")}
                       aria-label={`Staff access for ${row.name}`}

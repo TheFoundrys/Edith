@@ -2,13 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
 import { BrandMark } from "@/components/layout/brand-mark";
-import { LmsUserMenu } from "@/components/layout/lms-user-menu";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -44,33 +41,32 @@ function isNavActive(pathname: string, href: string, allHrefs: string[]) {
   );
 }
 
-function navWithoutProfileShortcut(
+function navWithoutHeaderShortcuts(
   groups: WorkspaceNavGroup[],
-  profileHref?: string,
+  shortcuts: Array<string | undefined>,
 ) {
-  if (!profileHref) return groups;
-  return groups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => item.href !== profileHref),
-  }));
+  const skip = new Set(shortcuts.filter(Boolean) as string[]);
+  if (skip.size === 0) return groups;
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !skip.has(item.href)),
+    }))
+    .filter((group) => group.items.length > 0);
 }
 
 export function WorkspaceSidebar({
   nav,
   navGroups,
   profileHref,
-  variant = "student",
-  userRoleLabel,
-  onSignOut,
-  signingOut,
+  notificationsHref,
 }: {
   nav?: WorkspaceNavItem[];
   navGroups?: WorkspaceNavGroup[];
   profileHref?: string;
+  notificationsHref?: string;
   variant?: "student" | "admin";
   userRoleLabel?: string;
-  onSignOut: () => void;
-  signingOut: boolean;
 }) {
   const pathname = usePathname();
   const { state, isMobile, setOpenMobile } = useSidebar();
@@ -78,10 +74,10 @@ export function WorkspaceSidebar({
   const brandHref = pathname.startsWith("/admin")
     ? "/admin"
     : "/student/dashboard";
-  const groups = navWithoutProfileShortcut(
+  const groups = navWithoutHeaderShortcuts(
     navGroups ??
       (nav ? [{ label: "Workspace", items: nav }] : [{ label: "Workspace", items: [] }]),
-    profileHref,
+    [profileHref, notificationsHref],
   );
   const allHrefs = groups.flatMap((group) => group.items.map((item) => item.href));
 
@@ -140,49 +136,6 @@ export function WorkspaceSidebar({
           </SidebarGroup>
         ))}
       </SidebarContent>
-
-      <SidebarFooter className="workspace-sidebar-footer mt-auto shrink-0 border-t border-border">
-        {variant === "admin" && !collapsed ? (
-          <div className="workspace-sidebar-user px-2 pt-2">
-            <LmsUserMenu
-              profileHref={profileHref}
-              roleLabel={userRoleLabel ?? "Staff"}
-            />
-          </div>
-        ) : null}
-        <SidebarMenu className="px-1 pb-2">
-          {profileHref && variant !== "admin" ? (
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isNavActive(pathname, profileHref, [
-                  ...allHrefs,
-                  profileHref,
-                ])}
-                tooltip="Profile"
-              >
-                <Link href={profileHref}>
-                  {(() => {
-                    const Icon = navIconFor(profileHref);
-                    return <Icon strokeWidth={1.75} aria-hidden />;
-                  })()}
-                  <span>Profile</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ) : null}
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip={signingOut ? "Signing out…" : "Sign out"}
-              disabled={signingOut}
-              onClick={onSignOut}
-            >
-              <LogOut strokeWidth={1.75} aria-hidden />
-              <span>{signingOut ? "Signing out…" : "Sign out"}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }

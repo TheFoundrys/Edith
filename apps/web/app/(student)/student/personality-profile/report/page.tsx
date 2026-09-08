@@ -4,7 +4,7 @@ import { PersonalityReportView } from "@/components/student/personality-report";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page";
 import { getPersonalityProfileWorkspace } from "@/lib/actions/personality-profile";
-import { PERSONALITY_PROFILE_HREF } from "@/lib/assessments/personality-profile";
+import { PERSONALITY_PROFILE_HREF, PERSONALITY_STUDENT_RANK_HREF } from "@/lib/assessments/personality-profile";
 import { prisma } from "@/lib/db";
 import { requireStudent } from "@/lib/auth/session";
 import { displayProgramName } from "@/lib/programs/categories";
@@ -43,14 +43,26 @@ export default async function PersonalityReportPage() {
         title="Your personality profile"
         description="Aptitude and quantitative bands plus a qualitative psyche map — use this to choose a Foundrys path."
         actions={
-          <Link href={PERSONALITY_PROFILE_HREF}>
-            <Button size="sm" variant="ghost">
-              Back to assessment
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={PERSONALITY_STUDENT_RANK_HREF}>
+              <Button size="sm" variant="secondary">
+                Rank board
+              </Button>
+            </Link>
+            <Link href={PERSONALITY_PROFILE_HREF}>
+              <Button size="sm" variant="ghost">
+                Back to assessment
+              </Button>
+            </Link>
+          </div>
         }
       />
-      <PersonalityReportView report={workspace.report} titles={titles} />
+      <PersonalityReportView
+        report={workspace.report}
+        titles={titles}
+        rank={workspace.rank}
+        ragGuidance={workspace.ragGuidance}
+      />
     </div>
   );
 }

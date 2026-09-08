@@ -104,17 +104,18 @@ const DEFAULT_VALUE_PROPS = [
 ];
 
 const ASSESSMENT_DELIVERABLES = [
-  "Aptitude, quantitative and psyche batteries",
-  "Instant scored bands",
-  "Written personality profile",
-  "Programme recommendations matched to your results",
+  "Aadhaar and PAN on file (hash + mask only)",
+  "Resume skill keywords and recommended sitting",
+  "Mandatory ₹3,500 + GST 90-question exam",
+  "Percentile rank plus aptitude, quantitative and psyche scores on your profile",
+  "Trainer guidance from the student graph",
 ];
 
 const ASSESSMENT_VALUE_PROPS = [
   "Open to every career stage",
   "90-minute sitting",
   "₹3,500 + GST",
-  "Profile report on completion",
+  "Public rank board on completion",
   "Direct enroll — no application form",
 ];
 

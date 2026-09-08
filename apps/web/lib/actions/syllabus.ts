@@ -9,6 +9,7 @@ import {
 import { requireCapability, requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { parsePublishedFlag } from "@/lib/learning/outline";
+import { saveLessonPdf } from "@/lib/storage";
 
 function revalidateSyllabus(programId: string, programSlug?: string | null) {
   revalidatePath("/admin/syllabus");
@@ -59,6 +60,24 @@ const lessonSchema = z.object({
   durationMin: z.coerce.number().int().min(0).optional().nullable(),
   isPublished: z.boolean().optional(),
 });
+
+async function lessonContentFromForm(
+  contentType: LessonContentType,
+  formData: FormData,
+  existingContent: string,
+): Promise<{ content: string } | { error: string }> {
+  if (contentType !== LessonContentType.PDF_FILE) {
+    return { content: String(formData.get("contentBody") ?? existingContent).trim() };
+  }
+  const file = formData.get("pdf");
+  if (file instanceof File && file.size > 0) {
+    const stored = await saveLessonPdf(file);
+    if ("error" in stored) return { error: stored.error };
+    return { content: stored.storagePath };
+  }
+  if (existingContent.trim()) return { content: existingContent };
+  return { error: "Upload a PDF for this activity." };
+}
 
 export async function upsertSyllabus(programId: string, formData: FormData) {
   const session = await requireCapability("manageContent");
@@ -299,6 +318,13 @@ export async function createLesson(
   });
   if (!parsed.success) return { error: "Invalid lesson details." };
 
+  const body = await lessonContentFromForm(
+    parsed.data.contentType,
+    formData,
+    "",
+  );
+  if ("error" in body) return { error: body.error };
+
   const maxOrder = await prisma.syllabusLesson.aggregate({
     where: { moduleId },
     _max: { order: true },
@@ -310,7 +336,7 @@ export async function createLesson(
       title: parsed.data.title.trim(),
       summary: parsed.data.summary?.trim() || null,
       contentType: parsed.data.contentType,
-      content: parsed.data.contentBody?.trim() || "",
+      content: body.content,
       durationMin: parsed.data.durationMin ?? null,
       isPublished: parsed.data.isPublished ?? true,
       order: (maxOrder._max.order ?? -1) + 1,
@@ -351,13 +377,20 @@ export async function updateLesson(
   });
   if (!parsed.success) return { error: "Invalid lesson details." };
 
+  const body = await lessonContentFromForm(
+    parsed.data.contentType,
+    formData,
+    lesson.content,
+  );
+  if ("error" in body) return { error: body.error };
+
   await prisma.syllabusLesson.update({
     where: { id: lessonId },
     data: {
       title: parsed.data.title.trim(),
       summary: parsed.data.summary?.trim() || null,
       contentType: parsed.data.contentType,
-      content: parsed.data.contentBody?.trim() || "",
+      content: body.content,
       durationMin: parsed.data.durationMin ?? null,
       isPublished: parsed.data.isPublished ?? true,
     },
@@ -466,6 +499,15 @@ async function requireEnrolledLearningAccess(programId: string, userId: string) 
 }
 
 export async function toggleLessonComplete(lessonId: string) {
+  return setLessonCompleted(lessonId, "toggle");
+}
+
+/** Video activities call this when playback finishes. Never un-completes. */
+export async function markLessonComplete(lessonId: string) {
+  return setLessonCompleted(lessonId, true);
+}
+
+async function setLessonCompleted(lessonId: string, complete: true | "toggle") {
   const session = await requireStudent();
 
   const lesson = await prisma.syllabusLesson.findFirst({
@@ -494,12 +536,21 @@ export async function toggleLessonComplete(lessonId: string) {
     },
   });
 
+  const alreadyComplete = Boolean(existing?.completedAt);
+  const shouldComplete = complete === true ? true : !alreadyComplete;
+
+  if (shouldComplete && alreadyComplete) {
+    return { ok: true as const };
+  }
+
   let markedComplete = false;
-  if (existing?.completedAt) {
-    await prisma.lessonProgress.update({
-      where: { id: existing.id },
-      data: { completedAt: null },
-    });
+  if (!shouldComplete) {
+    if (existing) {
+      await prisma.lessonProgress.update({
+        where: { id: existing.id },
+        data: { completedAt: null },
+      });
+    }
   } else if (existing) {
     await prisma.lessonProgress.update({
       where: { id: existing.id },

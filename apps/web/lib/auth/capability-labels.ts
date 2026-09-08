@@ -1,6 +1,7 @@
 import {
   ALL_CAPABILITIES,
   ROLE_LABELS,
+  ROLE_SHORT_LABELS,
   STAFF_MATRIX_ROLES,
   STAFF_PERMISSION_ROLES,
   type AppRole,
@@ -8,15 +9,45 @@ import {
 } from "@/lib/auth/roles";
 
 export const CAPABILITY_LABELS: Record<Capability, string> = {
-  managePricing: "Pricing & fees",
-  managePrograms: "Programs catalog",
-  manageContent: "Syllabus, assignments, quizzes",
-  manageApplications: "Applications & counselling",
+  managePricing: "Tuition, scholarships & refunds",
+  managePrograms: "Courses & degree catalog",
+  manageContent: "Syllabi, curriculum & exams",
+  manageApplications: "Student admissions & intakes",
   manageForms: "Application forms",
-  manageAiPlugins: "AI plugins",
-  manageMembers: "Members & access",
+  manageAiPlugins: "System configuration & keys",
+  manageMembers: "Faculty staff allocation & access",
   learnAsStudent: "Student learning",
 };
 
-export { ALL_CAPABILITIES, ROLE_LABELS, STAFF_MATRIX_ROLES, STAFF_PERMISSION_ROLES };
+export const CAPABILITY_GROUPS: { label: string; capabilities: Capability[] }[] = [
+  {
+    label: "Core Platform & Dashboards",
+    capabilities: ["manageAiPlugins"],
+  },
+  {
+    label: "Academic Operations",
+    capabilities: [
+      "managePrograms",
+      "manageContent",
+      "manageApplications",
+      "manageForms",
+    ],
+  },
+  {
+    label: "Financial & Bursar Operations",
+    capabilities: ["managePricing"],
+  },
+  {
+    label: "Faculty & Staff Administration",
+    capabilities: ["manageMembers"],
+  },
+];
+
+export {
+  ALL_CAPABILITIES,
+  ROLE_LABELS,
+  ROLE_SHORT_LABELS,
+  STAFF_MATRIX_ROLES,
+  STAFF_PERMISSION_ROLES,
+};
 export type { AppRole, Capability };

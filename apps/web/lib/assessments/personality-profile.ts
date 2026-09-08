@@ -1,13 +1,41 @@
+import {
+  APTITUDE_QUESTIONS,
+  QUANTITATIVE_QUESTIONS,
+  PSYCHE_QUESTIONS,
+} from "@/lib/assessments/personality-questions";
+import {
+  applyOptionMap,
+  type KryptonMcqPaper,
+} from "@/lib/assessments/krypton";
+
 export const PERSONALITY_PROFILE_SLUG = "edith-personality-profile";
 export const PERSONALITY_PROFILE_HREF = "/student/personality-profile";
+export const PERSONALITY_EXAM_HREF = `${PERSONALITY_PROFILE_HREF}/take`;
 export const PERSONALITY_PROFILE_PUBLIC_HREF = "/personality-profile";
+export const PERSONALITY_PROFILE_RANK_HREF = "/personality-profile/rank";
+export const PERSONALITY_STUDENT_RANK_HREF = `${PERSONALITY_PROFILE_HREF}/rank`;
 export const PERSONALITY_PROFILE_ENROLL_HREF = `/enroll/${PERSONALITY_PROFILE_SLUG}`;
+export const PERSONALITY_PROFILE_NAME = "Edith Personality Profile";
+/** Internal catalogue SKU — never show this to students. */
 export const PERSONALITY_PROFILE_SKU = "ASSESS 001";
 
 export type PersonalitySectionId = "aptitude" | "quantitative" | "psyche";
 
-export function personalitySectionHref(section: PersonalitySectionId) {
-  return `${PERSONALITY_PROFILE_HREF}/take/${section}`;
+export function personalitySectionHref(_section?: PersonalitySectionId) {
+  return PERSONALITY_EXAM_HREF;
+}
+
+export const BATTERY_LABELS: Record<PersonalitySectionId, string> = {
+  aptitude: "Aptitude",
+  quantitative: "Quantitative",
+  psyche: "Psyche",
+};
+
+export function batteryForQuestionId(id: string): PersonalitySectionId | null {
+  if (id.startsWith("apt-")) return "aptitude";
+  if (id.startsWith("qty-")) return "quantitative";
+  if (id.startsWith("psy-")) return "psyche";
+  return null;
 }
 
 export type PersonalityMcqQuestion = {
@@ -43,20 +71,20 @@ export const PERSONALITY_SECTIONS: {
   {
     id: "aptitude",
     title: "Aptitude",
-    summary: "Logical, verbal and pattern reasoning — scored.",
-    minutes: 25,
+    summary: "30 scored questions — logical, verbal and pattern reasoning.",
+    minutes: 30,
   },
   {
     id: "quantitative",
     title: "Quantitative",
-    summary: "Numeracy, arithmetic and data interpretation — scored.",
-    minutes: 25,
+    summary: "30 scored questions — numeracy, arithmetic and data interpretation.",
+    minutes: 30,
   },
   {
     id: "psyche",
     title: "Qualitative psyche",
-    summary: "Work style, motives and decision patterns. No right or wrong answers.",
-    minutes: 20,
+    summary: "30 work-style questions. No right or wrong answers.",
+    minutes: 30,
   },
 ];
 
@@ -93,240 +121,26 @@ export function afterEnrollmentHref(program: {
     : `/student/learning/${program.id}`;
 }
 
-export const APTITUDE_QUESTIONS: PersonalityMcqQuestion[] = [
-  {
-    id: "apt-01",
-    prompt: "Book is to reading as fork is to…",
-    options: ["Drawing", "Writing", "Stirring", "Eating"],
-    correctIndex: 3,
-  },
-  {
-    id: "apt-02",
-    prompt: "Which number comes next: 2, 6, 12, 20, 30, …",
-    options: ["38", "40", "42", "44"],
-    correctIndex: 2,
-  },
-  {
-    id: "apt-03",
-    prompt: "All coaches are mentors. Some mentors are engineers. Which statement must be true?",
-    options: [
-      "All engineers are coaches",
-      "Some coaches are engineers",
-      "No engineer is a coach",
-      "None of the above must be true",
-    ],
-    correctIndex: 3,
-  },
-  {
-    id: "apt-04",
-    prompt: "Find the odd one out: cube, sphere, pyramid, circle.",
-    options: ["Cube", "Sphere", "Pyramid", "Circle"],
-    correctIndex: 3,
-  },
-  {
-    id: "apt-05",
-    prompt: "If every coded letter is shifted two places forward (A→C, B→D), what is the code for LEAD?",
-    options: ["NGCF", "MFBE", "NGCE", "OFCF"],
-    correctIndex: 0,
-  },
-  {
-    id: "apt-06",
-    prompt: "A statement: “Only graduates may apply.” Which option is a valid conclusion?",
-    options: [
-      "Every graduate will be hired",
-      "Non-graduates may not apply",
-      "Graduates cannot be rejected",
-      "Experience is irrelevant",
-    ],
-    correctIndex: 1,
-  },
-  {
-    id: "apt-07",
-    prompt: "Which pair has the same relationship as Clock : Time?",
-    options: [
-      "Thermometer : Heat",
-      "Map : Traveller",
-      "Scale : Weight",
-      "Camera : Photograph",
-    ],
-    correctIndex: 2,
-  },
-  {
-    id: "apt-08",
-    prompt: "Complete the series: AZ, BY, CX, …",
-    options: ["DW", "DU", "EV", "EW"],
-    correctIndex: 0,
-  },
-  {
-    id: "apt-09",
-    prompt:
-      "A team of 6 sits in a circle facing inward. Priya sits to the immediate left of Arun. Who sits to Arun’s immediate right?",
-    options: [
-      "Priya",
-      "Cannot be determined from the information",
-      "The person two seats from Priya",
-      "Whoever faces Priya",
-    ],
-    correctIndex: 1,
-  },
-  {
-    id: "apt-10",
-    prompt:
-      "“Few of the proposals were funded.” Which restatement preserves the meaning most closely?",
-    options: [
-      "Most proposals were funded",
-      "At least some proposals were funded, and not many",
-      "No proposals were funded",
-      "All proposals were funded",
-    ],
-    correctIndex: 1,
-  },
-];
-
-export const QUANTITATIVE_QUESTIONS: PersonalityMcqQuestion[] = [
-  {
-    id: "qty-01",
-    prompt: "What is 18% of 2,500?",
-    options: ["350", "400", "450", "500"],
-    correctIndex: 2,
-  },
-  {
-    id: "qty-02",
-    prompt: "A ratio of 3:5 is equivalent to which percentage of the first part to the whole?",
-    options: ["37.5%", "40%", "60%", "62.5%"],
-    correctIndex: 0,
-  },
-  {
-    id: "qty-03",
-    prompt: "A train covers 240 km in 3 hours. At the same speed, how long for 400 km?",
-    options: ["4 hours", "5 hours", "5 hours 15 min", "6 hours"],
-    correctIndex: 1,
-  },
-  {
-    id: "qty-04",
-    prompt: "The average of 8, 12, 16 and 24 is…",
-    options: ["14", "15", "16", "18"],
-    correctIndex: 1,
-  },
-  {
-    id: "qty-05",
-    prompt: "A laptop listed at ₹40,000 is sold at a 12% discount. Sale price?",
-    options: ["₹34,800", "₹35,200", "₹35,600", "₹36,000"],
-    correctIndex: 1,
-  },
-  {
-    id: "qty-06",
-    prompt: "If 5 machines finish a job in 12 days, how many days for 8 identical machines?",
-    options: ["6.5", "7", "7.5", "8"],
-    correctIndex: 2,
-  },
-  {
-    id: "qty-07",
-    prompt: "Simple interest on ₹8,000 at 10% a year for 2 years is…",
-    options: ["₹800", "₹1,200", "₹1,600", "₹1,800"],
-    correctIndex: 2,
-  },
-  {
-    id: "qty-08",
-    prompt:
-      "A chart shows Q1 40, Q2 55, Q3 50, Q4 75 enrolments. What is the percentage increase from Q1 to Q4?",
-    options: ["75%", "87.5%", "90%", "35"],
-    correctIndex: 1,
-  },
-  {
-    id: "qty-09",
-    prompt: "A mixture is 3 parts water to 2 parts concentrate. How much concentrate in 15 litres of mixture?",
-    options: ["5 L", "6 L", "7.5 L", "9 L"],
-    correctIndex: 1,
-  },
-  {
-    id: "qty-10",
-    prompt: "If x + 2y = 16 and y = 3, what is x?",
-    options: ["8", "10", "11", "13"],
-    correctIndex: 1,
-  },
-];
-
-export const PSYCHE_QUESTIONS: PersonalityLikertQuestion[] = [
-  {
-    id: "psy-01",
-    prompt: "I volunteer for stretch goals even when the outcome is uncertain.",
-    dimension: "drive",
-    polarity: 1,
-  },
-  {
-    id: "psy-02",
-    prompt: "I feel restless when I am not making measurable progress.",
-    dimension: "drive",
-    polarity: 1,
-  },
-  {
-    id: "psy-03",
-    prompt: "I would rather keep a role I have mastered than chase a harder one.",
-    dimension: "drive",
-    polarity: -1,
-  },
-  {
-    id: "psy-04",
-    prompt: "I prefer a written plan before I start a new project.",
-    dimension: "structure",
-    polarity: 1,
-  },
-  {
-    id: "psy-05",
-    prompt: "Unclear instructions bother me more than a tight deadline.",
-    dimension: "structure",
-    polarity: 1,
-  },
-  {
-    id: "psy-06",
-    prompt: "I am comfortable changing the plan as soon as new information appears.",
-    dimension: "structure",
-    polarity: -1,
-  },
-  {
-    id: "psy-07",
-    prompt: "I think out loud with others before I decide.",
-    dimension: "people",
-    polarity: 1,
-  },
-  {
-    id: "psy-08",
-    prompt: "Teaching someone a skill is how I know I understand it.",
-    dimension: "people",
-    polarity: 1,
-  },
-  {
-    id: "psy-09",
-    prompt: "I do my best work when I can stay uninterrupted and decide alone.",
-    dimension: "people",
-    polarity: -1,
-  },
-  {
-    id: "psy-10",
-    prompt: "I would rather try a new tool than master the one I already use.",
-    dimension: "risk",
-    polarity: 1,
-  },
-  {
-    id: "psy-11",
-    prompt: "Ambiguous problems energize me more than well-specified ones.",
-    dimension: "risk",
-    polarity: 1,
-  },
-  {
-    id: "psy-12",
-    prompt: "I wait for a proven method before I commit time to a new approach.",
-    dimension: "risk",
-    polarity: -1,
-  },
-];
+export { APTITUDE_QUESTIONS, QUANTITATIVE_QUESTIONS, PSYCHE_QUESTIONS };
 
 export const SECTION_QUESTIONS = {
   aptitude: APTITUDE_QUESTIONS,
   quantitative: QUANTITATIVE_QUESTIONS,
   psyche: PSYCHE_QUESTIONS,
 } as const;
+
+export const PERSONALITY_EXAM_QUESTION_COUNT =
+  APTITUDE_QUESTIONS.length +
+  QUANTITATIVE_QUESTIONS.length +
+  PSYCHE_QUESTIONS.length;
+
+export function allExamQuestionIds() {
+  return [
+    ...APTITUDE_QUESTIONS.map((question) => question.id),
+    ...QUANTITATIVE_QUESTIONS.map((question) => question.id),
+    ...PSYCHE_QUESTIONS.map((question) => question.id),
+  ];
+}
 
 export type ScoreBand = "Developing" | "Solid" | "Strong" | "Exceptional";
 
@@ -402,8 +216,11 @@ export function scorePsyche(
   for (const question of PSYCHE_QUESTIONS) {
     const index = answers?.[question.id];
     if (typeof index !== "number") continue;
-    totals[question.dimension].sum += likertValue(index, question.polarity);
-    totals[question.dimension].count += 1;
+    totals[question.dimension as PsycheDimension].sum += likertValue(
+      index,
+      question.polarity,
+    );
+    totals[question.dimension as PsycheDimension].count += 1;
   }
 
   const value = (dimension: PsycheDimension) => {
@@ -477,12 +294,82 @@ const DIMENSION_PROGRAMS: Record<PsycheDimension, { slug: string; reason: string
   ],
 };
 
+const RESUME_PROGRAMS: Record<string, { slug: string; reason: string }> = {
+  ai: {
+    slug: "pgp-applied-ai-genai",
+    reason: "Your resume signals AI / ML experience — a professional AI track compounds it.",
+  },
+  cyber: {
+    slug: "pgp-cybersecurity-analyst",
+    reason: "Security language on your resume maps to a structured defence path.",
+  },
+  data: {
+    slug: "cert-applied-ai-practitioner",
+    reason: "Analytics skills on your resume transfer cleanly into applied AI practice.",
+  },
+  quantum: {
+    slug: "ygp-quantum-computing",
+    reason: "Quantum keywords on your resume match an emerging-tech launchpad.",
+  },
+  blockchain: {
+    slug: "cert-blockchain-web3-developer",
+    reason: "Web3 language on your resume fits a compact builder certification.",
+  },
+  people: {
+    slug: "fdp-ai-for-educators",
+    reason: "Teaching or enablement on your resume fits a faculty / people-first programme.",
+  },
+};
+
+export const RESUME_TRACK_LABELS: Record<string, string> = {
+  ai: "AI / machine learning",
+  cyber: "cybersecurity",
+  data: "data & analytics",
+  quantum: "quantum",
+  blockchain: "blockchain / web3",
+  people: "teaching & people",
+};
+
+export function resumeSkillLabels(keywords: string[]) {
+  return keywords
+    .map((keyword) => RESUME_TRACK_LABELS[keyword])
+    .filter((label): label is string => Boolean(label));
+}
+
+export function recommendedAssessExam(keywords: string[]) {
+  const tracks = resumeSkillLabels(keywords);
+  const skillLine = tracks.length
+    ? `Your resume shows ${tracks.join(", ")}.`
+    : "Your resume is on file.";
+  return {
+    title: PERSONALITY_PROFILE_NAME,
+    fee: "₹3,500 + GST",
+    reason: `${skillLine} The mandatory next step is the 90-question Edith Personality Profile (aptitude, quantitative, psyche). Your percentile and battery scores land on your profile.`,
+  };
+}
+
+export function resumeRecommendations(
+  keywords: string[],
+): PersonalityRecommendation[] {
+  const recs: PersonalityRecommendation[] = [];
+  const seen = new Set<string>();
+  for (const keyword of keywords) {
+    const pick = RESUME_PROGRAMS[keyword];
+    if (pick && !seen.has(pick.slug)) {
+      seen.add(pick.slug);
+      recs.push(pick);
+    }
+  }
+  return recs.slice(0, 4);
+}
+
 function preferAdvanced(aptitude: ScoredBattery, quantitative: ScoredBattery) {
   return aptitude.percent >= 70 && quantitative.percent >= 60;
 }
 
 export function buildPersonalityReport(
   responses: PersonalityResponses,
+  extras?: { resumeKeywords?: string[] },
 ): PersonalityReport {
   const aptitude = scoreMcqBattery(APTITUDE_QUESTIONS, responses.aptitude);
   const quantitative = scoreMcqBattery(
@@ -543,12 +430,20 @@ export function buildPersonalityReport(
     if (!seen.has(fallback.slug)) recommendations.push(fallback);
   }
 
+  for (const keyword of extras?.resumeKeywords ?? []) {
+    const pick = RESUME_PROGRAMS[keyword];
+    if (pick && !seen.has(pick.slug) && recommendations.length < 4) {
+      seen.add(pick.slug);
+      recommendations.unshift(pick);
+    }
+  }
+
   return {
     aptitude,
     quantitative,
     psyche,
     insights,
-    recommendations: recommendations.slice(0, 3),
+    recommendations: recommendations.slice(0, 4),
   };
 }
 
@@ -567,14 +462,33 @@ export function completedSectionIds(responses: PersonalityResponses): Personalit
   );
 }
 
+export function isPersonalityExamComplete(responses: PersonalityResponses) {
+  return completedSectionIds(responses).length === PERSONALITY_SECTIONS.length;
+}
+
 export function personalityProgress(responses: PersonalityResponses) {
-  const done = completedSectionIds(responses).length;
-  const total = PERSONALITY_SECTIONS.length;
+  const complete = isPersonalityExamComplete(responses);
+  const total = PERSONALITY_EXAM_QUESTION_COUNT;
   return {
-    done,
+    done: complete ? total : 0,
     total,
-    pct: total === 0 ? 0 : Math.round((done / total) * 100),
+    pct: complete ? 100 : 0,
   };
+}
+
+export function splitExamAnswers(
+  answers: Record<string, number>,
+): PersonalityResponses {
+  const aptitude: Record<string, number> = {};
+  const quantitative: Record<string, number> = {};
+  const psyche: Record<string, number> = {};
+  for (const [id, value] of Object.entries(answers)) {
+    const battery = batteryForQuestionId(id);
+    if (battery === "aptitude") aptitude[id] = value;
+    else if (battery === "quantitative") quantitative[id] = value;
+    else if (battery === "psyche") psyche[id] = value;
+  }
+  return { aptitude, quantitative, psyche };
 }
 
 export const DIMENSION_LABELS: Record<PsycheDimension, string> = {
@@ -592,18 +506,94 @@ export function dimensionBand(value: number) {
 }
 
 export function publicQuestionsForSection(section: PersonalitySectionId) {
+  return questionsForPaper(section, null);
+}
+
+/** Apply a Krypton paper: unique question order and (for MCQ) option order. */
+export function questionsForPaper(
+  section: PersonalitySectionId,
+  paper: KryptonMcqPaper | null,
+): { id: string; prompt: string; options: string[] }[] {
   if (section === "psyche") {
-    return PSYCHE_QUESTIONS.map((question) => ({
+    const bank = PSYCHE_QUESTIONS;
+    const ordered = paper
+      ? paper.questionIds
+          .map((id) => bank.find((question) => question.id === id))
+          .filter((question): question is (typeof bank)[number] => Boolean(question))
+      : bank;
+    return ordered.map((question) => ({
+      id: question.id,
+      prompt: question.prompt,
+      options: [...LIKERT_OPTIONS] as string[],
+    }));
+  }
+  const bank =
+    section === "aptitude" ? APTITUDE_QUESTIONS : QUANTITATIVE_QUESTIONS;
+  const ordered = paper
+    ? paper.questionIds
+        .map((id) => bank.find((question) => question.id === id))
+        .filter((question): question is (typeof bank)[number] => Boolean(question))
+    : bank;
+  return ordered.map((question) => ({
+    id: question.id,
+    prompt: question.prompt,
+    options: applyOptionMap(
+      question.options,
+      paper?.optionMaps[question.id],
+    ) as string[],
+  }));
+}
+
+export type ExamQuestion = {
+  id: string;
+  prompt: string;
+  options: string[];
+  battery: PersonalitySectionId;
+};
+
+function examBankById() {
+  const bank = new Map<string, ExamQuestion>();
+  for (const question of APTITUDE_QUESTIONS) {
+    bank.set(question.id, {
+      id: question.id,
+      prompt: question.prompt,
+      options: question.options,
+      battery: "aptitude",
+    });
+  }
+  for (const question of QUANTITATIVE_QUESTIONS) {
+    bank.set(question.id, {
+      id: question.id,
+      prompt: question.prompt,
+      options: question.options,
+      battery: "quantitative",
+    });
+  }
+  for (const question of PSYCHE_QUESTIONS) {
+    bank.set(question.id, {
       id: question.id,
       prompt: question.prompt,
       options: [...LIKERT_OPTIONS],
-    }));
+      battery: "psyche",
+    });
   }
-  const questions =
-    section === "aptitude" ? APTITUDE_QUESTIONS : QUANTITATIVE_QUESTIONS;
-  return questions.map((question) => ({
-    id: question.id,
-    prompt: question.prompt,
-    options: question.options,
-  }));
+  return bank;
+}
+
+/** One 90-question paper. Psyche keeps Likert order; MCQ options follow Krypton. */
+export function questionsForExam(paper: KryptonMcqPaper | null): ExamQuestion[] {
+  const bank = examBankById();
+  const orderedIds = paper?.questionIds?.length
+    ? paper.questionIds.filter((id) => bank.has(id))
+    : allExamQuestionIds();
+  return orderedIds.map((id) => {
+    const question = bank.get(id)!;
+    return {
+      ...question,
+      options:
+        question.battery === "psyche"
+          ? [...LIKERT_OPTIONS]
+          : (applyOptionMap(question.options, paper?.optionMaps[id]) as string[]),
+    };
+  });
 }

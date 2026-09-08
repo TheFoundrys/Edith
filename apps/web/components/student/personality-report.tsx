@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Panel } from "@/components/ui/page";
 import {
   DIMENSION_LABELS,
+  PERSONALITY_PROFILE_NAME,
   dimensionBand,
   type PersonalityReport,
 } from "@/lib/assessments/personality-profile";
@@ -11,9 +12,23 @@ import {
 export function PersonalityReportView({
   report,
   titles,
+  rank,
+  ragGuidance,
 }: {
   report: PersonalityReport;
   titles: Record<string, string>;
+  rank?: {
+    place: number;
+    total: number;
+    composite: number;
+    percentile?: number;
+    aptitudePercent?: number;
+    aptitudeBand?: string;
+    quantitativePercent?: number;
+    quantitativeBand?: string;
+    psycheLabel?: string;
+  } | null;
+  ragGuidance?: string[];
 }) {
   const dimensions = (
     ["drive", "structure", "people", "risk"] as const
@@ -23,9 +38,28 @@ export function PersonalityReportView({
     value: report.psyche[key],
     band: dimensionBand(report.psyche[key]),
   }));
+  const guidance = ragGuidance?.length ? ragGuidance : report.insights;
 
   return (
     <div className="space-y-6">
+      <Panel className="p-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
+          Assessment
+        </p>
+        <h2 className="mt-2 font-display text-xl">{PERSONALITY_PROFILE_NAME}</h2>
+        {rank ? (
+          <p className="mt-2 text-sm">
+            Rank #{rank.place} of {rank.total}
+            {typeof rank.percentile === "number"
+              ? ` · ${rank.percentile}th percentile`
+              : ""}{" "}
+            · composite {rank.composite}
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-fg-muted">Ranked result after the sitting.</p>
+        )}
+      </Panel>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Panel className="p-5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
@@ -69,10 +103,10 @@ export function PersonalityReportView({
       </Panel>
 
       <Panel className="p-5">
-        <h2 className="font-display text-xl">Insights</h2>
+        <h2 className="font-display text-xl">Guidance</h2>
         <ul className="mt-3 space-y-2 text-sm leading-relaxed text-fg">
-          {report.insights.map((insight) => (
-            <li key={insight}>{insight}</li>
+          {guidance.map((item) => (
+            <li key={item}>{item}</li>
           ))}
         </ul>
       </Panel>

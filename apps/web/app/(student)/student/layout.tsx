@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireStudent } from "@/lib/auth/session";
 import { APP_NAME } from "@/lib/brand";
+import { prisma } from "@/lib/db";
 
 const navGroups = [
   {
@@ -26,7 +27,6 @@ const navGroups = [
   {
     label: "Support",
     items: [
-      { href: "/student/notifications", label: "Notifications" },
       { href: "/student/announcements", label: "Announcements" },
       { href: "/student/tickets", label: "Help tickets" },
       { href: "/student/settings", label: "Settings" },
@@ -39,12 +39,18 @@ export default async function StudentLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireStudent();
+  const session = await requireStudent();
+  const unreadNotifications = await prisma.notification.count({
+    where: { userId: session.user.id, readAt: null },
+  });
+
   return (
     <AppShell
       brand={APP_NAME}
       navGroups={navGroups}
       profileHref="/student/profile"
+      notificationsHref="/student/notifications"
+      unreadNotifications={unreadNotifications}
       workspaceHref="/student/dashboard"
       workspaceLabel="Continue learning"
     >

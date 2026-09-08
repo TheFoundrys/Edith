@@ -56,24 +56,22 @@ export default async function StudentAssessmentsPage() {
           orderBy: { updatedAt: "desc" },
         })
       : Promise.resolve([]),
-    personalityEnrollment
-      ? prisma.cliftonAssessment.findFirst({
-          where: {
-            userId: session.user.id,
-            organizationId: session.user.organizationId,
-          },
-          orderBy: { createdAt: "desc" },
-          select: { responses: true, status: true },
-        })
-      : Promise.resolve(null),
+    prisma.cliftonAssessment.findFirst({
+      where: {
+        userId: session.user.id,
+        organizationId: session.user.organizationId,
+      },
+      orderBy: { createdAt: "desc" },
+      select: { responses: true, status: true },
+    }),
   ]);
 
-  const personality = personalityEnrollment
-    ? personalityProgress((personalityAttempt?.responses ?? {}) as PersonalityResponses)
-    : null;
+  const personality = personalityProgress(
+    (personalityAttempt?.responses ?? {}) as PersonalityResponses,
+  );
 
   const empty =
-    assignments.length === 0 && quizzes.length === 0 && !personality;
+    assignments.length === 0 && quizzes.length === 0;
 
   return (
     <div>
@@ -84,24 +82,31 @@ export default async function StudentAssessmentsPage() {
 
       {empty ? (
         <EmptyState
-          title="No assessments yet"
-          description="Enroll in a course, then assignments and quizzes will show up here."
+          title="No course assessments yet"
+          description="Enroll in a course for assignments and quizzes. You can start the Personality Profile without a course enrollment."
           action={
-            <Link href="/student/enroll">
-              <Button size="sm">Enroll in a course</Button>
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link href={PERSONALITY_PROFILE_HREF}>
+                <Button size="sm">Start Personality Profile</Button>
+              </Link>
+              <Link href="/student/enroll">
+                <Button size="sm" variant="secondary">
+                  Enroll in a course
+                </Button>
+              </Link>
+            </div>
           }
         />
-      ) : (
-        <div className="space-y-[var(--grid-pad)]">
-          {personality && personalityEnrollment ? (
-            <section>
+      ) : null}
+
+      <div className="space-y-[var(--grid-pad)]">
+          <section>
               <h2 className="mb-[var(--grid-gap)] font-display text-xl text-fg">
                 Personality profile
               </h2>
               <article className="peak-card">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
-                  Aptitude · Quantitative · Psyche
+                  Aadhaar / PAN · Resume · ₹3,500 exam
                 </p>
                 <h3 className="mt-[var(--grid-gap)] font-display text-xl leading-snug">
                   <Link
@@ -112,11 +117,13 @@ export default async function StudentAssessmentsPage() {
                     }
                     className="hover:underline underline-offset-2"
                   >
-                    {personalityEnrollment.program.title}
+                    Edith Personality Profile
                   </Link>
                 </h3>
                 <p className="mt-2 text-sm text-fg-muted">
-                  {personality.done} of {personality.total} sections complete
+                  {personalityEnrollment
+                    ? `${personality.done} of ${personality.total} questions complete`
+                    : "Verify identity, upload a resume, then enroll for the mandatory ₹3,500 sitting."}
                 </p>
                 <div className="mt-auto pt-[var(--grid-pad)]">
                   <Link
@@ -127,14 +134,19 @@ export default async function StudentAssessmentsPage() {
                     }
                   >
                     <Button size="sm">
-                      {personality.pct === 100 ? "View report" : "Continue"}
+                      {personality.pct === 100
+                        ? "View scores"
+                        : personalityEnrollment
+                          ? "Continue"
+                          : "Start"}
                     </Button>
                   </Link>
                 </div>
               </article>
             </section>
-          ) : null}
 
+          {empty ? null : (
+            <>
           <section>
             <div className="mb-[var(--grid-gap)] flex items-end justify-between gap-3">
               <h2 className="font-display text-xl text-fg">Assignments</h2>
@@ -237,8 +249,9 @@ export default async function StudentAssessmentsPage() {
               </div>
             )}
           </section>
+            </>
+          )}
         </div>
-      )}
     </div>
   );
 }

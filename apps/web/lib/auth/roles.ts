@@ -3,32 +3,100 @@
 export type AppRole =
   | "SUPER_ADMIN"
   | "ADMISSIONS_MANAGER"
+  | "BURSAR"
   | "COUNSELOR"
   | "CONTENT_UPLOADER"
   | "STUDENT";
 
-/** Human labels for UI. */
+/** Human labels for UI. Enum keys stay stable so existing memberships keep working. */
 export const ROLE_LABELS: Record<AppRole, string> = {
-  SUPER_ADMIN: "Admin",
-  ADMISSIONS_MANAGER: "Admissions admin",
-  COUNSELOR: "Counsellor",
-  CONTENT_UPLOADER: "Content uploader",
+  SUPER_ADMIN: "Super Administrator",
+  ADMISSIONS_MANAGER: "Academic Dean / Head",
+  BURSAR: "Bursar & Finance",
+  COUNSELOR: "Admissions Staff",
+  CONTENT_UPLOADER: "Lead Faculty / Teachers",
   STUDENT: "Student",
 };
 
+/** Shorter column headers for the permissions matrix. */
+export const ROLE_SHORT_LABELS: Record<AppRole, string> = {
+  SUPER_ADMIN: "Super Admin",
+  ADMISSIONS_MANAGER: "Academic Dean",
+  BURSAR: "Bursar & Finance",
+  COUNSELOR: "Admissions Staff",
+  CONTENT_UPLOADER: "Lead Faculty",
+  STUDENT: "Student",
+};
+
+export type RoleAuthorityTone = "full" | "high" | "medium" | "limited" | "learner";
+
+export type RoleProfile = {
+  authority: string;
+  authorityTone: RoleAuthorityTone;
+  domain: string;
+  /** Filled bars out of 4, matching the control-centre summary cards. */
+  bars: 0 | 1 | 2 | 3 | 4;
+  description: string;
+};
+
+export const ROLE_PROFILES: Record<AppRole, RoleProfile> = {
+  SUPER_ADMIN: {
+    authority: "Full",
+    authorityTone: "full",
+    domain: "Admin",
+    bars: 4,
+    description: "Institution-wide control, including system keys, audit, and staff access.",
+  },
+  ADMISSIONS_MANAGER: {
+    authority: "High",
+    authorityTone: "high",
+    domain: "Academic",
+    bars: 3,
+    description: "Catalog, syllabi, admissions, exams, and faculty allocation. Fees stay with finance.",
+  },
+  BURSAR: {
+    authority: "Medium",
+    authorityTone: "medium",
+    domain: "Finance",
+    bars: 2,
+    description: "Tuition invoicing, scholarships, concessions, refunds, and gateway reconciliation.",
+  },
+  COUNSELOR: {
+    authority: "Tier 3",
+    authorityTone: "medium",
+    domain: "Intake",
+    bars: 2,
+    description: "Student admissions, intakes, applications, and counselling follow-ups.",
+  },
+  CONTENT_UPLOADER: {
+    authority: "Tier 4",
+    authorityTone: "limited",
+    domain: "Faculty",
+    bars: 1,
+    description: "Course catalog, syllabi, curriculum publishing, and examination materials.",
+  },
+  STUDENT: {
+    authority: "Learner",
+    authorityTone: "learner",
+    domain: "Learning",
+    bars: 0,
+    description: "Learning workspace only.",
+  },
+};
+
 /**
- * Capability keys — keep pricing and commerce separate from content upload.
+ * Capability keys mapped to the control-centre modules.
  *
- * | Capability           | Admin | Admissions | Counsellor | Content | Student |
- * | -------------------- | ----- | ---------- | ---------- | ------- | ------- |
- * | managePricing        | ✓     | ✓          |            |         |         |
- * | managePrograms       | ✓     | ✓          |            |         |         |
- * | manageContent        | ✓     |            |            | ✓       |         |
- * | manageApplications   | ✓     | ✓          | ✓          |         |         |
- * | manageForms          | ✓     | ✓          |            |         |         |
- * | manageAiPlugins      | ✓     |            |            |         |         |
- * | manageMembers        | ✓     | ✓          |            |         |         |
- * | learnAsStudent       |       |            |            |         | ✓       |
+ * | Capability           | Super Admin | Academic Dean | Bursar | Admissions | Faculty | Student |
+ * | -------------------- | ----------- | ------------- | ------ | ---------- | ------- | ------- |
+ * | managePricing        | ✓           |               | ✓      |            |         |         |
+ * | managePrograms       | ✓           | ✓             |        |            | ✓       |         |
+ * | manageContent        | ✓           | ✓             |        |            | ✓       |         |
+ * | manageApplications   | ✓           | ✓             |        | ✓          |         |         |
+ * | manageForms          | ✓           | ✓             |        | ✓          |         |         |
+ * | manageAiPlugins      | ✓           |               |        |            |         |         |
+ * | manageMembers        | ✓           | ✓             |        |            |         |         |
+ * | learnAsStudent       |             |               |        |            |         | ✓       |
  */
 export type Capability =
   | "managePricing"
@@ -51,14 +119,15 @@ const ROLE_CAPABILITIES: Record<AppRole, readonly Capability[]> = {
     "manageMembers",
   ],
   ADMISSIONS_MANAGER: [
-    "managePricing",
     "managePrograms",
+    "manageContent",
     "manageApplications",
     "manageForms",
     "manageMembers",
   ],
-  COUNSELOR: ["manageApplications"],
-  CONTENT_UPLOADER: ["manageContent"],
+  BURSAR: ["managePricing"],
+  COUNSELOR: ["manageApplications", "manageForms"],
+  CONTENT_UPLOADER: ["managePrograms", "manageContent"],
   STUDENT: ["learnAsStudent"],
 };
 
@@ -66,6 +135,7 @@ const ROLE_CAPABILITIES: Record<AppRole, readonly Capability[]> = {
 export const DEFAULT_ROLE_CAPABILITIES: Record<AppRole, Capability[]> = {
   SUPER_ADMIN: [...ROLE_CAPABILITIES.SUPER_ADMIN],
   ADMISSIONS_MANAGER: [...ROLE_CAPABILITIES.ADMISSIONS_MANAGER],
+  BURSAR: [...ROLE_CAPABILITIES.BURSAR],
   COUNSELOR: [...ROLE_CAPABILITIES.COUNSELOR],
   CONTENT_UPLOADER: [...ROLE_CAPABILITIES.CONTENT_UPLOADER],
   STUDENT: [...ROLE_CAPABILITIES.STUDENT],
@@ -75,6 +145,7 @@ export const DEFAULT_ROLE_CAPABILITIES: Record<AppRole, Capability[]> = {
 export const ENUM_TO_PERMISSION_SLUG: Record<AppRole, string> = {
   SUPER_ADMIN: "administrator",
   ADMISSIONS_MANAGER: "admissions",
+  BURSAR: "bursar",
   COUNSELOR: "counsellor",
   CONTENT_UPLOADER: "content-author",
   STUDENT: "member",
@@ -94,6 +165,7 @@ export const ALL_CAPABILITIES: Capability[] = [
 export const STAFF_MATRIX_ROLES: AppRole[] = [
   "SUPER_ADMIN",
   "ADMISSIONS_MANAGER",
+  "BURSAR",
   "COUNSELOR",
   "CONTENT_UPLOADER",
   "STUDENT",
@@ -103,6 +175,7 @@ export const STAFF_MATRIX_ROLES: AppRole[] = [
 export const STAFF_PERMISSION_ROLES: AppRole[] = [
   "SUPER_ADMIN",
   "ADMISSIONS_MANAGER",
+  "BURSAR",
   "COUNSELOR",
   "CONTENT_UPLOADER",
 ];
@@ -110,6 +183,7 @@ export const STAFF_PERMISSION_ROLES: AppRole[] = [
 export const STAFF_ROLES: AppRole[] = [
   "SUPER_ADMIN",
   "ADMISSIONS_MANAGER",
+  "BURSAR",
   "COUNSELOR",
   "CONTENT_UPLOADER",
 ];
@@ -217,6 +291,11 @@ export const STAFF_NAV: StaffNavItem[] = [
   {
     href: "/admin/tickets",
     label: "Tickets",
+    anyOf: ["manageApplications"],
+  },
+  {
+    href: "/admin/personality-profile",
+    label: "Personality Profile",
     anyOf: ["manageApplications"],
   },
   {

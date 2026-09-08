@@ -29,7 +29,7 @@ export function InviteStaffPanel({
   return (
     <Panel className="mb-4 p-4">
       <form
-        className="grid gap-3 md:grid-cols-[1fr_1fr_12rem_auto]"
+        className="grid gap-3 md:grid-cols-[1fr_1fr_16rem_auto]"
         onSubmit={(event) => {
           event.preventDefault();
           startTransition(async () => {

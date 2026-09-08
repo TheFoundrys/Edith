@@ -19,6 +19,7 @@ const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const STAFF_INVITE_ROLES = [
   "SUPER_ADMIN",
   "ADMISSIONS_MANAGER",
+  "BURSAR",
   "COUNSELOR",
   "CONTENT_UPLOADER",
 ] as const;

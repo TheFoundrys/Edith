@@ -54,6 +54,7 @@ type Syllabus = {
 const CONTENT_TYPES: { value: LessonContentType; label: string }[] = [
   { value: "RICH_TEXT", label: "Rich text" },
   { value: "VIDEO_URL", label: "Video URL" },
+  { value: "PDF_FILE", label: "PDF upload" },
   { value: "EXTERNAL_LINK", label: "External link" },
 ];
 
@@ -329,7 +330,11 @@ export function SyllabusEditor({
                           {!lesson.isPublished ? (
                             <Badge tone="warning">Hidden</Badge>
                           ) : null}
-                          <Badge tone="neutral">{lesson.contentType}</Badge>
+                          <Badge tone="neutral">
+                            {lesson.contentType === "PDF_FILE"
+                              ? "PDF"
+                              : lesson.contentType}
+                          </Badge>
                         </div>
                         <div className="flex gap-1">
                           <Button
@@ -399,6 +404,7 @@ export function SyllabusEditor({
 
                       {editingLessonId === lesson.id ? (
                         <LessonForm
+                          key={lesson.id}
                           defaults={lesson}
                           onSubmit={async (fd) => {
                             setError(null);
@@ -469,6 +475,11 @@ function LessonForm({
   resetOnSuccess?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const [contentType, setContentType] = useState<LessonContentType>(
+    defaults?.contentType ?? "RICH_TEXT",
+  );
+  const existingPdf =
+    defaults?.contentType === "PDF_FILE" ? defaults.content : "";
 
   return (
     <form
@@ -496,7 +507,10 @@ function LessonForm({
           <Label>Content type</Label>
           <Select
             name="contentType"
-            defaultValue={defaults?.contentType ?? "RICH_TEXT"}
+            value={contentType}
+            onChange={(event) =>
+              setContentType(event.target.value as LessonContentType)
+            }
           >
             {CONTENT_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -515,18 +529,43 @@ function LessonForm({
           />
         </div>
       </div>
-      <div>
-        <Label>Content</Label>
-        <Textarea
-          name="contentBody"
-          rows={5}
-          placeholder="Markdown text, video URL, or external link"
-          defaultValue={defaults?.content ?? ""}
-        />
-        <p className="mt-1 text-xs text-fg-muted">
-          Rich text supports markdown (# headings, **bold**, lists, links).
-        </p>
-      </div>
+      {contentType === "PDF_FILE" ? (
+        <div>
+          <Label>PDF</Label>
+          <Input name="pdf" type="file" accept="application/pdf,.pdf" />
+          {existingPdf ? (
+            <p className="mt-1 text-xs text-fg-muted">
+              Current file: {existingPdf.split("/").pop()}. Leave empty to keep
+              it, or choose a new PDF to replace it.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-fg-muted">
+              Enrolled students can read the PDF in the activity. Max 25 MB.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div>
+          <Label>Content</Label>
+          <Textarea
+            name="contentBody"
+            rows={5}
+            placeholder={
+              contentType === "VIDEO_URL"
+                ? "https://www.youtube.com/watch?v=…"
+                : contentType === "EXTERNAL_LINK"
+                  ? "https://…"
+                  : "Markdown text for this activity"
+            }
+            defaultValue={
+              defaults?.contentType === contentType ? defaults.content ?? "" : ""
+            }
+          />
+          <p className="mt-1 text-xs text-fg-muted">
+            Rich text supports markdown (# headings, **bold**, lists, links).
+          </p>
+        </div>
+      )}
       <label className="flex items-center gap-2 text-sm">
         <input type="hidden" name="isPublished" value="false" />
         <input

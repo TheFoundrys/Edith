@@ -101,6 +101,15 @@ export async function requireCapability(capability: Capability) {
   return session;
 }
 
+/** Staff with any one of the given capabilities (view vs edit splits). */
+export async function requireAnyCapability(capabilities: Capability[]) {
+  const session = await requireStaff();
+  if (!capabilities.some((capability) => canUser(session.user, capability))) {
+    redirect("/admin");
+  }
+  return session;
+}
+
 export async function requireStudent() {
   const session = await requireSession();
   if (isStaffRole(session.user.role)) redirect("/admin");

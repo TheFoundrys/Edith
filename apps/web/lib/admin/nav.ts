@@ -72,6 +72,11 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/applications", label: "Applications", anyOf: ["manageApplications"] },
       { href: "/admin/forms", label: "Forms", anyOf: ["manageForms"] },
       { href: "/admin/tickets", label: "Tickets", anyOf: ["manageApplications"] },
+      {
+        href: "/admin/personality-profile",
+        label: "Personality Profile",
+        anyOf: ["manageApplications"],
+      },
     ],
   },
   {

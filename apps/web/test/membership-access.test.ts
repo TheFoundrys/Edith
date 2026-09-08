@@ -36,6 +36,9 @@ test("membership access treats suspend ahead of expiry", () => {
 test("staff invites are limited to staff roles", () => {
   assert.equal(isStaffRole("SUPER_ADMIN"), true);
   assert.equal(isStaffRole("ADMISSIONS_MANAGER"), true);
+  assert.equal(isStaffRole("BURSAR"), true);
+  assert.equal(isStaffRole("COUNSELOR"), true);
+  assert.equal(isStaffRole("CONTENT_UPLOADER"), true);
   assert.equal(isStaffRole("STUDENT"), false);
   assert.equal(isStaffRole("PARENT"), false);
 });

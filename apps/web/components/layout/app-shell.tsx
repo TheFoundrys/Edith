@@ -2,17 +2,13 @@
 
 import { signOut } from "next-auth/react";
 import { useTransition } from "react";
-import { VintageBackdrop } from "@/components/layout/vintage-backdrop";
+import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import {
   WorkspaceSidebar,
   type WorkspaceNavGroup,
   type WorkspaceNavItem,
 } from "@/components/layout/workspace-sidebar";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 export function AppShell({
@@ -20,6 +16,8 @@ export function AppShell({
   navGroups,
   children,
   profileHref,
+  notificationsHref,
+  unreadNotifications,
   variant = "student",
   userRoleLabel,
 }: {
@@ -27,6 +25,8 @@ export function AppShell({
   nav?: NavItem[];
   navGroups?: WorkspaceNavGroup[];
   profileHref?: string;
+  notificationsHref?: string;
+  unreadNotifications?: number;
   variant?: "student" | "admin";
   userRoleLabel?: string;
   workspaceHref?: string;
@@ -34,6 +34,8 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const [signingOut, startSignOut] = useTransition();
+  const groups =
+    navGroups ?? (nav ? [{ label: "Workspace", items: nav }] : []);
 
   function handleSignOut() {
     startSignOut(async () => {
@@ -52,16 +54,22 @@ export function AppShell({
           nav={nav}
           navGroups={navGroups}
           profileHref={profileHref}
-          variant={variant}
-          userRoleLabel={userRoleLabel}
-          onSignOut={handleSignOut}
-          signingOut={signingOut}
+          notificationsHref={notificationsHref}
         />
 
-        <SidebarInset className="workspace-shell-main peak-atmosphere">
-          <VintageBackdrop variant="workspace" />
-
-          <SidebarTrigger className="workspace-mobile-trigger md:hidden" />
+        <SidebarInset className="workspace-shell-main">
+          <WorkspaceHeader
+            navGroups={groups}
+            profileHref={profileHref}
+            notificationsHref={notificationsHref}
+            unreadNotifications={unreadNotifications}
+            variant={variant}
+            userRoleLabel={
+              userRoleLabel ?? (variant === "admin" ? "Staff" : "Learner")
+            }
+            onSignOut={handleSignOut}
+            signingOut={signingOut}
+          />
 
           <div
             id="main-content"

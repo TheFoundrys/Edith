@@ -54,7 +54,9 @@ export async function askLessonTutor(input: {
   const excerpt =
     ctx.lesson.contentType === "RICH_TEXT"
       ? ctx.lesson.contentBody.slice(0, MAX_LESSON_EXCERPT)
-      : [
+      : ctx.lesson.contentType === "PDF_FILE"
+        ? [ctx.lesson.summary, "Content type: PDF reading pack"].filter(Boolean).join("\n")
+        : [
           ctx.lesson.summary,
           `Content type: ${ctx.lesson.contentType}`,
           ctx.lesson.contentBody.slice(0, 500),

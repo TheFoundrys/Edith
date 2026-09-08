@@ -3,6 +3,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+    ],
+  },
   // Without this the workspace root above `apps/` becomes the tracing root and
   // standalone lands in `.next/standalone/apps/web`, which the image can't find.
   outputFileTracingRoot: path.join(__dirname),
@@ -50,7 +59,7 @@ const nextConfig: NextConfig = {
       isProduction
         ? "connect-src 'self' https://*.razorpay.com"
         : "connect-src 'self' ws: wss: https://*.razorpay.com",
-      "frame-src https://*.razorpay.com",
+      "frame-src 'self' https://*.razorpay.com https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -124,6 +133,11 @@ const nextConfig: NextConfig = {
       {
         source: "/student/learn/:courseId/lessons/:lessonId",
         destination: "/student/learning/:courseId/lessons/:lessonId",
+        permanent: false,
+      },
+      {
+        source: "/student/personality-profile/take/:section",
+        destination: "/student/personality-profile/take",
         permanent: false,
       },
     ];

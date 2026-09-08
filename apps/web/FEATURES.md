@@ -45,13 +45,14 @@
 
 ### 2.1 Built-in roles
 
-| Role | Label | Typical use |
-|------|-------|-------------|
-| `SUPER_ADMIN` | Admin | Full org control |
-| `ADMISSIONS_MANAGER` | Admissions admin | Programs, pricing, applications, forms, members |
-| `COUNSELOR` | Counsellor | Applications & tickets |
-| `CONTENT_UPLOADER` | Content uploader | Syllabus, assignments, quizzes, announcements |
-| `STUDENT` | Student | Learning workspace only |
+| Role | Label | Domain | Typical use |
+|------|-------|--------|-------------|
+| `SUPER_ADMIN` | Super Administrator | Admin | Full org control, system keys, audit, staff access |
+| `ADMISSIONS_MANAGER` | Academic Dean / Head | Academic | Catalog, syllabi, admissions, exams, faculty allocation |
+| `BURSAR` | Bursar & Finance | Finance | Tuition, scholarships, refunds, payment reconciliation |
+| `COUNSELOR` | Admissions Staff | Intake | Applications, intakes, counselling follow-ups |
+| `CONTENT_UPLOADER` | Lead Faculty / Teachers | Faculty | Catalog, syllabi, curriculum, examination materials |
+| `STUDENT` | Student | Learning | Learning workspace only |
 
 Staff = any role except `STUDENT`. Middleware blocks staff from `/student/*` and students from `/admin/*`.
 
@@ -59,13 +60,13 @@ Staff = any role except `STUDENT`. Middleware blocks staff from `/student/*` and
 
 | Capability | What it gates |
 |------------|---------------|
-| `managePricing` | Coupons, offers, payment settings, program pricing fields |
-| `managePrograms` | Create/edit/publish programs, intakes |
-| `manageContent` | Syllabus, assignments, quizzes, announcements, badges, forums (admin) |
-| `manageApplications` | Application inbox, review, tickets |
-| `manageForms` | Form builder, form versions |
-| `manageAiPlugins` | AI plugin configuration |
-| `manageMembers` | Members table, role assignment, expiry |
+| `managePricing` | Coupons, offers, payments, program pricing fields (Bursar) |
+| `managePrograms` | Create/edit/publish programs, intakes (Dean and Faculty) |
+| `manageContent` | Syllabus, assignments, quizzes, announcements, badges, forums (Dean and Faculty) |
+| `manageApplications` | Application inbox, review, tickets (Dean and Admissions Staff) |
+| `manageForms` | Form builder, form versions (Dean and Admissions Staff) |
+| `manageAiPlugins` | AI plugin configuration (Super Administrator) |
+| `manageMembers` | Members table, role assignment, expiry (Super Administrator and Dean) |
 | `learnAsStudent` | Student LMS access |
 
 Capabilities are stored per org in a **capability matrix** (`PermissionRole` rows). Defaults come from code; Super Admin can customise via **Admin → Members → Roles & access**.
@@ -561,7 +562,7 @@ Labels surfaced in UI via `APPLICATION_STATUS_LABELS`.
 - Tabs: **All**, **Members**, **Groups**
 - Pagination, sort (account name, recent, expiry)
 - Add member (email invite flow)
-- Set staff enum role (Super Admin, Admissions, Counsellor, Content, Student)
+- Set staff enum role (Super Administrator, Academic Dean, Bursar, Admissions Staff, Lead Faculty, Student)
 - Assign custom permission roles
 - Set membership expiry (individual + bulk)
 - Remove members

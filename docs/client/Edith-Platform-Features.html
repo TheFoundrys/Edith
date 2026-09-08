@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Edith — Intelligent Platform Features</title>
+  <style>
+    :root {
+      --fg: #1a1a18;
+      --muted: #5c5a54;
+      --line: #d9d6cc;
+      --paper: #f7f5ef;
+      --accent: #2c4a3e;
+    }
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      color: var(--fg);
+      background: #fff;
+      font: 10.5pt/1.45 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    }
+    h1 {
+      font-size: 22pt;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 4pt;
+    }
+    .tagline {
+      color: var(--muted);
+      font-size: 11pt;
+      margin: 0 0 14pt;
+    }
+    .lede {
+      max-width: 42em;
+      color: var(--muted);
+      margin: 0 0 18pt;
+    }
+    h2 {
+      font-size: 12.5pt;
+      font-weight: 600;
+      color: var(--accent);
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 4pt;
+      margin: 16pt 0 8pt;
+      page-break-after: avoid;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 6pt;
+      page-break-inside: auto;
+    }
+    tr { page-break-inside: avoid; }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 5pt 8pt 5pt 0;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 600;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    td:first-child { width: 42%; }
+    .path {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 8.2pt;
+      color: #2a2a28;
+      word-break: break-word;
+    }
+    .related {
+      font-size: 9pt;
+      color: var(--muted);
+      margin: 0 0 4pt;
+    }
+    .related .path { font-size: 8pt; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 10pt;
+      margin-bottom: 12pt;
+    }
+    .brand {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 9pt;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    footer.note {
+      margin-top: 18pt;
+      padding-top: 8pt;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 9pt;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="brand">The Foundrys · Edith</div>
+      <h1>Intelligent Platform Features</h1>
+      <p class="tagline">Map Your Future. Live routes for every capability below.</p>
+    </div>
+  </header>
+
+  <p class="lede">
+    Paths are application routes on the public origin (for example
+    <span class="path">https://your-domain/student/dashboard</span>).
+    Tokens such as <span class="path">:id</span> and <span class="path">:slug</span>
+    are identifiers for a specific record.
+  </p>
+
+  <h2>Learning &amp; Personalisation</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>Continue-learning intelligence</td><td class="path">/student/dashboard · /student/my-courses · /student/my-courses/:course-id</td></tr>
+      <tr><td>Learning progress intelligence</td><td class="path">/student/progress · /student/dashboard · /admin/syllabus/:programId/progress</td></tr>
+      <tr><td>Weekly learning activity tracking</td><td class="path">/student/dashboard</td></tr>
+      <tr><td>Learning streak system</td><td class="path">/student/dashboard · /student/achievements</td></tr>
+      <tr><td>Intelligent course recommendations</td><td class="path">/student/recommendations · /student/dashboard · /student/enroll</td></tr>
+      <tr><td>Interest / tag-based programme matching</td><td class="path">/student/recommendations · /courses?q=</td></tr>
+      <tr><td>Similar-programme recommendations</td><td class="path">/student/recommendations</td></tr>
+      <tr><td>AI in-lesson tutor</td><td class="path">/student/learning/:course-id/lessons/:lesson-id</td></tr>
+      <tr><td>Context-aware AI tutor (lesson / syllabus)</td><td class="path">/student/learning/:course-id/lessons/:lesson-id</td></tr>
+    </tbody>
+  </table>
+  <p class="related">Also: <span class="path">/student/learning/:course-id</span> · <span class="path">/student/deadlines</span> · <span class="path">/admin/plugins/ai</span></p>
+
+  <h2>Edith Personality Profile</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>Unified aptitude + quantitative + qualitative assessment</td><td class="path">/personality-profile · /student/personality-profile</td></tr>
+      <tr><td>Single-sitting assessment experience</td><td class="path">/student/personality-profile</td></tr>
+      <tr><td>Section-level assessment progression</td><td class="path">/student/personality-profile/take/:section</td></tr>
+      <tr><td>Cross-section personality / aptitude analysis</td><td class="path">/student/personality-profile/report</td></tr>
+      <tr><td>Automatically generated personality report</td><td class="path">/student/personality-profile/report</td></tr>
+      <tr><td>Career / self-insight report generation</td><td class="path">/student/personality-profile/report</td></tr>
+    </tbody>
+  </table>
+  <p class="related">Also: <span class="path">/enroll/edith-personality-profile</span> · <span class="path">/courses/edith-personality-profile</span> · <span class="path">/checkout?course=edith-personality-profile</span></p>
+
+  <h2>Credentials</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>Automatic programme-completion certificates</td><td class="path">/student/certificates</td></tr>
+      <tr><td>Unique credential verification codes</td><td class="path">/verify/:certificateId · /student/certificates/:certificate-id</td></tr>
+      <tr><td>Personal certificate gallery</td><td class="path">/student/certificates</td></tr>
+      <tr><td>Printable credential experience</td><td class="path">/student/certificates/:certificate-id</td></tr>
+    </tbody>
+  </table>
+  <p class="related">Also: <span class="path">/student/achievements</span></p>
+
+  <h2>Admissions Intelligence</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>Dynamic application form engine</td><td class="path">/admin/forms · /admin/forms/:id · /student/applications/:id</td></tr>
+      <tr><td>Conditional application questions</td><td class="path">/admin/forms/:id · /student/applications/:id</td></tr>
+      <tr><td>Versioned application forms</td><td class="path">/admin/forms/:id</td></tr>
+      <tr><td>Programme-specific forms</td><td class="path">/admin/programs/:id · /admin/forms/:id</td></tr>
+      <tr><td>Configurable application lifecycle</td><td class="path">/admin/applications · /admin/applications/:id</td></tr>
+      <tr><td>Application state enforcement</td><td class="path">/admin/applications/:id</td></tr>
+      <tr><td>Application document verification workflow</td><td class="path">/admin/applications/:id</td></tr>
+      <tr><td>CRM-gated enrollment</td><td class="path">/enroll/:slug · /student/my-courses · /admin/programs/:id</td></tr>
+      <tr><td>CRM approval before learning access</td><td class="path">/student/my-courses · /student/learning/:course-id</td></tr>
+      <tr><td>Application-to-enrollment state machine</td><td class="path">/student/applications · /student/applications/:id · /admin/applications/:id</td></tr>
+    </tbody>
+  </table>
+  <p class="related">Also: <span class="path">/student/applications</span> · <span class="path">/admin/enrollments</span></p>
+
+  <h2>Cohort &amp; Intake Intelligence</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>Multiple intakes per programme</td><td class="path">/admin/programs/:id · /courses/:slug/intakes</td></tr>
+      <tr><td>Capacity-controlled intakes</td><td class="path">/admin/programs/:id</td></tr>
+      <tr><td>Application-window control</td><td class="path">/admin/programs/:id</td></tr>
+      <tr><td>Public intake availability</td><td class="path">/courses/:slug · /courses/:slug/intakes</td></tr>
+      <tr><td>Intake-specific enrollment handling</td><td class="path">/enroll/:slug · /student/applications</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Programme Intelligence</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>Visual syllabus builder</td><td class="path">/admin/syllabus · /admin/syllabus/:programId</td></tr>
+      <tr><td>Module / lesson publishing control</td><td class="path">/admin/syllabus/:programId</td></tr>
+      <tr><td>Per-lesson visibility</td><td class="path">/admin/syllabus/:programId</td></tr>
+      <tr><td>Programme-level learner progress intelligence</td><td class="path">/admin/syllabus/:programId/progress</td></tr>
+      <tr><td>Programme-specific CRM gating</td><td class="path">/admin/programs/:id</td></tr>
+      <tr><td>Programme-specific merchandising metadata</td><td class="path">/admin/programs · /admin/programs/new · /admin/programs/:id</td></tr>
+    </tbody>
+  </table>
+  <p class="related">Public catalogue: <span class="path">/courses</span> · <span class="path">/courses/:slug</span></p>
+
+  <h2>AI Content Creation</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>AI assignment generation from syllabus</td><td class="path">/admin/assignments/new · /admin/assignments/:id</td></tr>
+      <tr><td>AI quiz generation from syllabus</td><td class="path">/admin/quizzes/new · /admin/quizzes/:id</td></tr>
+      <tr><td>Context-aware content authoring</td><td class="path">/admin/assignments/:id · /admin/quizzes/:id · /admin/syllabus/:programId</td></tr>
+      <tr><td>Organisation-controlled AI</td><td class="path">/admin/plugins/ai</td></tr>
+      <tr><td>Configurable AI provider / model</td><td class="path">/admin/plugins/ai</td></tr>
+      <tr><td>AI connection testing</td><td class="path">/admin/plugins/ai</td></tr>
+      <tr><td>Offline / mock AI mode</td><td class="path">/admin/plugins/ai</td></tr>
+    </tbody>
+  </table>
+  <p class="related">Learner tutor: <span class="path">/student/learning/:course-id/lessons/:lesson-id</span></p>
+
+  <h2>Advanced Access Control</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>Capability-based permissions</td><td class="path">/admin/members/roles · /admin/members/roles?view=permissions</td></tr>
+      <tr><td>Custom permission matrix</td><td class="path">/admin/members/roles</td></tr>
+      <tr><td>Permission labels</td><td class="path">/admin/members/roles · /admin/members</td></tr>
+      <tr><td>Role + capability hybrid authorization</td><td class="path">/admin/members · /admin/members/roles</td></tr>
+      <tr><td>Organisation-scoped access control</td><td class="path">/admin/members · /login</td></tr>
+      <tr><td>Membership-based learning access</td><td class="path">/admin/members · /student/my-courses</td></tr>
+      <tr><td>Automatic access expiry / suspension</td><td class="path">/admin/members</td></tr>
+    </tbody>
+  </table>
+  <p class="related">Also: <span class="path">/admin/members/invites</span> · <span class="path">/admin/members/activity</span> · <span class="path">/admin/members/groups</span></p>
+
+  <h2>CRM-Aware Enrollment</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>Outbound application sync</td><td class="path">/admin/applications/:id</td></tr>
+      <tr><td>Application status sync</td><td class="path">/admin/applications/:id</td></tr>
+      <tr><td>CRM approval / rejection callback</td><td class="path">POST /api/crm/enrollment-callback</td></tr>
+      <tr><td>CRM-controlled learning unlock</td><td class="path">/student/my-courses · /student/learning/:course-id · /payment/success</td></tr>
+      <tr><td>CRM sync audit trail</td><td class="path">/admin/applications/:id</td></tr>
+      <tr><td>Environment-configurable CRM adapters</td><td class="path">/admin/programs/:id</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Commerce Intelligence</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>Personalised pricing offers</td><td class="path">/admin/offers</td></tr>
+      <tr><td>Coupon rules</td><td class="path">/admin/coupons</td></tr>
+      <tr><td>Application-fee + programme-fee unified payment stack</td><td class="path">/checkout · /student/payment · /student/applications/:id · /admin/payments</td></tr>
+      <tr><td>GST-aware pricing</td><td class="path">/admin/payment-settings</td></tr>
+      <tr><td>Offline payment reconciliation through UTR</td><td class="path">/admin/applications/:id</td></tr>
+      <tr><td>Automated invoice generation</td><td class="path">/student/payment · /student/payment/invoices/:paymentId · /admin/payments · /admin/payments/invoices/:paymentId</td></tr>
+      <tr><td>Payment-state-aware enrollment</td><td class="path">/enroll/:slug · /checkout · /payment/success · /payment/failed · /student/my-courses</td></tr>
+    </tbody>
+  </table>
+  <p class="related">Webhook: <span class="path">POST /api/payments/razorpay/webhook</span></p>
+
+  <h2>Form &amp; Workflow Engine</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>No-code form builder</td><td class="path">/admin/forms · /admin/forms/:id</td></tr>
+      <tr><td>Conditional logic engine</td><td class="path">/admin/forms/:id · /student/applications/:id</td></tr>
+      <tr><td>Draft → publish form versioning</td><td class="path">/admin/forms/:id</td></tr>
+      <tr><td>Reusable forms across programmes</td><td class="path">/admin/forms/:id · /admin/programs/:id</td></tr>
+      <tr><td>Configurable application workflow</td><td class="path">/admin/applications · /admin/applications/:id</td></tr>
+      <tr><td>Enforced workflow transitions</td><td class="path">/admin/applications/:id</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Platform Extensibility</h2>
+  <table>
+    <thead><tr><th>Feature</th><th>Route</th></tr></thead>
+    <tbody>
+      <tr><td>Public programme catalogue API</td><td class="path">GET /api/catalog/courses · GET /api/catalog/courses/:slug · GET /api/catalog/filters · GET /api/catalog/categories · GET /api/catalog/dump</td></tr>
+      <tr><td>Admin programme management API</td><td class="path">GET/POST /api/catalog/admin/courses · GET/PATCH /api/catalog/admin/courses/:id · PATCH /api/catalog/admin/courses/:id/status</td></tr>
+      <tr><td>CRM adapter architecture</td><td class="path">POST /api/crm/enrollment-callback</td></tr>
+      <tr><td>Payment webhook architecture</td><td class="path">POST /api/payments/razorpay/webhook</td></tr>
+      <tr><td>Enrollment callback architecture</td><td class="path">POST /api/crm/enrollment-callback</td></tr>
+      <tr><td>Health / monitoring endpoint</td><td class="path">GET /api/health</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Quick map by workspace</h2>
+  <table>
+    <thead><tr><th>Workspace</th><th>Entry</th></tr></thead>
+    <tbody>
+      <tr><td>Public catalogue</td><td class="path">/ · /courses · /personality-profile</td></tr>
+      <tr><td>Learner</td><td class="path">/student/dashboard</td></tr>
+      <tr><td>Admissions &amp; forms</td><td class="path">/admin/applications · /admin/forms</td></tr>
+      <tr><td>Programmes &amp; syllabus</td><td class="path">/admin/programs · /admin/syllabus</td></tr>
+      <tr><td>People &amp; access</td><td class="path">/admin/members · /admin/members/roles</td></tr>
+      <tr><td>Commerce</td><td class="path">/admin/payments · /admin/payment-settings</td></tr>
+      <tr><td>AI</td><td class="path">/admin/plugins/ai</td></tr>
+      <tr><td>Leadership</td><td class="path">/admin · /admin/enrollments · /admin/analytics/enrollments</td></tr>
+    </tbody>
+  </table>
+
+  <footer class="note">Edith — Map Your Future. · The Foundrys · Confidential — for client review</footer>
+</body>
+</html>
