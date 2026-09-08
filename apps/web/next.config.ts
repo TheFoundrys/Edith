@@ -56,9 +56,10 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       isProduction
-        ? "connect-src 'self' https://*.razorpay.com"
-        : "connect-src 'self' ws: wss: https://*.razorpay.com",
-      "frame-src 'self' https://*.razorpay.com https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
+        ? "connect-src 'self' https://*.razorpay.com https://*.youtube.com https://*.youtube-nocookie.com https://*.googleapis.com https://*.gstatic.com https://*.googlevideo.com https://*.vimeo.com https://*.vimeocdn.com https://player.vimeo.com"
+        : "connect-src 'self' ws: wss: https://*.razorpay.com https://*.youtube.com https://*.youtube-nocookie.com https://*.googleapis.com https://*.gstatic.com https://*.googlevideo.com https://*.vimeo.com https://*.vimeocdn.com https://player.vimeo.com",
+      "media-src 'self' blob: https:",
+      "frame-src 'self' https://*.razorpay.com https://*.youtube.com https://youtube.com https://www.youtube.com https://*.youtube-nocookie.com https://www.youtube-nocookie.com https://player.vimeo.com https://*.vimeo.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
