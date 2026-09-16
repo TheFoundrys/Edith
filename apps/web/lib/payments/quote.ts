@@ -1,10 +1,13 @@
 import "server-only";
 
 import { prisma } from "@/lib/db";
-
-function money(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
+import {
+  couponDiscountAmount,
+  money,
+  resolveOfferedPrincipal,
+} from "@/lib/payments/discounts";
+import { isCompassDatabase } from "@/lib/db/profile";
+import { resolveCourseListPrice } from "@/lib/programs/pricing";
 
 export type CourseQuote = {
   currency: string;
@@ -18,6 +21,29 @@ export type CourseQuote = {
   offerId: string | null;
 };
 
+/** Simple quote for Compass courses (no coupons/offers/settings tables). */
+export function buildCompassCourseQuote(program: {
+  price: number | null;
+  tuitionCurrency: string;
+  pricing?: unknown;
+  slug?: string | null;
+  sku?: string | null;
+  domainSlug?: string | null;
+}): CourseQuote {
+  const listPrice = resolveCourseListPrice(program);
+  return {
+    currency: program.tuitionCurrency || "INR",
+    listPrice: money(listPrice),
+    principalAmount: money(listPrice),
+    discountAmount: 0,
+    gstAmount: 0,
+    convenienceFee: 0,
+    totalAmount: money(listPrice),
+    couponCode: null,
+    offerId: null,
+  };
+}
+
 export async function buildCourseQuote(input: {
   organizationId: string;
   userId: string;
@@ -25,9 +51,20 @@ export async function buildCourseQuote(input: {
     id: string;
     price: number | null;
     tuitionCurrency: string;
+    pricing?: unknown;
+    slug?: string | null;
+    sku?: string | null;
+    domainSlug?: string | null;
   };
   couponCode?: string | null;
 }): Promise<CourseQuote | { error: string }> {
+  if (isCompassDatabase()) {
+    if (input.couponCode?.trim()) {
+      return { error: "Coupons are not available on compass_dev." };
+    }
+    return buildCompassCourseQuote(input.program);
+  }
+
   const [settings, offer] = await Promise.all([
     prisma.paymentSettings.findUnique({
       where: { organizationId: input.organizationId },
@@ -43,11 +80,13 @@ export async function buildCourseQuote(input: {
     }),
   ]);
 
-  const listPrice = Math.max(0, input.program.price ?? 0);
-  const principalAmount =
-    offer && offer.customPrice >= 0 ? offer.customPrice : listPrice;
+  const listPrice = resolveCourseListPrice(input.program);
+  const principalAmount = resolveOfferedPrincipal(
+    listPrice,
+    offer?.customPrice,
+  );
   const normalizedCoupon = input.couponCode?.trim().toUpperCase() || null;
-  let couponDiscount = 0;
+  let discountAmount = 0;
 
   if (normalizedCoupon) {
     const coupon = await prisma.coupon.findFirst({
@@ -66,15 +105,8 @@ export async function buildCourseQuote(input: {
     if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) {
       return { error: "Coupon usage limit has been reached." };
     }
-    couponDiscount =
-      coupon.type === "PERCENTAGE"
-        ? principalAmount * (Math.min(Math.max(coupon.value, 0), 100) / 100)
-        : Math.max(coupon.value, 0);
+    discountAmount = couponDiscountAmount(principalAmount, coupon);
   }
-
-  const discountAmount = money(
-    Math.min(principalAmount, couponDiscount),
-  );
   const taxableAmount = Math.max(0, principalAmount - discountAmount);
   const gstPercent = Math.max(settings?.gstPercent ?? 18, 0);
   const conveniencePercent = Math.max(

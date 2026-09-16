@@ -60,17 +60,30 @@ function statusBadge(state: MembershipAccessState) {
   return { tone: "success" as const, label: "Active" };
 }
 
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
+}
+
 export function MembersTable({
   rows,
   assignableRoles,
   rolesSetupHref,
   canInviteAdmins,
+  emptyTitle,
+  emptyDescription,
+  emptyAction,
   footer,
 }: {
   rows: MemberRow[];
   assignableRoles: PermissionRoleOption[];
   rolesSetupHref?: string;
   canInviteAdmins: boolean;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  emptyAction?: React.ReactNode;
   footer?: React.ReactNode;
 }) {
   const router = useRouter();
@@ -153,7 +166,7 @@ export function MembersTable({
             }}
             aria-expanded={inviteOpen}
           >
-            Invite staff
+            {inviteOpen ? "Close invite" : "Invite staff"}
           </Button>
           <Button
             variant="secondary"
@@ -164,13 +177,13 @@ export function MembersTable({
             }}
             aria-expanded={attachOpen}
           >
-            Add existing student
+            {attachOpen ? "Close" : "Add existing student"}
           </Button>
         </div>
 
         {selectedIds.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-fg-muted tabular-nums">
+          <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-bg-elevated px-3 py-2 text-sm">
+            <span className="font-medium tabular-nums">
               {selectedIds.length} selected
             </span>
             <Button
@@ -196,7 +209,7 @@ export function MembersTable({
               Restore
             </Button>
             <label className="flex items-center gap-1.5">
-              <span className="text-fg-muted">Set expiry</span>
+              <span className="text-fg-muted">Expiry</span>
               <input
                 type="date"
                 className={dateInputClass}
@@ -232,7 +245,11 @@ export function MembersTable({
       {inviteOpen ? <InviteStaffPanel canInviteAdmins={canInviteAdmins} /> : null}
 
       {attachOpen ? (
-        <Panel className="mb-3 p-4">
+        <Panel className="mb-[var(--grid-pad)] p-[var(--grid-pad)]">
+          <h2 className="font-display text-lg text-fg">Add existing student</h2>
+          <p className="mt-1 mb-4 text-sm text-fg-muted">
+            Use this only for an account that already exists. Staff must be invited.
+          </p>
           <form
             className="flex flex-wrap items-end gap-3"
             onSubmit={(event) => {
@@ -245,26 +262,33 @@ export function MembersTable({
             }}
           >
             <div className="min-w-[16rem] flex-1">
-              <Label htmlFor="attach-email">Existing student email</Label>
+              <Label htmlFor="attach-email">Student email</Label>
               <Input
                 id="attach-email"
                 type="email"
                 required
                 value={attachEmail}
                 onChange={(event) => setAttachEmail(event.target.value)}
+                placeholder="student@campus.edu"
               />
             </div>
             <Button type="submit" size="sm" loading={pending}>
               Add
             </Button>
           </form>
-          <p className="mt-2 text-xs text-fg-muted">
-            Use this only for a student account that already exists. Staff must be invited.
-          </p>
         </Panel>
       ) : null}
 
       <Panel className="overflow-x-auto">
+        {rows.length === 0 ? (
+          <div className="px-6 py-10">
+            <h3 className="text-sm font-medium text-fg">{emptyTitle ?? "No members"}</h3>
+            {emptyDescription ? (
+              <p className="mt-1 max-w-md text-sm text-fg-muted">{emptyDescription}</p>
+            ) : null}
+            {emptyAction ? <div className="mt-3">{emptyAction}</div> : null}
+          </div>
+        ) : (
         <table className="w-full text-sm">
           <caption className="sr-only">
             Organization members with access, labels, and expiry
@@ -307,12 +331,28 @@ export function MembersTable({
                     />
                   </td>
                   <td className={cellClass}>
-                    <p className="font-medium">
-                      {row.name}
-                      {row.isSelf ? <Badge tone="neutral" className="ml-2">You</Badge> : null}
-                    </p>
-                    <p className="text-xs text-fg-muted">{row.email}</p>
-                    <p className="text-xs text-fg-muted">{row.programs} enrolled programs</p>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-bg text-[11px] font-semibold tracking-wide"
+                        aria-hidden
+                      >
+                        {initials(row.name || row.email)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="font-medium">
+                          {row.name}
+                          {row.isSelf ? (
+                            <Badge tone="neutral" className="ml-2">
+                              You
+                            </Badge>
+                          ) : null}
+                        </p>
+                        <p className="truncate text-xs text-fg-muted">{row.email}</p>
+                        <p className="text-xs text-fg-muted">
+                          {row.programs} enrolled
+                        </p>
+                      </div>
+                    </div>
                   </td>
                   <td className={cellClass}>
                     <Badge tone={badge.tone}>{badge.label}</Badge>
@@ -409,9 +449,11 @@ export function MembersTable({
                     {row.isSelf ? (
                       <span className="text-xs text-fg-muted">—</span>
                     ) : (
-                      <div className="flex flex-col items-end gap-1">
-                        <button
+                      <div className="flex justify-end gap-2">
+                        <Button
                           type="button"
+                          size="sm"
+                          variant="secondary"
                           disabled={pending}
                           onClick={() =>
                             run(
@@ -420,21 +462,25 @@ export function MembersTable({
                                   row.id,
                                   row.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED",
                                 ),
-                              row.status === "SUSPENDED" ? "Access restored" : "Member suspended",
+                              row.status === "SUSPENDED"
+                                ? "Access restored"
+                                : "Member suspended",
                             )
                           }
-                          className="text-sm text-fg underline underline-offset-2 hover:text-fg-muted"
                         >
                           {row.status === "SUSPENDED" ? "Restore" : "Suspend"}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
+                          size="sm"
+                          variant="ghost"
                           disabled={pending}
-                          onClick={() => setConfirming({ ids: [row.id], label: row.name })}
-                          className="text-sm text-fg-muted underline underline-offset-2 hover:text-fg"
+                          onClick={() =>
+                            setConfirming({ ids: [row.id], label: row.name })
+                          }
                         >
                           Remove
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </td>
@@ -443,7 +489,10 @@ export function MembersTable({
             })}
           </tbody>
         </table>
-        {footer ? <div className="border-t border-border">{footer}</div> : null}
+        )}
+        {footer && rows.length > 0 ? (
+          <div className="border-t border-border">{footer}</div>
+        ) : null}
       </Panel>
 
       <ConfirmDialog

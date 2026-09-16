@@ -96,6 +96,116 @@ const FDP_METHODOLOGY: SeedModule[] = [
   },
 ];
 
+/**
+ * AI 004 · AI Fluency — The Foundry's Java-to-Python AI series
+ * https://www.youtube.com/playlist?list=PLM0upyoEdKOM
+ *
+ * Videos in this series are Unlisted; the playlist itself is still Private.
+ * Embed each video id without `list=` or the player shows "Video is private".
+ */
+export const AI_FLUENCY_PLAYLIST_ID = "PLM0upyoEdKOM";
+export const AI_FLUENCY_PLAYLIST_URL =
+  `https://www.youtube.com/playlist?list=${AI_FLUENCY_PLAYLIST_ID}`;
+export const AI_FLUENCY_MODULE_SUMMARY =
+  "20 Days · Enable experienced Java developers to build practical AI capabilities using Python, covering language fundamentals, AI frameworks, data preparation, model training and deployment workflows.";
+
+function aiFluencyVideo(videoId: string) {
+  return `https://www.youtube.com/watch?v=${videoId}`;
+}
+
+function aiFluencyVideoLesson(
+  title: string,
+  summary: string,
+  videoId: string,
+  durationMin: number,
+): SeedLesson {
+  return {
+    title,
+    summary,
+    contentType: LessonContentType.RICH_TEXT,
+    content: `# ${title}
+
+${summary}
+
+Watch the video below. When it finishes, this activity is marked complete.
+
+${aiFluencyVideo(videoId)}`,
+    durationMin,
+  };
+}
+
+export const AI_FLUENCY_LESSONS: SeedLesson[] = [
+  {
+    title: "How this track works",
+    summary: "Watch the videos in order. Java developers, Python, then production AI.",
+    contentType: LessonContentType.RICH_TEXT,
+    content: `# AI Fluency
+
+This track is for experienced Java developers building practical AI skills in Python: language basics, data work, model training, and a production deploy.
+
+Watch each video activity in order. Later lessons assume the earlier Python and data pipeline.
+
+The full series is also on YouTube: ${AI_FLUENCY_PLAYLIST_URL}
+
+Videos mark complete when they finish playing.`,
+    durationMin: 8,
+  },
+  aiFluencyVideoLesson(
+    "1.1 Transitioning from Object-Oriented Java to Functional",
+    "How Java OO habits map onto Python's functional data style.",
+    "dUclJ0Hs56Y",
+    9,
+  ),
+  aiFluencyVideoLesson(
+    "1.2 Python Basics for Data Processing & AI",
+    "Python syntax you need before NumPy and model training.",
+    "FDAGTZTBdyI",
+    9,
+  ),
+  aiFluencyVideoLesson(
+    "1.3 Mastering Core Frameworks: NumPy, Pandas, Matplotlib",
+    "Arrays, tables and plots for an AI workflow.",
+    "gJ0jZdcvlVU",
+    9,
+  ),
+  aiFluencyVideoLesson(
+    "1.4 Data Preparation & Preprocessing for GIS & Enterprise Data",
+    "Clean and shape messy enterprise and geospatial inputs.",
+    "L1MWWhWPT5A",
+    11,
+  ),
+  aiFluencyVideoLesson(
+    "1.5 Building your first Data Driven Analysis Pipeline",
+    "Wire ingest, transform and a first analysis end to end.",
+    "JEzphqzjv0I",
+    9,
+  ),
+  aiFluencyVideoLesson(
+    "2.1 Modern Model Training Workflows From Scikit-learn to Deep Learning",
+    "Train classical models, then step into deep learning.",
+    "XialLojeXCg",
+    10,
+  ),
+  aiFluencyVideoLesson(
+    "2.2 Practical Usage of Transformers, LLMs, BERT, Vision Transformers",
+    "Use transformer models without building them from scratch.",
+    "3WZ9XmUiYJI",
+    11,
+  ),
+  aiFluencyVideoLesson(
+    "2.3 Integrating AI Components into Existing APIs & Web Apps",
+    "Call models from the APIs and apps you already ship.",
+    "f0Ju-PC_Ius",
+    9,
+  ),
+  aiFluencyVideoLesson(
+    "2.4 Deploying Production Grade AI Models with FastAPI & Docker",
+    "Package an inference service and run it in Docker.",
+    "-ZFLo7secF4",
+    12,
+  ),
+];
+
 /** Every Centre of Excellence is delivered against the same four pillars. */
 const COE_PILLARS: SeedModule[] = [
   {
@@ -959,8 +1069,8 @@ If you cannot sketch the loop on one page, you are not ready to train or fine-tu
       },
       {
         title: "AI 004 · AI Fluency",
-        summary:
-          "20 Days · Enable experienced Java developers to build practical AI capabilities using Python, covering language fundamentals, AI frameworks, data preparation, model training and deployment workflows.",
+        summary: AI_FLUENCY_MODULE_SUMMARY,
+        lessons: AI_FLUENCY_LESSONS,
       },
       {
         title: "AI 005 · Agentic AI Bootcamp (Instructor-Led Training)",

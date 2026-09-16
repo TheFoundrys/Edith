@@ -65,6 +65,27 @@ export const PROGRAM_CATEGORIES: {
   },
 ];
 
+/** YGP and PGP — LMS content only (section, title, content). */
+export const CONTENT_PROGRAM_CATEGORIES: ProgramCategory[] = [
+  "YOUNG_POST_GRADUATE",
+  "POST_GRADUATE",
+];
+
+export function isContentProgram(
+  category: ProgramCategory | string | null | undefined,
+) {
+  return (
+    category === "YOUNG_POST_GRADUATE" || category === "POST_GRADUATE"
+  );
+}
+
+/** Degrees and other admissions programmes — CRM, enrollments, payments. */
+export function isAdmissionsProgram(
+  category: ProgramCategory | string | null | undefined,
+) {
+  return !isContentProgram(category);
+}
+
 export function parseProgramCategory(
   value: string | undefined | null,
 ): ProgramCategory | undefined {

@@ -1,10 +1,16 @@
 import { DashboardHome } from "@/components/student/dashboard-home";
 import { requireStudent } from "@/lib/auth/session";
+import { findCompassCliftonAssessment } from "@/lib/compass/clifton-assessment";
+import { countStudentCertificates } from "@/lib/certificates/queries";
+import { loadStudentEnrollments } from "@/lib/enrollment/queries";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
+import { getUserCompletedLessonIds } from "@/lib/learning/progress";
 import { buildDashboardStudyStats } from "@/lib/learning/dashboard-stats";
 import { getCourseRecommendationsForUser } from "@/lib/learning/recommendations";
 import { getStudentAchievements } from "@/lib/learning/student-achievements";
 import { getStudentDeadlines } from "@/lib/learning/student-deadlines";
+import { getStudentEngagementItems } from "@/lib/learning/student-engagement";
 import {
   findContinueActivityId,
   flattenPublishedActivities,
@@ -22,73 +28,49 @@ export default async function StudentDashboardPage() {
   const userId = session.user.id;
   const firstName = session.user.name.split(" ")[0] ?? session.user.name;
 
-  const enrollments = await prisma.enrollment.findMany({
-    where: { userId, status: "ACTIVE" },
-    include: {
-      program: {
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          sku: true,
-          domainSlug: true,
-          category: true,
-          duration: true,
-          syllabus: {
-            select: {
-              status: true,
-              modules: {
-                orderBy: { order: "asc" },
-                include: {
-                  lessons: {
-                    where: { isPublished: true },
-                    orderBy: { order: "asc" },
-                    select: { id: true, title: true, isPublished: true, durationMin: true },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+  const compass = isCompassDatabase();
+  const enrollmentRows = await loadStudentEnrollments(userId, ["ACTIVE"]);
+  const enrollments = enrollmentRows.map((e) => ({
+    id: e.id,
+    program: {
+      id: e.program.id,
+      title: e.program.title,
+      slug: e.program.slug,
+      sku: null as string | null,
+      domainSlug: null as string | null,
+      category: e.program.category,
+      duration: null as string | null,
+      syllabus: e.program.syllabus,
     },
-    orderBy: [{ lastAccessedAt: "desc" }, { enrolledAt: "desc" }],
-  });
+  }));
 
   const lessonIds = enrollments.flatMap((e) =>
     e.program.syllabus?.status === "PUBLISHED"
       ? flattenPublishedActivities(e.program.syllabus.modules).map((a) => a.id)
       : [],
   );
+  const activeCourseIds = enrollments
+    .filter((e) => e.program.syllabus?.status === "PUBLISHED")
+    .map((e) => e.program.id);
 
-  const [completed, completionsForStats, certificateCount, recommended, personalityAttempt, achievements, deadlines] =
+  const [completedSetRaw, completionsForStats, certificateCount, recommended, personalityAttempt, achievements, deadlines, engagementItems] =
     await Promise.all([
-      lessonIds.length
-        ? prisma.lessonProgress.findMany({
-            where: {
-              userId,
-              lessonId: { in: lessonIds },
-              completedAt: { not: null },
-            },
+      getUserCompletedLessonIds(userId, activeCourseIds),
+      compass
+        ? Promise.resolve([] as { completedAt: Date; lesson: { durationMin: number | null } }[])
+        : prisma.lessonProgress.findMany({
+            where: { userId, completedAt: { not: null } },
             select: {
-              lessonId: true,
               completedAt: true,
               lesson: { select: { durationMin: true } },
             },
-          })
-        : Promise.resolve([]),
-      prisma.lessonProgress.findMany({
-        where: { userId, completedAt: { not: null } },
-        select: {
-          completedAt: true,
-          lesson: { select: { durationMin: true } },
-        },
-      }),
-      prisma.certificate.count({ where: { userId } }),
+          }),
+      countStudentCertificates(userId),
       getCourseRecommendationsForUser(userId, {
         organizationId: session.user.organizationId,
         limit: 8,
       }),
+      !compass &&
       enrollments.some((e) => isPersonalityProfileProgram(e.program))
         ? prisma.cliftonAssessment.findFirst({
             where: {
@@ -98,12 +80,23 @@ export default async function StudentDashboardPage() {
             orderBy: { createdAt: "desc" },
             select: { responses: true },
           })
-        : Promise.resolve(null),
+        : compass &&
+            enrollments.some((e) => isPersonalityProfileProgram(e.program))
+          ? findCompassCliftonAssessment(userId).then((row) =>
+              row ? { responses: row.responses } : null,
+            )
+          : Promise.resolve(null),
       getStudentAchievements(userId, 4),
       getStudentDeadlines(userId, 4),
+      getStudentEngagementItems(userId, session.user.organizationId, 5),
     ]);
 
-  const completedSet = new Set(completed.map((p) => p.lessonId));
+  const completedSet = completedSetRaw;
+  const completed = [...completedSet].map((lessonId) => ({
+    lessonId,
+    completedAt: new Date(),
+    lesson: { durationMin: null as number | null },
+  }));
 
   const personalityResponses = (personalityAttempt?.responses ??
     {}) as PersonalityResponses;
@@ -188,6 +181,7 @@ export default async function StudentDashboardPage() {
       streakDays={studyStats.streakDays}
       activeDays={studyStats.activeDays}
       deadlines={deadlines}
+      engagementItems={engagementItems}
       achievements={achievements}
       recommended={recommended}
     />

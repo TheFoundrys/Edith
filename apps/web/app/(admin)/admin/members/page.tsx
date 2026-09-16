@@ -1,10 +1,13 @@
 import { MembersAdminHeader } from "@/components/admin/members-admin-header";
 import { MembersTable, type MemberRow } from "@/components/admin/members-table";
-import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/input";
+import { Panel } from "@/components/ui/page";
 import { Pagination } from "@/components/ui/pagination";
 import { memberWorkspaceCounts } from "@/lib/admin/member-workspace";
 import { DEFAULT_PAGE_SIZE, resolvePageSize } from "@/lib/pagination";
 import { requireCapability } from "@/lib/auth/session";
+import { redirectIfCompassAdminRoute } from "@/lib/compass/require-edith";
 import { prisma } from "@/lib/db";
 import { membershipAccessState } from "@/lib/members/status";
 import type { Prisma } from "@prisma/client";
@@ -40,6 +43,7 @@ export default async function AdminMembersPage({
   }>;
 }) {
   const session = await requireCapability("manageMembers");
+  redirectIfCompassAdminRoute();
   const sp = await searchParams;
   const orgId = session.user.organizationId;
   const isAdmin = session.user.role === "SUPER_ADMIN";
@@ -131,93 +135,83 @@ export default async function AdminMembersPage({
   return (
     <div>
       <MembersAdminHeader
-        title="People"
         description="Invite staff, manage student memberships, suspend access, and set expiry."
         active="people"
         counts={counts}
         showRolesLink={isAdmin}
       />
 
-      <form className="mb-[var(--grid-pad)] flex flex-wrap gap-2">
-        {pageSize !== DEFAULT_PAGE_SIZE ? (
-          <input type="hidden" name="pageSize" value={pageSize} />
-        ) : null}
-        <input type="hidden" name="sort" value={sort} />
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Search by name or email"
-          aria-label="Search members"
-          className="h-9 min-w-[14rem] flex-1 rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated/90 px-3 text-sm"
-        />
-        <select
-          name="status"
-          defaultValue={status}
-          aria-label="Filter by status"
-          className="h-9 rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated/90 px-3 text-sm"
-        >
-          <option value="all">All statuses</option>
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-          <option value="expired">Expired</option>
-        </select>
-        {permissionRolesRaw.length > 0 ? (
-          <select
-            name="roleId"
-            defaultValue={roleId}
-            aria-label="Filter by role"
-            className="h-9 rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated/90 px-3 text-sm"
-          >
-            <option value="">All labels</option>
-            {permissionRolesRaw.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.name}
-              </option>
-            ))}
-          </select>
-        ) : null}
-        <button
-          type="submit"
-          className="h-9 rounded-[var(--radius-sm)] bg-accent px-3 text-sm text-accent-fg"
-        >
-          Search
-        </button>
-      </form>
+      <Panel className="mb-[var(--grid-pad)] p-3">
+        <form className="flex flex-wrap gap-2">
+          {pageSize !== DEFAULT_PAGE_SIZE ? (
+            <input type="hidden" name="pageSize" value={pageSize} />
+          ) : null}
+          <Input
+            name="q"
+            defaultValue={q}
+            placeholder="Search name or email"
+            aria-label="Search members"
+            className="min-w-[14rem] flex-1 h-9"
+          />
+          <Select name="status" defaultValue={status} aria-label="Filter by status">
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+            <option value="expired">Expired</option>
+          </Select>
+          <Select name="sort" defaultValue={sort} aria-label="Sort members">
+            <option value="account">Name</option>
+            <option value="recent">Recently added</option>
+            <option value="expiry">Expiry</option>
+          </Select>
+          {permissionRolesRaw.length > 0 ? (
+            <Select name="roleId" defaultValue={roleId} aria-label="Filter by role">
+              <option value="">All labels</option>
+              {permissionRolesRaw.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </Select>
+          ) : null}
+          <Button type="submit" size="sm">
+            Search
+          </Button>
+        </form>
+      </Panel>
 
-      {rows.length === 0 ? (
-        <EmptyState
-          title={q || roleId || status !== "all" ? "No matches" : "No members yet"}
-          description={
-            q || roleId || status !== "all"
-              ? "Try a different search, status, or label filter."
-              : "Invite staff or wait for students to register themselves."
-          }
-          action={
-            q || roleId || status !== "all" ? (
-              <Link href="/admin/members" className="text-sm underline underline-offset-2">
+      <MembersTable
+        rows={rows}
+        assignableRoles={permissionRolesRaw}
+        rolesSetupHref={isAdmin ? "/admin/members/roles" : undefined}
+        canInviteAdmins={isAdmin}
+        emptyTitle={q || roleId || status !== "all" ? "No matches" : "No members yet"}
+        emptyDescription={
+          q || roleId || status !== "all"
+            ? "Try a different search, status, or label filter."
+            : "Invite staff, or wait for students to register themselves."
+        }
+        emptyAction={
+          q || roleId || status !== "all" ? (
+            <Link href="/admin/members">
+              <Button size="sm" variant="secondary">
                 Clear filters
-              </Link>
-            ) : null
-          }
-        />
-      ) : (
-        <MembersTable
-          rows={rows}
-          assignableRoles={permissionRolesRaw}
-          rolesSetupHref={isAdmin ? "/admin/members/roles" : undefined}
-          canInviteAdmins={isAdmin}
-          footer={
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              pageSize={pageSize}
-              total={memberTotal}
-              pathname="/admin/members"
-              query={query}
-            />
-          }
-        />
-      )}
+              </Button>
+            </Link>
+          ) : undefined
+        }
+        footer={
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            total={memberTotal}
+            unit="people"
+            pathname="/admin/members"
+            query={query}
+          />
+        }
+      />
     </div>
   );
 }

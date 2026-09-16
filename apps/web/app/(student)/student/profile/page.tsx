@@ -4,6 +4,7 @@ import { PageHeader, Panel } from "@/components/ui/page";
 import { getPersonalityProfileWorkspace } from "@/lib/actions/personality-profile";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { loadPublishedProgramsBySlugs } from "@/lib/marketing/public-course-detail";
 import { displayProgramName } from "@/lib/programs/categories";
 
 export default async function StudentProfilePage() {
@@ -16,14 +17,10 @@ export default async function StudentProfilePage() {
   const recSlugs =
     workspace.ok ? workspace.report?.recommendations.map((item) => item.slug) ?? [] : [];
   const programs = recSlugs.length
-    ? await prisma.program.findMany({
-        where: {
-          organizationId: session.user.organizationId,
-          slug: { in: recSlugs },
-          status: "PUBLISHED",
-        },
-        select: { slug: true, title: true, category: true },
-      })
+    ? await loadPublishedProgramsBySlugs(
+        recSlugs,
+        session.user.organizationId,
+      )
     : [];
   const titles = Object.fromEntries(
     programs.map((program) => [

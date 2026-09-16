@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { HomeNewsletterSignup } from "@/components/marketing/home-newsletter-signup";
-import { APP_NAME, APP_PARENT } from "@/lib/brand";
+import { APP_NAME, APP_PARENT, FOUNDRYS_YOUTUBE_CHANNEL_HREF } from "@/lib/brand";
 
 const PLATFORM_LINKS = [
   { href: "/courses", label: "Courses" },
@@ -13,12 +13,13 @@ const PLATFORM_LINKS = [
 const RESOURCE_LINKS = [
   { href: "/courses", label: "Catalogue" },
   { href: "/student/enroll", label: "Enrol" },
-  { href: "/student/applications", label: "Applications" },
+  { href: "/student/applications", label: "Apply in CRM" },
   { href: "/student/certificates", label: "Certificates" },
 ];
 
 const COMPANY_LINKS = [
   { href: "mailto:info@thefoundrys.com", label: "Contact" },
+  { href: FOUNDRYS_YOUTUBE_CHANNEL_HREF, label: "YouTube" },
   { href: "/legal/privacy", label: "Privacy" },
   { href: "/legal/terms", label: "Terms" },
 ];
@@ -36,9 +37,20 @@ function FooterLinkGroup({
       <ul className="home-footer-links">
         {links.map((link) => (
           <li key={link.href}>
-            <Link href={link.href} className="home-footer-link">
-              {link.label}
-            </Link>
+            {link.href.startsWith("http") ? (
+              <a
+                href={link.href}
+                className="home-footer-link"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link href={link.href} className="home-footer-link">
+                {link.label}
+              </Link>
+            )}
           </li>
         ))}
       </ul>
@@ -72,6 +84,14 @@ export function SiteFooter({ variant = "marketing" }: { variant?: "minimal" | "m
               className="hover:text-fg underline-offset-2 hover:underline"
             >
               Contact
+            </a>
+            <a
+              href={FOUNDRYS_YOUTUBE_CHANNEL_HREF}
+              className="hover:text-fg underline-offset-2 hover:underline"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              YouTube
             </a>
           </nav>
         </div>

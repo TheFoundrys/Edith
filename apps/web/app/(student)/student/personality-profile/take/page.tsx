@@ -12,7 +12,11 @@ import {
 export default async function PersonalityTakeExamPage() {
   const data = await getPersonalityExam();
   if (!data.ok) {
-    redirect(PERSONALITY_PROFILE_HREF);
+    redirect(
+      "reason" in data && data.reason === "unpaid"
+        ? `${PERSONALITY_PROFILE_HREF}#personality-step-3`
+        : PERSONALITY_PROFILE_HREF,
+    );
   }
 
   if (data.done) {

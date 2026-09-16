@@ -2,6 +2,8 @@ import { createHmac } from "node:crypto";
 
 const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const AADHAAR_RE = /^\d{12}$/;
+const MIN_IDENTITY_DOC_LEN = 3;
+const MAX_IDENTITY_DOC_LEN = 32;
 
 /** Verhoeff tables for Aadhaar checksum. */
 const D = [
@@ -58,38 +60,115 @@ export function aadhaarChecksumOk(digits: string) {
   return c === 0;
 }
 
+function panMaskFrom(normalized: string) {
+  if (PAN_RE.test(normalized)) {
+    return `${normalized.slice(0, 5)}****${normalized.slice(-1)}`;
+  }
+  if (normalized.length <= 2) return "••••";
+  if (normalized.length <= 4) {
+    return `${normalized.slice(0, 1)}•••`;
+  }
+  return `${normalized.slice(0, 2)}${"•".repeat(Math.min(4, normalized.length - 4))}${normalized.slice(-2)}`;
+}
+
+function aadhaarMaskFrom(trimmed: string, digits: string) {
+  if (digits.length >= 4) {
+    return `XXXX-XXXX-${digits.slice(-4)}`;
+  }
+  const compact = trimmed.replace(/\s+/g, "");
+  if (compact.length >= 4) {
+    return `XXXX-${compact.slice(-4)}`;
+  }
+  return "On file";
+}
+
+function aadhaarLast4From(trimmed: string, digits: string) {
+  if (digits.length >= 4) return digits.slice(-4);
+  const compact = trimmed.replace(/\s+/g, "");
+  const tail = (compact || trimmed).slice(-4);
+  return tail.padStart(4, "•");
+}
+
+/** Step 1 — accept PAN as printed on the card (no strict ABCDE1234F check). */
 export function parsePan(raw: string):
   | { error: string }
   | { pan: string; panMask: string; panHash: string } {
   const pan = normalizePan(raw);
-  if (!PAN_RE.test(pan)) {
-    return { error: "Enter a valid PAN (ABCDE1234F)." };
+  if (pan.length < MIN_IDENTITY_DOC_LEN) {
+    return { error: "Enter the PAN shown on your card." };
+  }
+  if (pan.length > MAX_IDENTITY_DOC_LEN) {
+    return { error: "PAN is too long." };
   }
   return {
     pan,
-    panMask: `${pan.slice(0, 5)}****${pan.slice(-1)}`,
+    panMask: panMaskFrom(pan),
     panHash: digest("pan", pan),
+  };
+}
+
+/** Step 1 — accept Aadhaar as printed on the card (spaces/dashes OK; not only 12 digits). */
+export function collectAadhaar(raw: string):
+  | { error: string }
+  | { aadhaarLast4: string; aadhaarMask: string; aadhaarHash: string } {
+  const trimmed = raw.trim();
+  if (trimmed.length < MIN_IDENTITY_DOC_LEN) {
+    return { error: "Enter the number shown on your Aadhaar card." };
+  }
+  if (trimmed.length > MAX_IDENTITY_DOC_LEN) {
+    return { error: "Aadhaar entry is too long." };
+  }
+  const digits = normalizeAadhaar(raw);
+  const hashInput = digits.length >= 4 ? digits : trimmed.replace(/\s+/g, "");
+  return {
+    aadhaarLast4: aadhaarLast4From(trimmed, digits),
+    aadhaarMask: aadhaarMaskFrom(trimmed, digits),
+    aadhaarHash: digest("aadhaar", hashInput),
   };
 }
 
 export function parseAadhaar(raw: string):
   | { error: string }
   | { aadhaarLast4: string; aadhaarMask: string; aadhaarHash: string } {
-  const aadhaar = normalizeAadhaar(raw);
-  if (!AADHAAR_RE.test(aadhaar)) {
-    return { error: "Enter all 12 digits of your Aadhaar number." };
-  }
-  if (!aadhaarChecksumOk(aadhaar)) {
+  const collected = collectAadhaar(raw);
+  if ("error" in collected) return collected;
+  if (!aadhaarChecksumOk(normalizeAadhaar(raw))) {
     return {
       error:
         "That number failed the Aadhaar checksum. Check the 12 digits and try again.",
     };
   }
-  return {
-    aadhaarLast4: aadhaar.slice(-4),
-    aadhaarMask: `XXXX-XXXX-${aadhaar.slice(-4)}`,
-    aadhaarHash: digest("aadhaar", aadhaar),
-  };
+  return collected;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type PersonalityContact = {
+  name: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  address: string;
+};
+
+export function parseIdentityContact(input: {
+  name: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  address: string;
+}): { error: string } | PersonalityContact {
+  const name = input.name.trim();
+  const fullName = input.fullName.trim();
+  const email = input.email.trim().toLowerCase();
+  const address = input.address.trim();
+  const phone = input.phone.replace(/\D/g, "");
+  if (!name) return { error: "Enter your name." };
+  if (!fullName) return { error: "Enter your full name." };
+  if (phone.length < 10) return { error: "Enter a valid phone number." };
+  if (!EMAIL_RE.test(email)) return { error: "Enter a valid email address." };
+  if (address.length < 8) return { error: "Enter your address." };
+  return { name, fullName, phone, email, address };
 }
 
 const TRACK_KEYWORDS: Record<string, string[]> = {
@@ -144,6 +223,11 @@ export function extractResumeKeywords(text: string) {
 export type AadhaarSource = "digilocker" | "aadhaar";
 
 export type PersonalityKyc = {
+  name?: string;
+  fullName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
   panMask?: string;
   panHash?: string;
   aadhaarMask: string;
@@ -202,10 +286,30 @@ export function hasPanOnFile(value: unknown): boolean {
   return Boolean(kyc.panHash && kyc.panMask);
 }
 
+export function hasContactOnFile(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const kyc = value as Partial<PersonalityKyc>;
+  return Boolean(
+    kyc.name?.trim() &&
+      kyc.fullName?.trim() &&
+      kyc.phone?.trim() &&
+      kyc.email?.trim() &&
+      kyc.address?.trim(),
+  );
+}
+
 export function isIdentityComplete(
   value: unknown,
-): value is PersonalityKyc & { panMask: string; panHash: string } {
-  return isAadhaarVerified(value) && hasPanOnFile(value);
+): value is PersonalityKyc & {
+  panMask: string;
+  panHash: string;
+  name: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  address: string;
+} {
+  return hasContactOnFile(value) && isAadhaarVerified(value) && hasPanOnFile(value);
 }
 
 export function isResumeComplete(value: unknown): boolean {
@@ -233,6 +337,43 @@ export function personalityWizardStep(input: {
   if (!input.identity) return 1;
   if (!input.resume) return 2;
   return 3;
+}
+
+export type PersonalityIntakeStage =
+  | "started"
+  | "contact"
+  | "identity"
+  | "resume"
+  | "exam"
+  | "complete";
+
+const INTAKE_STAGE_LABELS: Record<PersonalityIntakeStage, string> = {
+  started: "Started",
+  contact: "Contact saved",
+  identity: "Identity verified",
+  resume: "Resume on file",
+  exam: "Exam pending",
+  complete: "Exam complete",
+};
+
+export function personalityIntakeStage(
+  kyc: unknown,
+  examComplete: boolean,
+): PersonalityIntakeStage {
+  if (examComplete) return "complete";
+  if (isResumeComplete(kyc)) return "exam";
+  if (isIdentityComplete(kyc)) return "resume";
+  if (hasContactOnFile(kyc)) return "contact";
+  if (isAadhaarVerified(kyc) || hasPanOnFile(kyc)) return "identity";
+  if (hasResumeOnFile(kyc)) return "resume";
+  return "started";
+}
+
+export function personalityIntakeLabel(
+  kyc: unknown,
+  examComplete: boolean,
+): string {
+  return INTAKE_STAGE_LABELS[personalityIntakeStage(kyc, examComplete)];
 }
 
 /** Hash + mask from DigiLocker e-Aadhaar. Never persist the raw UID. */
@@ -265,7 +406,7 @@ export function recordDigilockerAadhaar(input: {
   };
 }
 
-/** Hash + mask from a typed 12-digit Aadhaar. Never persist the raw UID. */
+/** Hash + mask from a typed 12-digit Aadhaar. Collect only — no checksum or UID store. */
 export function recordEnteredAadhaar(raw: string):
   | { error: string }
   | {
@@ -275,12 +416,12 @@ export function recordEnteredAadhaar(raw: string):
       aadhaarSource: "aadhaar";
       aadhaarVerifiedAt: string;
     } {
-  const parsed = parseAadhaar(raw);
-  if ("error" in parsed) return parsed;
+  const collected = collectAadhaar(raw);
+  if ("error" in collected) return collected;
   return {
-    aadhaarLast4: parsed.aadhaarLast4,
-    aadhaarMask: parsed.aadhaarMask,
-    aadhaarHash: parsed.aadhaarHash,
+    aadhaarLast4: collected.aadhaarLast4,
+    aadhaarMask: collected.aadhaarMask,
+    aadhaarHash: collected.aadhaarHash,
     aadhaarSource: "aadhaar",
     aadhaarVerifiedAt: new Date().toISOString(),
   };

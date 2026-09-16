@@ -3,6 +3,8 @@ import { isStaffRole } from "@/lib/auth/roles";
 import { canUser } from "@/lib/auth/session";
 import { jsonOk } from "@/lib/api/http";
 import { catalogHrefForProgram } from "@/lib/assessments/personality-profile";
+import { searchStaffPrograms } from "@/lib/compass/program-bridge";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { displayProgramName } from "@/lib/programs/categories";
 import { prisma } from "@/lib/db";
 
@@ -25,25 +27,9 @@ export async function GET(request: Request) {
     subtitle?: string;
   }[] = [];
 
-  const programs = await prisma.program.findMany({
-    where: {
-      organizationId,
-      ...(staff && canViewPrograms ? {} : { status: "PUBLISHED" }),
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { description: { contains: q, mode: "insensitive" } },
-        { slug: { contains: q, mode: "insensitive" } },
-      ],
-    },
-    take: 8,
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      category: true,
-      sku: true,
-      domainSlug: true,
-    },
+  const programs = await searchStaffPrograms(organizationId, q, {
+    staffCanViewDrafts: staff && canViewPrograms,
+    limit: 8,
   });
 
   for (const program of programs) {
@@ -59,7 +45,7 @@ export async function GET(request: Request) {
     });
   }
 
-  if (staff && canUser(user, "manageMembers")) {
+  if (staff && canUser(user, "manageMembers") && !isCompassDatabase()) {
     const members = await prisma.user.findMany({
       where: {
         memberships: { some: { organizationId } },

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Manrope } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { auth } from "@/lib/auth";
 import { APP_LOCKUP, APP_NAME } from "@/lib/brand";
 import { getSiteOrigin } from "@/lib/urls";
 import "./globals.css";
@@ -41,18 +42,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html
       lang="en"
       className={`${manrope.variable} ${instrumentSerif.variable} ${manrope.className} h-full antialiased`}
     >
       <body className="min-h-full bg-bg text-fg">
-        <Providers>{children}</Providers>
+        <Providers session={session}>{children}</Providers>
       </body>
     </html>
   );

@@ -7,9 +7,22 @@ import {
   SyllabusStatus,
 } from "@prisma/client";
 import { requireCapability, requireStudent } from "@/lib/auth/session";
+import { findCompassActiveEnrollment } from "@/lib/compass/enrollment";
+import {
+  isCompassLessonComplete,
+  loadCompassLesson,
+  markCompassLessonComplete,
+} from "@/lib/compass/syllabus";
+import { getCompassCourseById } from "@/lib/compass/courses";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
+import {
+  extractYouTubeUrls,
+  mergeLessonReadingAndVideo,
+} from "@/lib/learning/youtube-content";
+import { inferLessonContentType } from "@/lib/learning/video-embed";
 import { parsePublishedFlag } from "@/lib/learning/outline";
-import { saveLessonPdf } from "@/lib/storage";
+import { saveLessonPdf, saveLessonVideo } from "@/lib/storage";
 
 function revalidateSyllabus(programId: string, programSlug?: string | null) {
   revalidatePath("/admin/syllabus");
@@ -28,6 +41,11 @@ function revalidateSyllabus(programId: string, programSlug?: string | null) {
 }
 
 async function revalidateSyllabusForProgram(programId: string) {
+  if (isCompassDatabase()) {
+    const course = await getCompassCourseById(programId);
+    revalidateSyllabus(programId, course?.slug);
+    return;
+  }
   const program = await prisma.program.findUnique({
     where: { id: programId },
     select: { slug: true },
@@ -36,6 +54,7 @@ async function revalidateSyllabusForProgram(programId: string) {
 }
 
 async function staffOwnedProgram(programId: string, organizationId: string) {
+  if (isCompassDatabase()) return null;
   return prisma.program.findFirst({
     where: { id: programId, organizationId },
     include: { syllabus: true },
@@ -55,28 +74,75 @@ const moduleSchema = z.object({
 const lessonSchema = z.object({
   title: z.string().min(1).max(200),
   summary: z.string().max(2000).optional().nullable(),
-  contentType: z.nativeEnum(LessonContentType),
+  contentType: z.nativeEnum(LessonContentType).optional(),
   contentBody: z.string().max(50000).optional().nullable(),
   durationMin: z.coerce.number().int().min(0).optional().nullable(),
   isPublished: z.boolean().optional(),
 });
+
+function resolvedContentType(
+  rawType: unknown,
+  contentBody: string | null | undefined,
+  fallback?: LessonContentType,
+) {
+  const value = typeof rawType === "string" ? rawType.trim() : "";
+  if (
+    value &&
+    (Object.values(LessonContentType) as string[]).includes(value)
+  ) {
+    return value as LessonContentType;
+  }
+  if (fallback) return fallback;
+  return inferLessonContentType(contentBody ?? "") as LessonContentType;
+}
+
+function lessonVideoFile(formData: FormData) {
+  const file = formData.get("video");
+  return file instanceof File && file.size > 0 ? file : null;
+}
 
 async function lessonContentFromForm(
   contentType: LessonContentType,
   formData: FormData,
   existingContent: string,
 ): Promise<{ content: string } | { error: string }> {
-  if (contentType !== LessonContentType.PDF_FILE) {
-    return { content: String(formData.get("contentBody") ?? existingContent).trim() };
+  if (contentType === LessonContentType.PDF_FILE) {
+    const file = formData.get("pdf");
+    if (file instanceof File && file.size > 0) {
+      const stored = await saveLessonPdf(file);
+      if ("error" in stored) return { error: stored.error };
+      return { content: stored.storagePath };
+    }
+    if (existingContent.trim()) return { content: existingContent };
+    return { error: "Upload a PDF for this activity." };
   }
-  const file = formData.get("pdf");
-  if (file instanceof File && file.size > 0) {
-    const stored = await saveLessonPdf(file);
+
+  const video = lessonVideoFile(formData);
+  if (contentType === LessonContentType.VIDEO_URL && video) {
+    const stored = await saveLessonVideo(video);
     if ("error" in stored) return { error: stored.error };
     return { content: stored.storagePath };
   }
+
+  const pasted = String(formData.get("contentBody") ?? "").trim();
+  if (contentType === LessonContentType.RICH_TEXT) {
+    const videoField = formData.get("videoUrl");
+    const videoUrl =
+      videoField === null
+        ? (extractYouTubeUrls(existingContent)[0] ?? "")
+        : String(videoField).trim();
+    const content = mergeLessonReadingAndVideo(pasted, videoUrl);
+    if (content) return { content };
+    if (existingContent.trim()) return { content: existingContent };
+    return { content: "" };
+  }
+
+  if (pasted) return { content: pasted };
   if (existingContent.trim()) return { content: existingContent };
-  return { error: "Upload a PDF for this activity." };
+  if (contentType === LessonContentType.VIDEO_URL) {
+    return { error: "Paste a video URL or upload a video file." };
+  }
+  return { content: "" };
 }
 
 export async function upsertSyllabus(programId: string, formData: FormData) {
@@ -311,15 +377,21 @@ export async function createLesson(
   const parsed = lessonSchema.safeParse({
     title: formData.get("title"),
     summary: formData.get("summary") || null,
-    contentType: formData.get("contentType") || LessonContentType.RICH_TEXT,
+    contentType: formData.get("contentType") || undefined,
     contentBody: formData.get("contentBody") || "",
     durationMin: formData.get("durationMin") || null,
     isPublished: parsePublishedFlag(formData),
   });
   if (!parsed.success) return { error: "Invalid lesson details." };
 
+  const contentType = lessonVideoFile(formData)
+    ? LessonContentType.VIDEO_URL
+    : resolvedContentType(
+        parsed.data.contentType,
+        parsed.data.contentBody,
+      );
   const body = await lessonContentFromForm(
-    parsed.data.contentType,
+    contentType,
     formData,
     "",
   );
@@ -335,7 +407,7 @@ export async function createLesson(
       moduleId,
       title: parsed.data.title.trim(),
       summary: parsed.data.summary?.trim() || null,
-      contentType: parsed.data.contentType,
+      contentType,
       content: body.content,
       durationMin: parsed.data.durationMin ?? null,
       isPublished: parsed.data.isPublished ?? true,
@@ -370,15 +442,22 @@ export async function updateLesson(
   const parsed = lessonSchema.safeParse({
     title: formData.get("title"),
     summary: formData.get("summary") || null,
-    contentType: formData.get("contentType") || lesson.contentType,
+    contentType: formData.get("contentType") || undefined,
     contentBody: formData.get("contentBody") ?? lesson.content,
     durationMin: formData.get("durationMin") || null,
     isPublished: parsePublishedFlag(formData),
   });
   if (!parsed.success) return { error: "Invalid lesson details." };
 
+  const contentType = lessonVideoFile(formData)
+    ? LessonContentType.VIDEO_URL
+    : resolvedContentType(
+        parsed.data.contentType,
+        parsed.data.contentBody,
+        lesson.contentType,
+      );
   const body = await lessonContentFromForm(
-    parsed.data.contentType,
+    contentType,
     formData,
     lesson.content,
   );
@@ -389,7 +468,7 @@ export async function updateLesson(
     data: {
       title: parsed.data.title.trim(),
       summary: parsed.data.summary?.trim() || null,
-      contentType: parsed.data.contentType,
+      contentType,
       content: body.content,
       durationMin: parsed.data.durationMin ?? null,
       isPublished: parsed.data.isPublished ?? true,
@@ -509,6 +588,44 @@ export async function markLessonComplete(lessonId: string) {
 
 async function setLessonCompleted(lessonId: string, complete: true | "toggle") {
   const session = await requireStudent();
+
+  if (isCompassDatabase()) {
+    const courseRows = await prisma.$queryRaw<{ courseId: string }[]>`
+      SELECT "courseId" FROM "Lesson" WHERE id = ${lessonId} LIMIT 1
+    `;
+    const courseId = courseRows[0]?.courseId;
+    if (!courseId) return { error: "Lesson not found." };
+
+    const enrollment = await findCompassActiveEnrollment(session.user.id, courseId);
+    if (!enrollment) {
+      return { error: "You must be enrolled in this program to track progress." };
+    }
+
+    const lesson = await loadCompassLesson(courseId, lessonId);
+    if (!lesson) return { error: "Lesson not found." };
+
+    const alreadyComplete = await isCompassLessonComplete(
+      session.user.id,
+      courseId,
+      lessonId,
+    );
+    const shouldComplete = complete === true ? true : !alreadyComplete;
+    if (shouldComplete && alreadyComplete) return { ok: true as const };
+
+    if (!shouldComplete) {
+      return { error: "Un-completing lessons is not supported on compass_dev." };
+    }
+
+    await markCompassLessonComplete(session.user.id, courseId, lessonId);
+    revalidatePath("/student/learning");
+    revalidatePath(`/student/learning/${courseId}`);
+    revalidatePath(`/student/learning/${courseId}/lessons/${lessonId}`);
+    revalidatePath("/student/my-courses");
+    revalidatePath(`/student/my-courses/${courseId}`);
+    revalidatePath("/student/dashboard");
+    revalidatePath("/student/progress");
+    return { ok: true as const };
+  }
 
   const lesson = await prisma.syllabusLesson.findFirst({
     where: {

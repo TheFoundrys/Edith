@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { QuizEditor } from "@/components/admin/quiz-editor";
 import { requireCapability } from "@/lib/auth/session";
+import { listStaffProgramOptions } from "@/lib/compass/program-bridge";
+import { redirectIfCompassAdminRoute } from "@/lib/compass/require-edith";
 import { prisma } from "@/lib/db";
 
 export default async function AdminEditQuizPage({
@@ -8,6 +10,7 @@ export default async function AdminEditQuizPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  redirectIfCompassAdminRoute();
   const { id } = await params;
   const session = await requireCapability("manageContent");
   const quiz = await prisma.quiz.findFirst({
@@ -18,11 +21,13 @@ export default async function AdminEditQuizPage({
   });
   if (!quiz) notFound();
 
-  const programs = await prisma.program.findMany({
-    where: { organizationId: session.user.organizationId },
-    select: { id: true, title: true },
-    orderBy: { title: "asc" },
-  });
+  const programOptions = await listStaffProgramOptions(
+    session.user.organizationId,
+  );
+  const programs = programOptions.map((program) => ({
+    id: program.id,
+    title: program.title,
+  }));
 
   return (
     <QuizEditor

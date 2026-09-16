@@ -1,7 +1,18 @@
 # AI content plugins
 
 Plugins are registered in code (`lib/ai/plugins/`) and configured per organization
-in **Admin → AI plugins**. No `AI_ADAPTER` / `OPENAI_*` environment variables are used.
+in **Admin → AI plugins**.
+
+Optional server defaults for OptGPT / Ollama (OpenAI-compatible API):
+
+```env
+OPTGPT_URL="http://192.168.1.117:8006"
+MODEL_NAME="optgpt:7b"
+OLLAMA_API_KEY="ollama"
+```
+
+These apply when no complete **openai-compatible** config is saved in the admin UI.
+`OPTGPT_URL` is normalized to `{url}/v1` for `/chat/completions`.
 
 Capabilities: assignment drafts, quiz drafts, and lesson tutor replies grounded in
 live course / syllabus / lesson data (`loadCourseLessonContext`).

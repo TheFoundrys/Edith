@@ -97,7 +97,10 @@ test("auth redirects cannot cross role boundaries or origins", () => {
   );
   assert.equal(resolveAuthRedirect("STUDENT", "/admin"), ROUTES.studentDashboard);
   assert.equal(resolveAuthRedirect("SUPER_ADMIN", "/admin/members"), "/admin/members");
-  assert.equal(resolveAuthRedirect("SUPER_ADMIN", "/student/payment"), ROUTES.admin);
+  assert.equal(
+    resolveAuthRedirect("SUPER_ADMIN", "/student/transactions"),
+    ROUTES.admin,
+  );
 });
 
 test("course cards load real Unsplash photographs by subject", () => {

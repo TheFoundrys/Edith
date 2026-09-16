@@ -12,8 +12,9 @@ export const openAiCompatiblePlugin: AiPlugin = {
         key: "apiKey",
         label: "API key",
         type: "password",
-        required: true,
-        placeholder: "sk-… or provider token",
+        required: false,
+        placeholder: "ollama (local) or sk-…",
+        help: "Ollama / OptGPT often accept any value — use ollama when no key is required.",
       },
       {
         key: "baseUrl",
@@ -33,12 +34,9 @@ export const openAiCompatiblePlugin: AiPlugin = {
     ],
   },
   create: (config) => {
-    const apiKey = config.apiKey?.trim();
     const baseUrl = config.baseUrl?.trim();
     const model = config.model?.trim();
-    if (!apiKey) {
-      throw new Error("API key is required for the OpenAI-compatible plugin.");
-    }
+    const apiKey = config.apiKey?.trim() || "ollama";
     if (!baseUrl) {
       throw new Error("Base URL is required for the OpenAI-compatible plugin.");
     }

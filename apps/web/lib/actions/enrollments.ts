@@ -18,6 +18,17 @@ import {
   isPersonalityProfileProgram,
   PERSONALITY_PROFILE_HREF,
 } from "@/lib/assessments/personality-profile";
+import { personalityExamPrerequisitesMet, hasPaidPersonalityExamAccess } from "@/lib/assessments/personality-access";
+import {
+  canCheckoutAdmissionsProgram,
+  requiresApplication,
+} from "@/lib/enrollment/admissions";
+import {
+  compassCompleteMockPayment,
+  compassEnrollFree,
+  compassStartCheckout,
+} from "@/lib/compass/enroll-flow";
+import { isCompassDatabase } from "@/lib/db/profile";
 
 function revalidateEnrollmentPaths(programId: string) {
   revalidatePath("/student/dashboard");
@@ -27,6 +38,8 @@ function revalidateEnrollmentPaths(programId: string) {
   revalidatePath(`/student/learning/${programId}`);
   revalidatePath("/student/progress");
   revalidatePath("/student/notifications");
+  revalidatePath("/student/transactions");
+  revalidatePath("/admin/transactions");
   revalidatePath("/checkout");
   revalidatePath("/courses");
   revalidatePath(PERSONALITY_PROFILE_HREF);
@@ -100,6 +113,9 @@ function selectEnrollmentIntake(
 /** Activate (or create) an ACTIVE enrollment without payment — or PENDING if CRM must confirm. */
 export async function enrollFree(programSlug: string, intakeId?: string) {
   const session = await requireStudent();
+  if (isCompassDatabase()) {
+    return compassEnrollFree(session.user, programSlug);
+  }
 
   const program = await prisma.program.findFirst({
     where: {
@@ -121,7 +137,7 @@ export async function enrollFree(programSlug: string, intakeId?: string) {
         "This course requires an application and admissions approval before enrollment.",
     };
   }
-  if (!isFreeCourse(program)) {
+  if (isPersonalityProfileProgram(program) || !isFreeCourse(program)) {
     return { error: "This course requires payment. Continue to payment." };
   }
   const intakeResult = selectEnrollmentIntake(program.intakes, intakeId);
@@ -235,12 +251,31 @@ export async function enrollFree(programSlug: string, intakeId?: string) {
   };
 }
 
+function razorpayCheckoutAllowed(
+  settings: { razorpayEnabled: boolean } | null,
+  config: ReturnType<typeof getPaymentConfig>,
+) {
+  if (config.adapter !== "razorpay") return true;
+  if (settings?.razorpayEnabled) return true;
+  // Local dev: allow checkout when keys are configured even if admin toggle is off.
+  return (
+    process.env.NODE_ENV !== "production" &&
+    Boolean(config.keyId && config.keySecret)
+  );
+}
+
 export async function startCheckout(
   programSlug: string,
   couponCode?: string,
   intakeId?: string,
 ) {
   const session = await requireStudent();
+  if (isCompassDatabase()) {
+    if (couponCode?.trim()) {
+      return { error: "Coupons are not available on compass_dev." };
+    }
+    return compassStartCheckout(session.user, programSlug);
+  }
 
   const program = await prisma.program.findFirst({
     where: {
@@ -256,19 +291,6 @@ export async function startCheckout(
     },
   });
   if (!program) return { error: "Course not found." };
-  if (program.formDefinitionId) {
-    return {
-      error:
-        "This course requires an application and admissions approval before checkout.",
-    };
-  }
-
-  if (isFreeCourse(program)) {
-    return enrollFree(programSlug, intakeId);
-  }
-  const intakeResult = selectEnrollmentIntake(program.intakes, intakeId);
-  if (!intakeResult.ok) return { error: intakeResult.error };
-  const selectedIntake = intakeResult.intake;
 
   const existing = await prisma.enrollment.findUnique({
     where: {
@@ -279,15 +301,63 @@ export async function startCheckout(
     },
   });
 
-  if (existing?.status === "ACTIVE") {
+  if (requiresApplication(program) && !canCheckoutAdmissionsProgram(program, existing)) {
     return {
-      ok: true as const,
-      alreadyEnrolled: true as const,
-      enrollmentId: existing.id,
-      programId: program.id,
-      programSlug: program.slug,
-      programName: program.title,
+      error:
+        "This programme requires CRM admission before tuition payment. Apply in CRM and wait for approval.",
     };
+  }
+
+  if (isFreeCourse(program) && !isPersonalityProfileProgram(program)) {
+    if (requiresApplication(program) && existing?.status === "ACTIVE") {
+      return {
+        ok: true as const,
+        alreadyEnrolled: true as const,
+        enrollmentId: existing.id,
+        programId: program.id,
+        programSlug: program.slug,
+        programName: program.title,
+      };
+    }
+    if (!requiresApplication(program)) {
+      return enrollFree(programSlug, intakeId);
+    }
+  }
+  const intakeResult = selectEnrollmentIntake(program.intakes, intakeId);
+  if (!intakeResult.ok) return { error: intakeResult.error };
+  const selectedIntake = intakeResult.intake;
+
+  if (existing?.status === "ACTIVE") {
+    if (isPersonalityProfileProgram(program)) {
+      const examPaid = await hasPaidPersonalityExamAccess({
+        userId: session.user.id,
+        programId: program.id,
+      });
+      if (examPaid) {
+        return {
+          ok: true as const,
+          alreadyEnrolled: true as const,
+          enrollmentId: existing.id,
+          programId: program.id,
+          programSlug: program.slug,
+          programName: program.title,
+        };
+      }
+    } else {
+      const tuitionPaid = existing.payments.some(
+        (payment) => payment.status === "PAID",
+      );
+      if (tuitionPaid || isFreeCourse(program)) {
+        return {
+          ok: true as const,
+          alreadyEnrolled: true as const,
+          enrollmentId: existing.id,
+          programId: program.id,
+          programSlug: program.slug,
+          programName: program.title,
+        };
+      }
+    }
   }
 
   const capacityError = await programCapacityError(
@@ -296,6 +366,19 @@ export async function startCheckout(
     selectedIntake,
   );
   if (capacityError) return { error: capacityError };
+
+  if (isPersonalityProfileProgram(program)) {
+    const ready = await personalityExamPrerequisitesMet({
+      userId: session.user.id,
+      organizationId: session.user.organizationId,
+    });
+    if (!ready) {
+      return {
+        error:
+          "Complete your details and upload a resume on the Personality Profile before paying.",
+      };
+    }
+  }
 
   const quote = await buildCourseQuote({
     organizationId: session.user.organizationId,
@@ -311,14 +394,20 @@ export async function startCheckout(
   });
   if (
     paymentConfig.adapter === "razorpay" &&
-    paymentSettings &&
-    !paymentSettings.razorpayEnabled
+    !razorpayCheckoutAllowed(paymentSettings, paymentConfig)
   ) {
     return { error: "Razorpay is disabled for this organization." };
   }
 
   const amount = quote.totalAmount;
   const currency = quote.currency.trim().toUpperCase() || "INR";
+
+  if (requiresApplication(program) && !existing) {
+    return {
+      error:
+        "This programme requires CRM admission before tuition payment. Apply in CRM and wait for approval.",
+    };
+  }
 
   const enrollment =
     existing ??
@@ -362,20 +451,29 @@ export async function startCheckout(
 
   const existingPaid = payments.find((p) => p.status === "PAID");
   if (existingPaid) {
-    const result = await completeCoursePayment({
-      paymentId: existingPaid.id,
-      note: "Activating enrollment from paid course fee",
-    });
-    if ("error" in result && result.error) return { error: result.error };
-    revalidateEnrollmentPaths(program.id);
-    return {
-      ok: true as const,
-      alreadyEnrolled: true as const,
-      enrollmentId: enrollment.id,
-      programId: program.id,
-      programSlug: program.slug,
-      programName: program.title,
-    };
+    const personalityPaid =
+      isPersonalityProfileProgram(program) &&
+      (await hasPaidPersonalityExamAccess({
+        userId: session.user.id,
+        programId: program.id,
+      }));
+
+    if (!isPersonalityProfileProgram(program) || personalityPaid) {
+      const result = await completeCoursePayment({
+        paymentId: existingPaid.id,
+        note: "Activating enrollment from paid course fee",
+      });
+      if ("error" in result && result.error) return { error: result.error };
+      revalidateEnrollmentPaths(program.id);
+      return {
+        ok: true as const,
+        alreadyEnrolled: true as const,
+        enrollmentId: enrollment.id,
+        programId: program.id,
+        programSlug: program.slug,
+        programName: program.title,
+      };
+    }
   }
 
   if (amount === 0) {
@@ -521,6 +619,10 @@ export async function completeMockCoursePayment(paymentId: string) {
   }
 
   const session = await requireStudent();
+  if (isCompassDatabase()) {
+    return compassCompleteMockPayment(session.user, paymentId);
+  }
+
   const payment = await prisma.payment.findFirst({
     where: {
       id: paymentId,

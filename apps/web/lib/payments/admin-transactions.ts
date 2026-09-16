@@ -1,7 +1,17 @@
+import {
+  listCompassTransactionsAdmin,
+  mapCompassTransactionToAdminPayment,
+} from "@/lib/compass/transactions";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { paymentProgramTitle } from "@/lib/payments/student-transactions";
 
 export async function getAdminPayments(orgId: string, limit = 100) {
+  if (isCompassDatabase()) {
+    const rows = await listCompassTransactionsAdmin(orgId, limit);
+    return rows.map(mapCompassTransactionToAdminPayment);
+  }
+
   return prisma.payment.findMany({
     where: { organizationId: orgId },
     select: {

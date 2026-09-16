@@ -7,6 +7,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { loadOrgCapabilityMatrix } from "@/lib/auth/org-capabilities";
 import { isAppRole, type AppRole } from "@/lib/auth/roles";
 import { requireSuperAdmin } from "@/lib/auth/session";
+import { redirectIfCompassAdminRoute } from "@/lib/compass/require-edith";
 import { prisma } from "@/lib/db";
 
 const VIEWS = [
@@ -26,6 +27,7 @@ export default async function AdminMembersRolesPage({
   searchParams: Promise<{ view?: string }>;
 }) {
   const session = await requireSuperAdmin();
+  redirectIfCompassAdminRoute();
   const sp = await searchParams;
   const orgId = session.user.organizationId;
   const view: ViewValue = isView(sp.view) ? sp.view : "roles";
@@ -76,7 +78,7 @@ export default async function AdminMembersRolesPage({
     <div>
       <Breadcrumbs
         items={[
-          { href: "/admin/members", label: "Members" },
+          { href: "/admin/members", label: "People" },
           { label: "Roles & access" },
         ]}
       />

@@ -284,11 +284,6 @@ export const STAFF_NAV: StaffNavItem[] = [
     anyOf: ["manageForms"],
   },
   {
-    href: "/admin/applications",
-    label: "Applications",
-    anyOf: ["manageApplications"],
-  },
-  {
     href: "/admin/tickets",
     label: "Tickets",
     anyOf: ["manageApplications"],
@@ -300,7 +295,7 @@ export const STAFF_NAV: StaffNavItem[] = [
   },
   {
     href: "/admin/members",
-    label: "Members",
+    label: "People",
     anyOf: ["manageMembers"],
   },
 ];

@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, Panel } from "@/components/ui/page";
 import { requireCapability } from "@/lib/auth/session";
+import { getCompassCourseById } from "@/lib/compass/courses";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { flattenPublishedActivities } from "@/lib/learning/outline";
+import { redirect } from "next/navigation";
 
 export default async function AdminSyllabusProgressPage({
   params,
@@ -15,6 +18,14 @@ export default async function AdminSyllabusProgressPage({
 }) {
   const { programId } = await params;
   const session = await requireCapability("manageContent");
+
+  if (isCompassDatabase()) {
+    const course = await getCompassCourseById(programId);
+    if (!course || course.organizationId !== session.user.organizationId) {
+      redirect("/admin/syllabus");
+    }
+    redirect(`/admin/syllabus/${programId}`);
+  }
 
   const program = await prisma.program.findFirst({
     where: {

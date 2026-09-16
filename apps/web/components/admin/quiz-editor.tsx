@@ -33,8 +33,10 @@ function emptyQuestion(): QuestionDraft {
 export function QuizEditor({
   programs,
   quiz,
+  initialProgramId,
 }: {
   programs: ProgramOption[];
+  initialProgramId?: string;
   quiz?: {
     id: string;
     programId: string;
@@ -46,7 +48,7 @@ export function QuizEditor({
 }) {
   const router = useRouter();
   const [programId, setProgramId] = useState(
-    quiz?.programId ?? programs[0]?.id ?? "",
+    quiz?.programId ?? initialProgramId ?? programs[0]?.id ?? "",
   );
   const [title, setTitle] = useState(quiz?.title ?? "");
   const [description, setDescription] = useState(quiz?.description ?? "");

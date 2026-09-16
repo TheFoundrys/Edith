@@ -21,7 +21,7 @@ export function renderSimpleMarkdown(source: string): ReactNode[] {
 
     if (/^###\s+/.test(line)) {
       nodes.push(
-        <h3 key={key++} className="mt-4 mb-2 text-base font-semibold">
+        <h3 key={key++} className="mt-4 mb-2 text-base font-semibold text-fg">
           {inline(line.replace(/^###\s+/, ""))}
         </h3>,
       );
@@ -30,7 +30,7 @@ export function renderSimpleMarkdown(source: string): ReactNode[] {
     }
     if (/^##\s+/.test(line)) {
       nodes.push(
-        <h2 key={key++} className="mt-5 mb-2 text-lg font-semibold">
+        <h2 key={key++} className="mt-5 mb-2 text-lg font-semibold text-fg">
           {inline(line.replace(/^##\s+/, ""))}
         </h2>,
       );
@@ -39,7 +39,7 @@ export function renderSimpleMarkdown(source: string): ReactNode[] {
     }
     if (/^#\s+/.test(line)) {
       nodes.push(
-        <h1 key={key++} className="mt-5 mb-2 text-xl font-semibold">
+        <h1 key={key++} className="mt-5 mb-2 text-xl font-semibold text-fg">
           {inline(line.replace(/^#\s+/, ""))}
         </h1>,
       );
@@ -112,7 +112,7 @@ export function renderSimpleMarkdown(source: string): ReactNode[] {
       i += 1;
     }
     nodes.push(
-      <p key={key++} className="my-2 leading-relaxed">
+      <p key={key++} className="my-2 leading-relaxed text-fg">
         {inline(para.join(" "))}
       </p>,
     );
@@ -124,7 +124,7 @@ export function renderSimpleMarkdown(source: string): ReactNode[] {
 function inline(text: string): ReactNode[] {
   const parts: ReactNode[] = [];
   const re =
-    /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+    /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s<]+[^\s<.,;:!?)])/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let k = 0;
@@ -143,6 +143,18 @@ function inline(text: string): ReactNode[] {
         >
           {token.slice(1, -1)}
         </code>,
+      );
+    } else if (token.startsWith("http://") || token.startsWith("https://")) {
+      parts.push(
+        <a
+          key={k++}
+          href={token}
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          {token}
+        </a>,
       );
     } else {
       const link = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);

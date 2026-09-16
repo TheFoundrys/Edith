@@ -5,10 +5,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { memberWorkspaceCounts } from "@/lib/admin/member-workspace";
 import { ROLE_LABELS, type AppRole } from "@/lib/auth/roles";
 import { requireCapability } from "@/lib/auth/session";
+import { redirectIfCompassAdminRoute } from "@/lib/compass/require-edith";
 import { prisma } from "@/lib/db";
 
 export default async function AdminMemberInvitesPage() {
   const session = await requireCapability("manageMembers");
+  redirectIfCompassAdminRoute();
   const orgId = session.user.organizationId;
   const isAdmin = session.user.role === "SUPER_ADMIN";
 
@@ -39,7 +41,6 @@ export default async function AdminMemberInvitesPage() {
   return (
     <div>
       <MembersAdminHeader
-        title="Staff invites"
         description="Staff join by invitation only. Students continue to self-register."
         active="invites"
         counts={counts}

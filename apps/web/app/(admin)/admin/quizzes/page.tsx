@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page";
 import { requireCapability } from "@/lib/auth/session";
+import { redirectIfCompassAdminRoute } from "@/lib/compass/require-edith";
 import { prisma } from "@/lib/db";
 
 export default async function AdminQuizzesPage() {
+  redirectIfCompassAdminRoute();
   const session = await requireCapability("manageContent");
   const quizzes = await prisma.quiz.findMany({
     where: { organizationId: session.user.organizationId },

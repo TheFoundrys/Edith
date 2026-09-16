@@ -1,5 +1,7 @@
 import type { ProgramStatus, Role } from "@prisma/client";
+import { getCompassAdminDashboardData } from "@/lib/compass/admin-dashboard-data";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { displayProgramName, programCategoryLabel } from "@/lib/programs/categories";
 import { inferProgramTrack, TRACK_LABELS, type ProgramTrack } from "@/lib/programs/track";
 
@@ -133,6 +135,10 @@ export async function getAdminDashboardData(
   orgId: string,
   adminName: string,
 ): Promise<AdminDashboardData> {
+  if (isCompassDatabase()) {
+    return getCompassAdminDashboardData(orgId, adminName);
+  }
+
   const today = startOfDay(new Date());
   const weekStart = new Date(today);
   weekStart.setDate(weekStart.getDate() - 6);

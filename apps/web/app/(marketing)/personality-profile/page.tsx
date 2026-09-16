@@ -5,9 +5,9 @@ import { isStaffRole } from "@/lib/auth/session";
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import { CourseLandingPage } from "@/components/marketing/course-landing-page";
 import { Button } from "@/components/ui/button";
-import { prisma } from "@/lib/db";
 import { getStudentCourseEnrollmentState } from "@/lib/enrollment/student-state";
 import { buildCourseLandingModel } from "@/lib/marketing/course-page-data";
+import { loadPublicCourseLandingSource } from "@/lib/marketing/public-course-detail";
 import { getDefaultOrganizationId } from "@/lib/organizations/default";
 import {
   PERSONALITY_PROFILE_ENROLL_HREF,
@@ -19,42 +19,10 @@ export default async function PersonalityProfilePublicPage() {
   const session = await auth();
   const organizationId = await getDefaultOrganizationId();
 
-  const course = await prisma.program.findFirst({
-    where: {
-      organizationId,
-      slug: PERSONALITY_PROFILE_SLUG,
-      status: "PUBLISHED",
-    },
-    include: {
-      campus: true,
-      department: true,
-      intakes: { where: { isActive: true }, orderBy: { startDate: "asc" } },
-      _count: { select: { enrollments: true } },
-      syllabus: {
-        where: { status: "PUBLISHED" },
-        select: {
-          title: true,
-          modules: {
-            orderBy: { order: "asc" },
-            select: {
-              id: true,
-              title: true,
-              summary: true,
-              lessons: {
-                where: { isPublished: true },
-                orderBy: { order: "asc" },
-                select: {
-                  id: true,
-                  title: true,
-                  durationMin: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  const course = await loadPublicCourseLandingSource(
+    PERSONALITY_PROFILE_SLUG,
+    organizationId,
+  );
 
   if (!course) {
     return (
@@ -122,7 +90,10 @@ export default async function PersonalityProfilePublicPage() {
           enroll={{
             state: enrollState,
             enrollCallback,
+            applyCallback: enrollCallback,
             programId: course.id,
+            programSlug: course.slug,
+            requiresApplication: false,
           }}
         />
       </div>

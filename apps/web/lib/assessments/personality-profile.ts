@@ -6,7 +6,7 @@ import {
 import {
   applyOptionMap,
   type KryptonMcqPaper,
-} from "@/lib/assessments/krypton";
+} from "@/lib/assessments/krypton-paper";
 
 export const PERSONALITY_PROFILE_SLUG = "edith-personality-profile";
 export const PERSONALITY_PROFILE_HREF = "/student/personality-profile";
@@ -467,13 +467,17 @@ export function isPersonalityExamComplete(responses: PersonalityResponses) {
 }
 
 export function personalityProgress(responses: PersonalityResponses) {
-  const complete = isPersonalityExamComplete(responses);
   const total = PERSONALITY_EXAM_QUESTION_COUNT;
-  return {
-    done: complete ? total : 0,
-    total,
-    pct: complete ? 100 : 0,
-  };
+  let done = 0;
+  for (const section of PERSONALITY_SECTIONS) {
+    const answers = responses[section.id];
+    if (!answers) continue;
+    for (const question of SECTION_QUESTIONS[section.id]) {
+      if (typeof answers[question.id] === "number") done += 1;
+    }
+  }
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  return { done, total, pct };
 }
 
 export function splitExamAnswers(

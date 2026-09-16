@@ -7,13 +7,17 @@ import {
   originalOptionIndex,
 } from "../lib/assessments/krypton";
 import {
+  collectAadhaar,
   extractResumeKeywords,
   hasResumeOnFile,
   isAadhaarVerified,
   isIdentityComplete,
   isKycComplete,
   parseAadhaar,
+  parseIdentityContact,
   parsePan,
+  personalityIntakeLabel,
+  personalityIntakeStage,
   recordDigilockerAadhaar,
   recordEnteredAadhaar,
   unlinkAadhaarFromKyc,
@@ -69,12 +73,39 @@ test("Aadhaar uses Verhoeff; PAN is masked; resume keywords extract tracks", () 
   assert.equal(pan.panMask, "ABCDE****F");
   assert.ok(pan.panHash.length > 20);
 
-  const entered = recordEnteredAadhaar("234123412340");
+  const entered = recordEnteredAadhaar("123456789012");
   assert.equal("error" in entered, false);
   if ("error" in entered) return;
   assert.equal(entered.aadhaarSource, "aadhaar");
-  assert.equal(entered.aadhaarMask, "XXXX-XXXX-2340");
+  assert.equal(entered.aadhaarMask, "XXXX-XXXX-9012");
   assert.equal(isAadhaarVerified(entered), true);
+
+  const collected = collectAadhaar("1234 5678 9012");
+  assert.equal("error" in collected, false);
+  if ("error" in collected) return;
+  assert.equal(collected.aadhaarLast4, "9012");
+
+  const flexibleAadhaar = collectAadhaar("VID 9876");
+  assert.equal("error" in flexibleAadhaar, false);
+  if ("error" in flexibleAadhaar) return;
+  assert.equal(flexibleAadhaar.aadhaarMask, "XXXX-XXXX-9876");
+
+  const flexiblePan = parsePan("aa123");
+  assert.equal("error" in flexiblePan, false);
+  if ("error" in flexiblePan) return;
+  assert.equal(flexiblePan.pan, "AA123");
+
+  const contact = parseIdentityContact({
+    name: "Ada",
+    fullName: "Ada Lovelace",
+    phone: "+91 98765 43210",
+    email: "ada@example.com",
+    address: "12 Baker Street, London",
+  });
+  assert.equal("error" in contact, false);
+  if ("error" in contact) return;
+  assert.equal(contact.phone, "919876543210");
+  assert.equal(contact.email, "ada@example.com");
 
   assert.deepEqual(
     extractResumeKeywords("Senior Python ML engineer, SOC analyst").sort(),
@@ -138,7 +169,7 @@ test("DigiLocker OAuth state carries a PKCE verifier", () => {
   assert.equal(readOauthState("tampered.token"), null);
 });
 
-test("KYC is complete after Aadhaar (typed or DigiLocker) plus PAN and resume", () => {
+test("KYC is complete after contact, Aadhaar, PAN and resume", () => {
   const recorded = recordDigilockerAadhaar({
     uidDigits: "234123412340",
     last4: "2340",
@@ -150,24 +181,37 @@ test("KYC is complete after Aadhaar (typed or DigiLocker) plus PAN and resume", 
   assert.equal(isIdentityComplete(recorded), false);
   assert.equal(isKycComplete(recorded), false);
 
-  const complete = {
+  const contact = {
+    name: "Ada",
+    fullName: "Ada Lovelace",
+    phone: "9876543210",
+    email: "ada@example.com",
+    address: "12 Baker Street, London",
+  };
+  const withIds = {
     ...recorded,
+    ...contact,
     panMask: "ABCDE****F",
     panHash: "abc",
+  };
+  assert.equal(isIdentityComplete(withIds), true);
+
+  const complete = {
+    ...withIds,
     resumePath: "kyc/resume.pdf",
     resumeFileName: "resume.pdf",
     resumeKeywords: [] as string[],
     completedAt: new Date().toISOString(),
   };
-  assert.equal(isIdentityComplete(complete), true);
   assert.equal(isKycComplete(complete), true);
 
-  const typed = recordEnteredAadhaar("234123412340");
+  const typed = recordEnteredAadhaar("123456789012");
   assert.equal("error" in typed, false);
   if ("error" in typed) return;
   assert.equal(
     isKycComplete({
       ...typed,
+      ...contact,
       panMask: "ABCDE****F",
       panHash: "abc",
       resumePath: "kyc/resume.pdf",
@@ -177,6 +221,7 @@ test("KYC is complete after Aadhaar (typed or DigiLocker) plus PAN and resume", 
   );
 
   const missingSource = {
+    ...contact,
     aadhaarMask: "XXXX-XXXX-2340",
     aadhaarLast4: "2340",
     aadhaarHash: "hash",
@@ -186,5 +231,67 @@ test("KYC is complete after Aadhaar (typed or DigiLocker) plus PAN and resume", 
     resumeFileName: "resume.pdf",
   };
   assert.equal(isKycComplete(missingSource), false);
+});
+
+test("personality intake stage reflects contact resume and exam", () => {
+  assert.equal(personalityIntakeStage(undefined, false), "started");
+  assert.equal(
+    personalityIntakeLabel(
+      {
+        name: "Ada",
+        fullName: "Ada Lovelace",
+        phone: "9876543210",
+        email: "ada@example.com",
+        address: "12 Baker Street",
+      },
+      false,
+    ),
+    "Contact saved",
+  );
+  assert.equal(
+    personalityIntakeStage(
+      {
+        name: "Ada",
+        fullName: "Ada Lovelace",
+        phone: "9876543210",
+        email: "ada@example.com",
+        address: "12 Baker Street",
+        aadhaarHash: "h",
+        aadhaarMask: "XXXX-XXXX-1234",
+        aadhaarLast4: "1234",
+        aadhaarSource: "aadhaar",
+        panMask: "ABCDE****F",
+        panHash: "p",
+        resumePath: "kyc/r.pdf",
+        resumeFileName: "r.pdf",
+        resumeKeywords: ["ai"],
+      },
+      false,
+    ),
+    "exam",
+  );
+  assert.equal(
+    personalityIntakeLabel(
+      {
+        name: "Ada",
+        fullName: "Ada Lovelace",
+        phone: "9876543210",
+        email: "ada@example.com",
+        address: "12 Baker Street",
+        aadhaarHash: "h",
+        aadhaarMask: "XXXX-XXXX-1234",
+        aadhaarLast4: "1234",
+        aadhaarSource: "aadhaar",
+        panMask: "ABCDE****F",
+        panHash: "p",
+        resumePath: "kyc/r.pdf",
+        resumeFileName: "r.pdf",
+        resumeKeywords: ["ai"],
+        completedAt: new Date().toISOString(),
+      },
+      true,
+    ),
+    "Exam complete",
+  );
 });
 

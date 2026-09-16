@@ -22,7 +22,7 @@ export type VerifyPaymentInput = {
 };
 
 export interface PaymentPort {
-  readonly provider: "MOCK" | "RAZORPAY";
+  readonly provider: "MOCK" | "RAZORPAY" | "STRIPE";
   createOrder(input: CreatePaymentOrderInput): Promise<CreatePaymentOrderResult>;
   verifyPayment(input: VerifyPaymentInput): Promise<boolean>;
   verifyWebhook?(rawBody: string, signature: string): boolean;

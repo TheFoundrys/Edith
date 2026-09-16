@@ -9,6 +9,8 @@ import {
 } from "@/lib/ai";
 import { requireCapability } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase, isMissingPrismaTable } from "@/lib/db/profile";
+import { redirect } from "next/navigation";
 import {
   decryptConfig,
   encryptConfig,
@@ -16,6 +18,7 @@ import {
 import { recordAudit } from "@/lib/audit";
 
 export async function getAiPluginAdminState() {
+  if (isCompassDatabase()) redirect("/admin");
   const session = await requireCapability("manageAiPlugins");
   const plugins = listAiPlugins();
   const state = await getOrgAiPluginState(session.user.organizationId);
@@ -44,20 +47,22 @@ export async function saveAiPluginSettings(input: {
   enabled: boolean;
   config: Record<string, string>;
 }) {
+  if (isCompassDatabase()) {
+    return { error: "AI plugin settings are not available on compass_dev." };
+  }
   const session = await requireCapability("manageAiPlugins");
   const plugin = getAiPlugin(input.pluginId);
   if (!plugin) return { error: "Unknown AI plugin." };
 
   // Keep previous secrets if the password field is left blank on save.
-  const existing = await prisma.aiPluginSetting.findUnique({
-    where: { organizationId: session.user.organizationId },
-  });
   let previous: Record<string, string> = {};
   try {
-    previous = existing?.configJson
-      ? decryptConfig(existing.configJson)
-      : {};
-  } catch {
+    const existing = await prisma.aiPluginSetting.findUnique({
+      where: { organizationId: session.user.organizationId },
+    });
+    previous = existing?.configJson ? decryptConfig(existing.configJson) : {};
+  } catch (error) {
+    if (!isMissingPrismaTable(error, "AiPluginSetting")) throw error;
     previous = {};
   }
 

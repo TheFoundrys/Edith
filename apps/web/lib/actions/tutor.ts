@@ -3,7 +3,7 @@
 import { getAiAdapterForOrg } from "@/lib/ai";
 import type { AiTutorMessage } from "@/lib/ai/types";
 import { requireStudent } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
+import { requireActiveEnrollment } from "@/lib/enrollment/queries";
 import { loadCourseLessonContext } from "@/lib/learning/course-context";
 
 const MAX_MESSAGES = 12;
@@ -17,14 +17,10 @@ export async function askLessonTutor(input: {
 }) {
   const session = await requireStudent();
 
-  const enrollment = await prisma.enrollment.findFirst({
-    where: {
-      programId: input.courseId,
-      userId: session.user.id,
-      status: "ACTIVE",
-      organizationId: session.user.organizationId,
-    },
-  });
+  const enrollment = await requireActiveEnrollment(
+    session.user.id,
+    input.courseId,
+  );
   if (!enrollment) return { error: "You are not enrolled in this course." };
 
   const ctx = await loadCourseLessonContext({

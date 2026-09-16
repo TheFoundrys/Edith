@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page";
 import { canUser, requireAnyCapability } from "@/lib/auth/session";
+import { listCompassAdminPrograms } from "@/lib/compass/admin-programs";
 import { prisma } from "@/lib/db";
-import { programCategoryLabel } from "@/lib/programs/categories";
+import { isCompassDatabase } from "@/lib/db/profile";
+import { isContentProgram, programCategoryLabel } from "@/lib/programs/categories";
 import { formatCurrency } from "@/lib/utils";
 
 function statusTone(status: string) {
@@ -17,17 +19,38 @@ function statusTone(status: string) {
 export default async function AdminProgramsPage() {
   const session = await requireAnyCapability(["managePrograms", "managePricing"]);
   const canEditCatalog = canUser(session.user, "managePrograms");
-  const programs = await prisma.program.findMany({
-    where: { organizationId: session.user.organizationId },
-    include: {
-      department: true,
-      campus: true,
-      intakes: true,
-      syllabus: { select: { status: true } },
-      _count: { select: { applications: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  const compass = isCompassDatabase();
+  const compassPrograms = compass
+    ? await listCompassAdminPrograms(session.user.organizationId)
+    : [];
+  const programs = compass
+    ? compassPrograms.map((p) => ({
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        status: p.status,
+        category: p.category,
+        degreeLevel: p.degreeLevel,
+        price: p.price,
+        tuitionCurrency: p.tuitionCurrency,
+        campus: null as { name: string } | null,
+        intakes: [] as { id: string }[],
+        syllabus: { status: p.syllabusStatus },
+        moduleCount: p.moduleCount,
+        lessonCount: p.lessonCount,
+        enrollmentCount: p.enrollmentCount,
+      }))
+    : await prisma.program.findMany({
+        where: { organizationId: session.user.organizationId },
+        include: {
+          department: true,
+          campus: true,
+          intakes: true,
+          syllabus: { select: { status: true } },
+          _count: { select: { applications: true } },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
 
   const published = programs.filter((p) => p.status === "PUBLISHED").length;
   const drafts = programs.filter((p) => p.status === "DRAFT").length;
@@ -37,12 +60,14 @@ export default async function AdminProgramsPage() {
       <PageHeader
         title="Programs"
         description={
-          canEditCatalog
-            ? "Build the catalog — set details and pricing, add a syllabus, then publish to go live."
-            : "Review published tuition and catalog status. Catalog edits stay with academic staff."
+          compass
+            ? "Read-only view of Skill Compass courses on compass_dev. Edit content in Skill Compass."
+            : canEditCatalog
+              ? "YGP and PGP: section, title, and content. Degrees: CRM, enrollments, and online or offline payment."
+              : "Review published tuition and catalog status. Catalog edits stay with academic staff."
         }
         actions={
-          canEditCatalog ? (
+          canEditCatalog && !compass ? (
             <Link href="/admin/programs/new">
               <Button>New program</Button>
             </Link>
@@ -51,7 +76,7 @@ export default async function AdminProgramsPage() {
       />
 
       <p className="mb-[var(--grid-pad)] text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
-        Flow · Details → Pricing → Syllabus → Publish → Live course
+        YGP / PGP · Title → Sections → Publish · Degree · Admissions → CRM → Payment
       </p>
 
       <div className="peak-stats">
@@ -74,7 +99,7 @@ export default async function AdminProgramsPage() {
           title="No programs yet"
           description={
             canEditCatalog
-              ? "Create your first program, set pricing, then publish it to the course catalog."
+              ? "Create a YGP or PGP with sections and content, or a degree with admissions and payment."
               : "No programs are in the catalog yet."
           }
           action={
@@ -89,6 +114,7 @@ export default async function AdminProgramsPage() {
         <div className="cm-grid">
           {programs.map((program) => {
             const syllabusReady = program.syllabus?.status === "PUBLISHED";
+            const contentCourse = isContentProgram(program.category);
             return (
               <article
                 key={program.id}
@@ -143,19 +169,44 @@ export default async function AdminProgramsPage() {
                           : "Missing"}
                     </dd>
                   </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-fg-muted">Intakes</dt>
-                    <dd className="text-fg text-right">{program.intakes.length}</dd>
-                  </div>
+                  {"moduleCount" in program ? (
+                    <>
+                      <div className="flex justify-between gap-3">
+                        <dt className="text-fg-muted">Modules</dt>
+                        <dd className="text-fg text-right">{program.moduleCount}</dd>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <dt className="text-fg-muted">Lessons</dt>
+                        <dd className="text-fg text-right">{program.lessonCount}</dd>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <dt className="text-fg-muted">Enrollments</dt>
+                        <dd className="text-fg text-right">
+                          {program.enrollmentCount}
+                        </dd>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-fg-muted">
+                        {contentCourse ? "Setup" : "Intakes"}
+                      </dt>
+                      <dd className="text-fg text-right">
+                        {contentCourse
+                          ? "Section · title · content"
+                          : program.intakes.length}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
 
                 <div className="mt-auto pt-[var(--grid-pad)] flex flex-wrap gap-2">
-                  {canEditCatalog ? (
+                  {canEditCatalog && !compass ? (
                     <Link href={`/admin/programs/${program.id}`}>
                       <Button size="sm">Edit</Button>
                     </Link>
                   ) : null}
-                  {canEditCatalog ? (
+                  {canEditCatalog && !compass ? (
                     <Link href={`/admin/syllabus/${program.id}`}>
                       <Button size="sm" variant="secondary">
                         Syllabus

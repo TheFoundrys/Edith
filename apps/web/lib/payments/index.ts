@@ -1,12 +1,15 @@
 import { MockPaymentAdapter } from "@/lib/payments/mock";
 import { RazorpayPaymentAdapter } from "@/lib/payments/razorpay";
+import { StripePaymentAdapter } from "@/lib/payments/stripe";
 import type { PaymentPort } from "@/lib/payments/types";
 
 export type PaymentConfig = {
-  adapter: "mock" | "razorpay";
+  adapter: "mock" | "razorpay" | "stripe";
   keyId?: string;
   keySecret?: string;
   webhookSecret?: string;
+  stripeSecretKey?: string;
+  stripeWebhookSecret?: string;
 };
 
 /** Mock checkout is strictly limited to non-production environments. */
@@ -18,24 +21,37 @@ export function getPaymentConfig(): PaymentConfig {
   const raw = (process.env.PAYMENT_ADAPTER || "").toLowerCase().trim();
   // Production defaults to razorpay (fail-closed). Local/dev defaults to mock.
   const adapter: PaymentConfig["adapter"] =
-    raw === "razorpay"
-      ? "razorpay"
-      : raw === "mock"
-        ? "mock"
-        : process.env.NODE_ENV === "production"
-          ? "razorpay"
-          : "mock";
+    raw === "stripe"
+      ? "stripe"
+      : raw === "razorpay"
+        ? "razorpay"
+        : raw === "mock"
+          ? "mock"
+          : process.env.NODE_ENV === "production"
+            ? "razorpay"
+            : "mock";
 
   return {
     adapter,
     keyId: process.env.RAZORPAY_KEY_ID || undefined,
     keySecret: process.env.RAZORPAY_KEY_SECRET || undefined,
     webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || undefined,
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY || undefined,
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || undefined,
   };
 }
 
 export function getPaymentAdapter(): PaymentPort {
   const config = getPaymentConfig();
+  if (config.adapter === "stripe") {
+    if (!config.stripeSecretKey) {
+      throw new Error("STRIPE_SECRET_KEY is required for Stripe checkout.");
+    }
+    return new StripePaymentAdapter({
+      secretKey: config.stripeSecretKey,
+      webhookSecret: config.stripeWebhookSecret,
+    });
+  }
   if (config.adapter === "razorpay") {
     if (!config.keyId || !config.keySecret) {
       throw new Error("RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are required.");

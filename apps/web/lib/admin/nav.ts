@@ -1,8 +1,29 @@
 import type { Capability } from "@/lib/auth/roles";
 import { STAFF_NAV, type StaffNavItem } from "@/lib/auth/roles";
+import {
+  isEdithOnlyFeature,
+  type EdithOnlyFeature,
+} from "@/lib/compass/guards";
 
 export type AdminNavItem = StaffNavItem & {
   requiresSuperAdmin?: boolean;
+  /** Hidden on compass_dev (Edith-only tables). */
+  edithOnly?: EdithOnlyFeature;
+};
+
+const EDITH_ONLY_HREFS: Partial<Record<string, EdithOnlyFeature>> = {
+  "/admin/members": "members",
+  "/admin/members/roles": "roles-matrix",
+  "/admin/applications": "applications",
+  "/admin/offers": "offers",
+  "/admin/coupons": "coupons",
+  "/admin/payment-settings": "payment-settings",
+  "/admin/plugins/ai": "ai-plugins",
+  "/admin/course-mcqs": "edith-mcq-admin",
+  "/admin/quizzes": "edith-quizzes",
+  "/admin/quizzes/new": "edith-quizzes",
+  "/admin/lesson-mcqs": "edith-mcq-admin",
+  "/admin/forms": "forms",
 };
 
 export type AdminNavGroup = {
@@ -18,22 +39,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     label: "People",
     items: [
-      { href: "/admin/members", label: "Members", anyOf: ["manageMembers"] },
-      {
-        href: "/admin/members/invites",
-        label: "Staff invites",
-        anyOf: ["manageMembers"],
-      },
-      {
-        href: "/admin/members/groups",
-        label: "Groups",
-        anyOf: ["manageMembers"],
-      },
-      {
-        href: "/admin/members/activity",
-        label: "Activity",
-        anyOf: ["manageMembers"],
-      },
+      { href: "/admin/members", label: "People", anyOf: ["manageMembers"] },
       {
         href: "/admin/members/roles",
         label: "Roles & access",
@@ -62,6 +68,8 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/assignments", label: "Assignments", anyOf: ["manageContent"] },
       { href: "/admin/quizzes", label: "Quizzes", anyOf: ["manageContent"] },
+      { href: "/admin/course-mcqs", label: "Course MCQs", anyOf: ["manageContent"] },
+      { href: "/admin/lesson-mcqs", label: "Lesson MCQs", anyOf: ["manageContent"] },
       { href: "/admin/forums", label: "Forums", anyOf: ["manageContent"] },
       { href: "/admin/badges", label: "Badges", anyOf: ["manageContent"] },
     ],
@@ -69,12 +77,11 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     label: "Admissions",
     items: [
-      { href: "/admin/applications", label: "Applications", anyOf: ["manageApplications"] },
       { href: "/admin/forms", label: "Forms", anyOf: ["manageForms"] },
       { href: "/admin/tickets", label: "Tickets", anyOf: ["manageApplications"] },
       {
         href: "/admin/personality-profile",
-        label: "Personality Profile",
+        label: "Profile intake",
         anyOf: ["manageApplications"],
       },
     ],
@@ -85,8 +92,8 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/coupons", label: "Coupons", anyOf: ["managePricing"] },
       { href: "/admin/offers", label: "Offers", anyOf: ["managePricing"] },
       {
-        href: "/admin/payments",
-        label: "Payments",
+        href: "/admin/transactions",
+        label: "Transactions",
         anyOf: ["managePricing"],
       },
       {
@@ -116,6 +123,8 @@ function itemVisible(
   hasCapability: (cap: Capability) => boolean,
   isSuperAdmin: boolean,
 ) {
+  const edithOnly = item.edithOnly ?? EDITH_ONLY_HREFS[item.href];
+  if (edithOnly && isEdithOnlyFeature(edithOnly)) return false;
   if (item.requiresSuperAdmin && !isSuperAdmin) return false;
   if (item.anyOf?.length && !item.anyOf.some((cap) => hasCapability(cap))) {
     return false;

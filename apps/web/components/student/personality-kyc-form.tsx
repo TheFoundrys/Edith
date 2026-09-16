@@ -1,114 +1,112 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { CreditCard, UserRound } from "lucide-react";
 import {
   savePersonalityIdentity,
   savePersonalityKyc,
-  unlinkPersonalityAadhaar,
 } from "@/lib/actions/personality-profile";
-import type { AadhaarSource } from "@/lib/assessments/personality-kyc";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { FieldError, Input, Label } from "@/components/ui/input";
+import { FieldError, Input, Label, Textarea } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
-function sourceLabel(source?: AadhaarSource | null) {
-  return source === "digilocker" ? "via DigiLocker" : "by Aadhaar number";
+export type PersonalityIdentityDefaults = {
+  name: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  address: string;
+};
+
+function SummaryRow({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("personality-identity-summary-row", className)}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
 }
 
 export function PersonalityIdentityStep({
+  defaults,
   aadhaarMask,
-  aadhaarName,
-  aadhaarSource,
   panMask,
-  canUnlink,
+  locked,
   resumeOnFile,
-  digilockerAvailable,
 }: {
+  defaults: PersonalityIdentityDefaults;
   aadhaarMask?: string | null;
-  aadhaarName?: string | null;
-  aadhaarSource?: AadhaarSource | null;
   panMask?: string | null;
-  canUnlink?: boolean;
+  locked?: boolean;
   resumeOnFile?: boolean;
-  digilockerAvailable?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const complete = Boolean(aadhaarMask && panMask);
 
-  if (aadhaarMask && panMask) {
+  if (complete && !editing) {
     return (
-      <div className="space-y-3">
-        <p className="text-sm">
-          Aadhaar verified {sourceLabel(aadhaarSource)} · {aadhaarMask}
-          {aadhaarName ? ` · ${aadhaarName}` : ""}
-        </p>
-        <p className="text-sm">PAN on file · {panMask}</p>
-        {canUnlink ? (
-          <>
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              onClick={() => setConfirmOpen(true)}
-            >
-              Unlink Aadhaar
-            </Button>
-            <ConfirmDialog
-              open={confirmOpen}
-              title="Unlink Aadhaar?"
-              description="This removes the Aadhaar link from this sitting. PAN and resume stay on file. You must verify again before the exam."
-              confirmLabel="Unlink"
-              danger
-              pending={pending}
-              onCancel={() => setConfirmOpen(false)}
-              onConfirm={() => {
-                startTransition(async () => {
-                  const result = await unlinkPersonalityAadhaar();
-                  if (!result.ok) {
-                    setError(result.error ?? "Could not unlink Aadhaar.");
-                    setConfirmOpen(false);
-                    return;
-                  }
-                  setConfirmOpen(false);
-                  router.replace("/student/personality-profile");
-                  router.refresh();
-                });
-              }}
+      <div className="personality-identity-summary">
+        <div className="personality-identity-summary-block">
+          <h3>Contact</h3>
+          <dl className="personality-identity-summary-grid">
+            <SummaryRow label="Name" value={defaults.name} />
+            <SummaryRow label="Full name" value={defaults.fullName} />
+            <SummaryRow label="Phone" value={defaults.phone} />
+            <SummaryRow label="Email" value={defaults.email} />
+            <SummaryRow
+              label="Address"
+              value={defaults.address}
+              className="sm:col-span-2"
             />
-          </>
+          </dl>
+        </div>
+
+        <div className="personality-identity-summary-block">
+          <h3>Government IDs</h3>
+          <dl className="personality-identity-summary-grid">
+            <SummaryRow label="Aadhaar" value={aadhaarMask ?? "—"} />
+            <SummaryRow label="PAN" value={panMask ?? "—"} />
+          </dl>
+        </div>
+
+        {locked ? (
+          <p className="text-xs text-fg-muted">Details are locked after the exam.</p>
         ) : (
-          <p className="text-xs text-fg-muted">
-            Identity is locked after the exam.
-          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => setEditing(true)}
+          >
+            Edit details
+          </Button>
         )}
-        <FieldError>{error}</FieldError>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-fg-muted leading-relaxed">
-        Edith stores hashes and masked last characters only — never the full
-        numbers.
-      </p>
+    <div className="personality-identity-form">
       {resumeOnFile ? (
         <p className="text-sm text-fg-muted">
-          Resume is still on file. Finish identity to continue.
+          Resume is on file. Finish your contact and ID details to continue.
         </p>
       ) : null}
-      {aadhaarMask ? (
-        <p className="text-sm">
-          Aadhaar verified {sourceLabel(aadhaarSource)} · {aadhaarMask}
-          {aadhaarName ? ` · ${aadhaarName}` : ""}
-        </p>
-      ) : null}
+
       <form
-        className="space-y-3"
+        className="personality-identity-form"
         onSubmit={(event) => {
           event.preventDefault();
           if (saving) return;
@@ -118,68 +116,156 @@ export function PersonalityIdentityStep({
           void (async () => {
             const result = await savePersonalityIdentity(fd);
             if (!result.ok) {
-              setError(result.error ?? "Could not save identity.");
+              setError(result.error ?? "Could not save details.");
               setSaving(false);
               return;
             }
-            router.replace("/student/personality-profile?identity=verified");
+            setEditing(false);
+            router.replace("/student/personality-profile?identity=saved");
             router.refresh();
           })();
         }}
       >
-        {!aadhaarMask ? (
-          <div>
-            <Label htmlFor="aadhaar">Aadhaar number</Label>
-            <Input
-              id="aadhaar"
-              name="aadhaar"
-              inputMode="numeric"
-              autoComplete="off"
-              required
-              minLength={12}
-              maxLength={14}
-              placeholder="12-digit Aadhaar"
-              aria-invalid={Boolean(error)}
-            />
-            <p className="mt-1 text-xs text-fg-muted">
-              The last digit is a checksum — any random 12 digits will be
-              rejected. The form stores a hash and last-four only.
-            </p>
+        <section className="personality-identity-section" aria-labelledby="identity-contact">
+          <div className="personality-identity-section-head" id="identity-contact">
+            <UserRound className="size-4" aria-hidden />
+            <span>Contact information</span>
           </div>
-        ) : null}
-        {!panMask ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                name="name"
+                required
+                defaultValue={defaults.name}
+                autoComplete="given-name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="fullName">Full name</Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                required
+                defaultValue={defaults.fullName}
+                autoComplete="name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone number</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                required
+                inputMode="tel"
+                defaultValue={defaults.phone}
+                autoComplete="tel"
+                placeholder="10-digit mobile"
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                defaultValue={defaults.email}
+                autoComplete="email"
+              />
+            </div>
+          </div>
           <div>
-            <Label htmlFor="pan">PAN</Label>
-            <Input
-              id="pan"
-              name="pan"
-              autoComplete="off"
+            <Label htmlFor="address">Address</Label>
+            <Textarea
+              id="address"
+              name="address"
               required
-              placeholder="ABCDE1234F"
-              className="uppercase"
+              rows={3}
+              defaultValue={defaults.address}
+              autoComplete="street-address"
             />
           </div>
-        ) : null}
+        </section>
+
+        <section className="personality-id-section" aria-labelledby="identity-ids">
+          <div className="personality-id-section-head">
+            <span className="personality-id-section-icon" aria-hidden>
+              <CreditCard className="size-4" />
+            </span>
+            <div>
+              <p className="personality-id-section-title" id="identity-ids">
+                Aadhaar &amp; PAN
+              </p>
+              <p className="personality-id-section-lead">
+                Type the numbers exactly as printed on your physical cards — including
+                spaces or dashes if shown. We store a masked copy only; nothing is
+                verified with UIDAI or the Income Tax Department.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="aadhaar">Aadhaar number</Label>
+              <Input
+                id="aadhaar"
+                name="aadhaar"
+                autoComplete="off"
+                required={!aadhaarMask}
+                maxLength={32}
+                placeholder={aadhaarMask ?? "As on Aadhaar card"}
+              />
+              {aadhaarMask ? (
+                <p className="personality-id-on-file">On file · {aadhaarMask}</p>
+              ) : (
+                <p className="personality-field-hint">
+                  Any format on your card is accepted — not limited to 12 digits.
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="pan">PAN</Label>
+              <Input
+                id="pan"
+                name="pan"
+                autoComplete="off"
+                required={!panMask}
+                maxLength={32}
+                placeholder={panMask ?? "As on PAN card"}
+              />
+              {panMask ? (
+                <p className="personality-id-on-file">On file · {panMask}</p>
+              ) : (
+                <p className="personality-field-hint">
+                  Enter the full PAN as printed — letters, numbers, and spacing as shown.
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
         <FieldError>{error}</FieldError>
-        <Button type="submit" loading={saving}>
-          {saving ? "Saving…" : aadhaarMask ? "Save PAN" : "Verify identity"}
-        </Button>
-      </form>
-      {!aadhaarMask && digilockerAvailable ? (
-        <div className="space-y-2 border-t border-border pt-4">
-          <p className="text-xs text-fg-muted">Or verify Aadhaar with DigiLocker, then add PAN</p>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            onClick={() => {
-              window.location.href = "/api/digilocker/start";
-            }}
-          >
-            Verify with DigiLocker
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" loading={saving}>
+            {saving ? "Saving…" : "Save and continue"}
           </Button>
+          {complete ? (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setError(null);
+                setEditing(false);
+              }}
+            >
+              Cancel
+            </Button>
+          ) : null}
         </div>
-      ) : null}
+      </form>
     </div>
   );
 }

@@ -5,8 +5,11 @@ import { StartApplicationButton } from "@/components/student/start-application-b
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import { Button } from "@/components/ui/button";
 import { Label, Select } from "@/components/ui/input";
+import { resolvePublishedProgramBySlug } from "@/lib/compass/program-bridge";
 import { requireStudent } from "@/lib/auth/session";
+import { findStudentEnrollment } from "@/lib/enrollment/queries";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { coursePrice } from "@/lib/programs/pricing";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -14,6 +17,7 @@ import {
   catalogHrefForProgram,
   isPersonalityProfileProgram,
 } from "@/lib/assessments/personality-profile";
+import { hasPaidPersonalityExamAccess } from "@/lib/assessments/personality-access";
 import { buildCourseQuote } from "@/lib/payments/quote";
 
 export default async function EnrollPage({
@@ -27,35 +31,51 @@ export default async function EnrollPage({
   const { intake: requestedIntakeId } = await searchParams;
   const session = await requireStudent();
 
-  const course = await prisma.program.findFirst({
-    where: {
-      organizationId: session.user.organizationId,
-      slug,
-      status: "PUBLISHED",
-    },
-    include: {
-      campus: true,
-      department: true,
-      intakes: {
-        where: { isActive: true },
-        orderBy: { startDate: "asc" },
-      },
-    },
-  });
-  if (!course) notFound();
+  const resolved = isCompassDatabase()
+    ? await resolvePublishedProgramBySlug(slug, session.user.organizationId)
+    : await prisma.program.findFirst({
+        where: {
+          organizationId: session.user.organizationId,
+          slug,
+          status: "PUBLISHED",
+        },
+        include: {
+          campus: true,
+          department: true,
+          intakes: {
+            where: { isActive: true },
+            orderBy: { startDate: "asc" },
+          },
+        },
+      });
+  if (!resolved || resolved.status !== "PUBLISHED") notFound();
 
-  const enrollment = await prisma.enrollment.findUnique({
-    where: {
-      userId_programId: { userId: session.user.id, programId: course.id },
-    },
-  });
+  const course = isCompassDatabase()
+    ? {
+        ...resolved,
+        campus: null,
+        department: null,
+        intakes: [] as typeof resolved extends { intakes: infer I } ? I : never[],
+        applicationFee: null as number | null,
+      }
+    : resolved;
+
+  const enrollment = await findStudentEnrollment(session.user.id, course.id);
+  const assessment = isPersonalityProfileProgram(course);
   if (enrollment?.status === "ACTIVE") {
-    redirect(afterEnrollmentHref(course));
+    const examPaid =
+      !assessment ||
+      (await hasPaidPersonalityExamAccess({
+        userId: session.user.id,
+        programId: course.id,
+      }));
+    if (examPaid) {
+      redirect(afterEnrollmentHref(course));
+    }
   }
 
   const price = coursePrice(course);
   const free = price === 0;
-  const assessment = isPersonalityProfileProgram(course);
   const quote =
     !free && !course.formDefinitionId
       ? await buildCourseQuote({
@@ -68,9 +88,10 @@ export default async function EnrollPage({
   const awaitingCrm =
     enrollment?.status === "PENDING" && course.requiresCrmCallback;
   const awaitingPayment =
-    enrollment?.status === "PENDING" &&
+    !free &&
     !course.requiresCrmCallback &&
-    !free;
+    (enrollment?.status === "PENDING" ||
+      (assessment && enrollment?.status === "ACTIVE"));
   const selectedIntake =
     course.intakes.find((intake) => intake.id === requestedIntakeId) ??
     course.intakes[0] ??
@@ -133,7 +154,7 @@ export default async function EnrollPage({
           <p className="text-sm font-medium">Payment pending</p>
           <p className="text-sm text-fg-muted leading-relaxed">
             You started enrolling in this course. Complete payment to unlock
-            learning.
+            {assessment ? " the exam." : " learning."}
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -169,6 +190,11 @@ export default async function EnrollPage({
                     quoteOk?.currency ?? course.tuitionCurrency,
                   )}
           </p>
+          {quoteOk?.offerId ? (
+            <p className="mt-2 text-sm text-fg-muted">
+              A personalised offer is applied for your account.
+            </p>
+          ) : null}
           {quoteOk && quoteOk.gstAmount > 0 ? (
             <p className="mt-2 text-sm text-fg-muted">
               {formatCurrency(quoteOk.principalAmount, quoteOk.currency)} + GST{" "}
@@ -177,8 +203,8 @@ export default async function EnrollPage({
           ) : null}
           {course.formDefinitionId ? (
             <p className="mt-3 text-sm text-fg-muted leading-relaxed">
-              Complete the admissions form and receive approval before course
-              enrollment or payment.
+              Admissions for this programme are handled in CRM. Apply there to
+              submit documents and track the offer.
             </p>
           ) : null}
           {course.requiresCrmCallback ? (
@@ -190,11 +216,7 @@ export default async function EnrollPage({
           <div className="mt-6 flex flex-wrap gap-3">
             {course.formDefinitionId ? (
               <StartApplicationButton
-                programId={course.id}
-                intakes={course.intakes.map((intake) => ({
-                  id: intake.id,
-                  name: intake.name,
-                }))}
+                programSlug={course.slug}
                 fullWidth
               />
             ) : free ? (

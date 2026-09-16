@@ -19,6 +19,13 @@ const DOCUMENT_TYPES = new Set([
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const MAX_LESSON_PDF_BYTES = 25 * 1024 * 1024;
+const MAX_LESSON_VIDEO_BYTES = 200 * 1024 * 1024;
+const LESSON_VIDEO_TYPES = new Set([
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-m4v",
+]);
 
 export type StoredUpload = {
   storagePath: string;
@@ -33,7 +40,7 @@ async function writeUpload(
 ): Promise<StoredUpload> {
   const bytes = Buffer.from(await file.arrayBuffer());
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const relative = path.join(kind, randomUUID(), safeName);
+  const relative = path.join(kind, randomUUID(), safeName).replace(/\\/g, "/");
   const absolute = path.join(UPLOAD_ROOT, relative);
   await mkdir(path.dirname(absolute), { recursive: true });
   await writeFile(absolute, bytes);
@@ -98,6 +105,29 @@ export async function saveLessonPdf(
   }
   if (file.size === 0) {
     return { error: "Choose a PDF to upload." };
+  }
+  return writeUpload(file, "private");
+}
+
+export async function saveLessonVideo(
+  file: File,
+): Promise<StoredUpload | { error: string }> {
+  const mimeType = file.type || "";
+  const name = file.name.toLowerCase();
+  const looksLikeVideo =
+    LESSON_VIDEO_TYPES.has(mimeType) ||
+    name.endsWith(".mp4") ||
+    name.endsWith(".m4v") ||
+    name.endsWith(".webm") ||
+    name.endsWith(".mov");
+  if (!looksLikeVideo) {
+    return { error: "Upload an MP4, WebM, or MOV video." };
+  }
+  if (file.size > MAX_LESSON_VIDEO_BYTES) {
+    return { error: "Video must be 200 MB or smaller." };
+  }
+  if (file.size === 0) {
+    return { error: "Choose a video file to upload." };
   }
   return writeUpload(file, "private");
 }

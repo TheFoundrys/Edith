@@ -26,17 +26,4 @@ export const LEARNING_MODEL_MAP = {
   EnrollmentACTIVE: "Enrolment",
 } as const;
 
-/** Learner-facing label for SyllabusLesson.contentType. */
-export function activityTypeLabel(contentType: string): string {
-  switch (contentType) {
-    case "VIDEO_URL":
-      return "Video";
-    case "EXTERNAL_LINK":
-      return "Link";
-    case "PDF_FILE":
-      return "PDF";
-    case "RICH_TEXT":
-    default:
-      return "Reading";
-  }
-}
+export { activityTypeLabel } from "@/lib/learning/lesson-content-type";

@@ -9,6 +9,7 @@ const ICONS = {
   certificate: Award,
   streak: Flame,
   performance: Medal,
+  badge: Medal,
 } as const;
 
 export default async function StudentAchievementsPage() {

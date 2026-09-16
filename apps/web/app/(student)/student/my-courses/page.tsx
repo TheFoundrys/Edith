@@ -5,11 +5,15 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, Panel } from "@/components/ui/page";
 import { LmsCourseCard } from "@/components/student/lms-course-card";
 import { requireStudent } from "@/lib/auth/session";
+import { findCompassCliftonAssessment } from "@/lib/compass/clifton-assessment";
+import { loadStudentEnrollments } from "@/lib/enrollment/queries";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import {
   findContinueActivityId,
   flattenPublishedActivities,
 } from "@/lib/learning/outline";
+import { getUserCompletedLessonIds } from "@/lib/learning/progress";
 import {
   PERSONALITY_PROFILE_HREF,
   isPersonalityProfileProgram,
@@ -25,69 +29,37 @@ export default async function MyCoursesPage({
   const { pending } = await searchParams;
   const session = await requireStudent();
 
-  const enrollments = await prisma.enrollment.findMany({
-    where: {
-      userId: session.user.id,
-      status: { in: ["ACTIVE", "PENDING"] },
-    },
-    include: {
-      program: {
-        include: {
-          campus: true,
-          syllabus: {
-            include: {
-              modules: {
-                orderBy: { order: "asc" },
-                include: {
-                  lessons: {
-                    where: { isPublished: true },
-                    orderBy: { order: "asc" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      payments: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { status: true },
-      },
-    },
-    orderBy: [{ status: "asc" }, { enrolledAt: "desc" }, { createdAt: "desc" }],
-  });
+  const enrollments = await loadStudentEnrollments(session.user.id);
 
-  const personalityAttempt = enrollments.some((e) =>
+  const hasPersonalityCourse = enrollments.some((e) =>
     isPersonalityProfileProgram(e.program),
-  )
-    ? await prisma.cliftonAssessment.findFirst({
-        where: {
-          userId: session.user.id,
-          organizationId: session.user.organizationId,
-        },
-        orderBy: { createdAt: "desc" },
-        select: { responses: true, status: true },
-      })
-    : null;
+  );
+  const personalityAttempt =
+    hasPersonalityCourse && isCompassDatabase()
+      ? await findCompassCliftonAssessment(session.user.id)
+      : hasPersonalityCourse
+        ? await prisma.cliftonAssessment.findFirst({
+            where: {
+              userId: session.user.id,
+              organizationId: session.user.organizationId,
+            },
+            orderBy: { createdAt: "desc" },
+            select: { responses: true, status: true },
+          })
+        : null;
   const personalityResponses = (personalityAttempt?.responses ??
     {}) as PersonalityResponses;
 
-  const lessonIds = enrollments.flatMap((e) =>
-    e.status === "ACTIVE" && e.program.syllabus?.status === "PUBLISHED"
-      ? flattenPublishedActivities(e.program.syllabus.modules).map((a) => a.id)
-      : [],
+  const activeCourseIds = enrollments
+    .filter(
+      (e) =>
+        e.status === "ACTIVE" && e.program.syllabus?.status === "PUBLISHED",
+    )
+    .map((e) => e.programId);
+  const completedSet = await getUserCompletedLessonIds(
+    session.user.id,
+    activeCourseIds,
   );
-  const progress = lessonIds.length
-    ? await prisma.lessonProgress.findMany({
-        where: {
-          userId: session.user.id,
-          lessonId: { in: lessonIds },
-          completedAt: { not: null },
-        },
-      })
-    : [];
-  const completedSet = new Set(progress.map((p) => p.lessonId));
 
   return (
     <div className="lms-dashboard space-y-6">
@@ -131,7 +103,9 @@ export default async function MyCoursesPage({
             const awaitingPayment =
               enrollment.status === "PENDING" &&
               !enrollment.program.requiresCrmCallback &&
-              !enrollment.payments.some((payment) => payment.status === "PAID");
+              !enrollment.payments.some((payment) =>
+                ["PAID", "SUCCESS", "COMPLETED"].includes(payment.status),
+              );
             const published = enrollment.program.syllabus?.status === "PUBLISHED";
             const activities =
               enrollment.status === "ACTIVE" && !awaitingCrm && published

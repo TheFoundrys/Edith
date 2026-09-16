@@ -1,17 +1,10 @@
+import { listPublishedAnnouncements } from "@/lib/announcements/queries";
 import { requireStudent } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
 import { PageHeader, Panel } from "@/components/ui/page";
 
 export default async function StudentAnnouncementsPage() {
   const session = await requireStudent();
-  const items = await prisma.announcement.findMany({
-    where: {
-      organizationId: session.user.organizationId,
-      publishedAt: { not: null },
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-    },
-    orderBy: [{ isPinned: "desc" }, { publishedAt: "desc" }],
-  });
+  const items = await listPublishedAnnouncements(session.user.organizationId);
 
   return (
     <div>

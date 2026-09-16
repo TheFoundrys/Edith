@@ -5,9 +5,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page";
 import { CreateFormButton } from "@/components/admin/create-form-button";
 import { requireCapability } from "@/lib/auth/session";
+import { redirectIfCompassAdminRoute } from "@/lib/compass/require-edith";
 import { prisma } from "@/lib/db";
 
 export default async function AdminFormsPage() {
+  redirectIfCompassAdminRoute();
   const session = await requireCapability("manageForms");
   const forms = await prisma.formDefinition.findMany({
     where: { organizationId: session.user.organizationId },

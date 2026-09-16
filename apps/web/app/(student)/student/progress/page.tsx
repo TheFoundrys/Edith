@@ -2,8 +2,12 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, Panel } from "@/components/ui/page";
+import { findCompassCliftonAssessment } from "@/lib/compass/clifton-assessment";
 import { requireStudent } from "@/lib/auth/session";
+import { countStudentCertificates } from "@/lib/certificates/queries";
+import { loadStudentEnrollments } from "@/lib/enrollment/queries";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import {
   PERSONALITY_PROFILE_HREF,
   isPersonalityProfileProgram,
@@ -12,53 +16,64 @@ import {
 } from "@/lib/assessments/personality-profile";
 import { buildDashboardStudyStats } from "@/lib/learning/dashboard-stats";
 import { flattenPublishedActivities } from "@/lib/learning/outline";
+import { getUserCompletedLessonIds } from "@/lib/learning/progress";
 import { displayProgramName } from "@/lib/programs/categories";
 
 export default async function StudentProgressPage() {
   const session = await requireStudent();
+  const compass = isCompassDatabase();
 
-  const [enrollments, certificates, completions, personalityAttempt] =
+  const enrollmentRows = await loadStudentEnrollments(session.user.id, ["ACTIVE"]);
+  const enrollments = enrollmentRows.map((e) => ({
+    id: e.id,
+    programId: e.programId,
+    program: {
+      id: e.program.id,
+      title: e.program.title,
+      slug: e.program.slug,
+      category: e.program.category,
+      syllabus: e.program.syllabus,
+    },
+  }));
+
+  const activeCourseIds = enrollments
+    .filter((e) => e.program.syllabus?.status === "PUBLISHED")
+    .map((e) => e.programId);
+
+  const [completedSet, certificates, completions, personalityAttempt] =
     await Promise.all([
-      prisma.enrollment.findMany({
-        where: { userId: session.user.id, status: "ACTIVE" },
-        include: {
-          program: {
-            include: {
-              syllabus: {
-                include: {
-                  modules: {
-                    orderBy: { order: "asc" },
-                    include: {
-                      lessons: {
-                        where: { isPublished: true },
-                        orderBy: { order: "asc" },
-                      },
-                    },
-                  },
-                },
-              },
+      getUserCompletedLessonIds(session.user.id, activeCourseIds),
+      countStudentCertificates(session.user.id),
+      compass
+        ? Promise.resolve(
+            [] as {
+              lessonId: string;
+              completedAt: Date;
+              lesson: { durationMin: number | null };
+            }[],
+          )
+        : prisma.lessonProgress.findMany({
+            where: { userId: session.user.id, completedAt: { not: null } },
+            select: {
+              lessonId: true,
+              completedAt: true,
+              lesson: { select: { durationMin: true } },
             },
-          },
-        },
-        orderBy: { enrolledAt: "desc" },
-      }),
-      prisma.certificate.count({ where: { userId: session.user.id } }),
-      prisma.lessonProgress.findMany({
-        where: { userId: session.user.id, completedAt: { not: null } },
-        select: {
-          lessonId: true,
-          completedAt: true,
-          lesson: { select: { durationMin: true } },
-        },
-      }),
-      prisma.cliftonAssessment.findFirst({
-        where: {
-          userId: session.user.id,
-          organizationId: session.user.organizationId,
-        },
-        orderBy: { createdAt: "desc" },
-        select: { responses: true },
-      }),
+          }),
+      !compass &&
+      enrollments.some((e) => isPersonalityProfileProgram(e.program))
+        ? prisma.cliftonAssessment.findFirst({
+            where: {
+              userId: session.user.id,
+              organizationId: session.user.organizationId,
+            },
+            orderBy: { createdAt: "desc" },
+            select: { responses: true },
+          })
+        : compass &&
+            enrollments.some((e) => isPersonalityProfileProgram(e.program))
+          ? findCompassCliftonAssessment(session.user.id)
+          : Promise.resolve(null),
     ]);
 
   const studyStats = buildDashboardStudyStats(
@@ -68,9 +83,11 @@ export default async function StudentProgressPage() {
     })),
   );
 
-  const completedSet = new Set(completions.map((item) => item.lessonId));
-  const personalityResponses = (personalityAttempt?.responses ??
-    {}) as PersonalityResponses;
+  const personalityResponses = (
+    personalityAttempt && "responses" in personalityAttempt
+      ? personalityAttempt.responses
+      : {}
+  ) as PersonalityResponses;
 
   const progressRows = enrollments
     .filter(
@@ -100,9 +117,13 @@ export default async function StudentProgressPage() {
       const activities = flattenPublishedActivities(
         enrollment.program.syllabus!.modules,
       );
-      const done = activities.filter((activity) => completedSet.has(activity.id)).length;
+      const done = activities.filter((activity) =>
+        completedSet.has(activity.id),
+      ).length;
       const pct =
-        activities.length === 0 ? 0 : Math.round((done / activities.length) * 100);
+        activities.length === 0
+          ? 0
+          : Math.round((done / activities.length) * 100);
 
       return {
         id: enrollment.id,
@@ -121,7 +142,8 @@ export default async function StudentProgressPage() {
     progressRows.length === 0
       ? 0
       : Math.round(
-          progressRows.reduce((sum, row) => sum + row.pct, 0) / progressRows.length,
+          progressRows.reduce((sum, row) => sum + row.pct, 0) /
+            progressRows.length,
         );
   const completedCourseCount = progressRows.filter((row) => row.pct === 100).length;
 

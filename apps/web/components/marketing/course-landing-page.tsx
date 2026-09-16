@@ -18,6 +18,7 @@ import {
 } from "@/components/marketing/course-visual-illustration";
 import { courseVisualToneClass } from "@/lib/programs/course-visual";
 import { CourseLandingCurriculum } from "@/components/marketing/course-landing-curriculum";
+import { StartApplicationButton } from "@/components/student/start-application-button";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import {
@@ -33,8 +34,10 @@ type CourseLandingEnrollState =
   | "active"
   | "pending_crm"
   | "pending_payment"
+  | "apply"
   | "open"
   | "guest"
+  | "guest_apply"
   | "staff";
 
 type CourseLandingPageProps = {
@@ -43,7 +46,10 @@ type CourseLandingPageProps = {
   enroll: {
     state: CourseLandingEnrollState;
     enrollCallback: string;
+    applyCallback: string;
     programId: string;
+    programSlug: string;
+    requiresApplication: boolean;
   };
 };
 
@@ -240,12 +246,28 @@ export function CourseLandingPage({
                 <Link href={`/checkout?course=${encodeURIComponent(course.slug)}`}>
                   <Button className="w-full">Complete payment</Button>
                 </Link>
+              ) : enroll.state === "apply" ? (
+                <StartApplicationButton
+                  programSlug={enroll.programSlug}
+                  fullWidth
+                />
               ) : enroll.state === "open" ? (
                 <Link href={`/enroll/${course.slug}`}>
                   <Button className="w-full">
                     {course.isAssessment ? "Take the test" : "Enroll now"}
                   </Button>
                 </Link>
+              ) : enroll.state === "guest_apply" ? (
+                <>
+                  <Link href={`/login?callbackUrl=${enroll.applyCallback}`}>
+                    <Button className="w-full">Sign in to apply</Button>
+                  </Link>
+                  <Link href={`/register?callbackUrl=${enroll.applyCallback}`}>
+                    <Button variant="secondary" className="w-full">
+                      Create an account
+                    </Button>
+                  </Link>
+                </>
               ) : enroll.state === "staff" ? (
                 <Link href="/admin">
                   <Button variant="secondary" className="w-full">

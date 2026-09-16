@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { loadPublishedCatalogPrograms } from "@/lib/catalog/service";
 import { getCourseRecommendationsForUser } from "@/lib/learning/recommendations";
 import { requireStudent } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
+import { listStudentActiveProgramIds } from "@/lib/enrollment/queries";
 
 export default async function StudentEnrollPage() {
   const session = await requireStudent();
@@ -21,14 +21,10 @@ export default async function StudentEnrollPage() {
     loadPublishedCatalogPrograms({
       organizationId: session.user.organizationId,
     }),
-    prisma.enrollment.findMany({
-      where: {
-        userId: session.user.id,
-        organizationId: session.user.organizationId,
-        status: "ACTIVE",
-      },
-      select: { programId: true },
-    }),
+    listStudentActiveProgramIds(
+      session.user.id,
+      session.user.organizationId,
+    ).then((ids) => ids.map((programId) => ({ programId }))),
     getCourseRecommendationsForUser(session.user.id, {
       organizationId: session.user.organizationId,
       limit: 6,

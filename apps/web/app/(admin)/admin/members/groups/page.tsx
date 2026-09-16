@@ -2,10 +2,12 @@ import { GroupsManager } from "@/components/admin/groups-manager";
 import { MembersAdminHeader } from "@/components/admin/members-admin-header";
 import { memberWorkspaceCounts } from "@/lib/admin/member-workspace";
 import { requireCapability } from "@/lib/auth/session";
+import { redirectIfCompassAdminRoute } from "@/lib/compass/require-edith";
 import { prisma } from "@/lib/db";
 
 export default async function AdminGroupsPage() {
   const session = await requireCapability("manageMembers");
+  redirectIfCompassAdminRoute();
   const orgId = session.user.organizationId;
   const isAdmin = session.user.role === "SUPER_ADMIN";
 
@@ -35,7 +37,6 @@ export default async function AdminGroupsPage() {
   return (
     <div>
       <MembersAdminHeader
-        title="Groups"
         description="Create cohorts, assign people, archive unused groups, or delete them."
         active="groups"
         counts={counts}

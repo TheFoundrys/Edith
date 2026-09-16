@@ -3,10 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireCapability } from "@/lib/auth/session";
+import {
+  compassFeatureUnavailableMessage,
+  isEdithOnlyFeature,
+} from "@/lib/compass/guards";
 import { prisma } from "@/lib/db";
 import { emptyFormSchema, formSchemaSchema } from "@/lib/forms/schema";
 
+const formsUnavailable = () => ({
+  error: compassFeatureUnavailableMessage("forms"),
+});
+
 export async function createFormDefinition(formData: FormData) {
+  if (isEdithOnlyFeature("forms")) return formsUnavailable();
   const session = await requireCapability("manageForms");
   const name = String(formData.get("name") || "").trim();
   if (!name) return { error: "Name is required." };
@@ -39,6 +48,7 @@ export async function createFormDefinition(formData: FormData) {
 }
 
 export async function saveFormDraft(formDefinitionId: string, schemaJson: string) {
+  if (isEdithOnlyFeature("forms")) return formsUnavailable();
   const session = await requireCapability("manageForms");
   const form = await prisma.formDefinition.findFirst({
     where: { id: formDefinitionId, organizationId: session.user.organizationId },
@@ -78,6 +88,7 @@ export async function saveFormDraft(formDefinitionId: string, schemaJson: string
 }
 
 export async function publishFormVersion(formDefinitionId: string) {
+  if (isEdithOnlyFeature("forms")) return formsUnavailable();
   const session = await requireCapability("manageForms");
   const form = await prisma.formDefinition.findFirst({
     where: { id: formDefinitionId, organizationId: session.user.organizationId },
@@ -104,6 +115,7 @@ const attachSchema = z.object({
 });
 
 export async function attachFormToProgram(formData: FormData) {
+  if (isEdithOnlyFeature("forms")) return formsUnavailable();
   const session = await requireCapability("manageForms");
   const parsed = attachSchema.safeParse({
     programId: formData.get("programId"),

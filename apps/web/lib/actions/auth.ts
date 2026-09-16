@@ -3,7 +3,12 @@
 import { createHash, randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
+import {
+  createCompassUser,
+  findCompassUserByEmail,
+} from "@/lib/compass/users";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { sendPasswordResetEmail } from "@/lib/email/password-reset";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { absoluteUrl, getSiteOrigin } from "@/lib/urls";
@@ -68,6 +73,33 @@ export async function registerStudent(formData: FormData) {
   if (!registrationLimit.allowed) {
     return { error: "Too many registration attempts. Try again later." };
   }
+
+  if (isCompassDatabase()) {
+    const existing = await findCompassUserByEmail(email);
+    if (existing) {
+      return { error: "An account with this email already exists." };
+    }
+
+    const hashedPassword = await bcrypt.hash(parsed.data.password, 12);
+    try {
+      await createCompassUser({
+        email,
+        name: parsed.data.name,
+        passwordHash: hashedPassword,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2010" &&
+        String(error.message).includes("unique")
+      ) {
+        return { error: "An account with this email already exists." };
+      }
+      throw error;
+    }
+    return { ok: true as const };
+  }
+
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "An account with this email already exists." };
 
@@ -120,6 +152,45 @@ export async function requestPasswordReset(formData: FormData) {
   });
   if (!resetLimit.allowed) return RESET_GENERIC;
 
+  if (isCompassDatabase()) {
+    const user = await findCompassUserByEmail(emailRaw);
+    if (!user) return RESET_GENERIC;
+
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    await prisma.$executeRaw`
+      UPDATE "User"
+      SET "resetPasswordToken" = ${token},
+          "resetPasswordExpires" = ${expiresAt},
+          "updatedAt" = NOW()
+      WHERE id = ${user.id}
+    `;
+
+    const resetPath = `/reset-password?token=${token}`;
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[password-reset] issued for local testing (compass)");
+      return { ...RESET_GENERIC, resetUrl: resetPath };
+    }
+
+    const publicOrigin = getSiteOrigin();
+    if (!publicOrigin) {
+      console.error("[password-reset] AUTH_URL is required for email delivery");
+      return RESET_GENERIC;
+    }
+
+    const delivery = await sendPasswordResetEmail({
+      email: user.email,
+      resetUrl: absoluteUrl(resetPath),
+    });
+    if (!delivery.ok) {
+      console.error("[password-reset] email delivery failed", {
+        reason: delivery.reason,
+        email: user.email,
+      });
+    }
+    return RESET_GENERIC;
+  }
+
   const user = await prisma.user.findUnique({ where: { email: emailRaw } });
   if (!user) return RESET_GENERIC;
 
@@ -147,10 +218,16 @@ export async function requestPasswordReset(formData: FormData) {
     return RESET_GENERIC;
   }
 
-  await sendPasswordResetEmail({
+  const delivery = await sendPasswordResetEmail({
     email: user.email,
     resetUrl: absoluteUrl(resetPath),
   });
+  if (!delivery.ok) {
+    console.error("[password-reset] email delivery failed", {
+      reason: delivery.reason,
+      email: user.email,
+    });
+  }
   return RESET_GENERIC;
 }
 
@@ -181,6 +258,35 @@ export async function resetPassword(formData: FormData) {
 
   if (String(confirm ?? "") !== passwordParsed.data) {
     return { error: "Passwords do not match." };
+  }
+
+  if (isCompassDatabase()) {
+    const rows = await prisma.$queryRaw<
+      { id: string; resetPasswordExpires: Date | null }[]
+    >`
+      SELECT id, "resetPasswordExpires"
+      FROM "User"
+      WHERE "resetPasswordToken" = ${token}
+      LIMIT 1
+    `;
+    const user = rows[0];
+    if (
+      !user?.resetPasswordExpires ||
+      user.resetPasswordExpires.getTime() <= Date.now()
+    ) {
+      return { error: "Reset link is invalid or expired." };
+    }
+
+    const hashedPassword = await bcrypt.hash(passwordParsed.data, 12);
+    await prisma.$executeRaw`
+      UPDATE "User"
+      SET password = ${hashedPassword},
+          "resetPasswordToken" = NULL,
+          "resetPasswordExpires" = NULL,
+          "updatedAt" = NOW()
+      WHERE id = ${user.id}
+    `;
+    return { ok: true as const };
   }
 
   const tokenHash = hashToken(token);

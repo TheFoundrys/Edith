@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/input";
+import { FieldHelp, Input, Label, Select } from "@/components/ui/input";
 import { Panel } from "@/components/ui/page";
 import { useToast } from "@/components/ui/toast";
 import { inviteStaffMember } from "@/lib/actions/invites";
@@ -21,15 +21,20 @@ export function InviteStaffPanel({
   const [name, setName] = useState("");
   const [role, setRole] = useState<AppRole>("ADMISSIONS_MANAGER");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const roles = canInviteAdmins
     ? STAFF_ROLES
     : STAFF_ROLES.filter((item) => item !== "SUPER_ADMIN");
 
   return (
-    <Panel className="mb-4 p-4">
+    <Panel className="mb-[var(--grid-pad)] p-[var(--grid-pad)]">
+      <h2 className="font-display text-lg text-fg">Invite staff</h2>
+      <p className="mt-1 mb-4 text-sm text-fg-muted">
+        Staff join by invitation only. Students register themselves. Links expire in 7 days.
+      </p>
       <form
-        className="grid gap-3 md:grid-cols-[1fr_1fr_16rem_auto]"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_14rem_auto]"
         onSubmit={(event) => {
           event.preventDefault();
           startTransition(async () => {
@@ -44,6 +49,7 @@ export function InviteStaffPanel({
             }
             toast({ title: "Staff invitation created", tone: "success" });
             setInviteUrl(result.inviteUrl ?? null);
+            setCopied(false);
             setEmail("");
             setName("");
             router.refresh();
@@ -58,6 +64,8 @@ export function InviteStaffPanel({
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            placeholder="name@campus.edu"
+            autoComplete="off"
           />
         </div>
         <div>
@@ -70,7 +78,7 @@ export function InviteStaffPanel({
           />
         </div>
         <div>
-          <Label htmlFor="invite-role">Staff access</Label>
+          <Label htmlFor="invite-role">Access</Label>
           <Select
             id="invite-role"
             value={role}
@@ -84,18 +92,42 @@ export function InviteStaffPanel({
           </Select>
         </div>
         <div className="flex items-end">
-          <Button type="submit" size="sm" loading={pending}>
-            Send invite
+          <Button type="submit" loading={pending}>
+            {pending ? "Sending…" : "Send invite"}
           </Button>
         </div>
       </form>
-      <p className="mt-2 text-xs text-fg-muted">
-        Staff join by invitation only. Students continue to self-register. Links expire in 7 days.
-      </p>
       {inviteUrl ? (
-        <p className="mt-2 break-all text-xs text-fg">
-          Invite link: <a href={inviteUrl} className="underline underline-offset-2">{inviteUrl}</a>
-        </p>
+        <div className="mt-4 rounded-[var(--radius-sm)] border border-border bg-bg p-3">
+          <p className="text-xs font-medium text-fg">Invite link</p>
+          <FieldHelp>
+            Copy this if email is not configured. Share it only with the invitee.
+          </FieldHelp>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <p className="min-w-0 flex-1 break-all font-mono text-xs text-fg">
+              {inviteUrl}
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(inviteUrl);
+                  setCopied(true);
+                } catch {
+                  toast({
+                    title: "Copy the link manually",
+                    description: inviteUrl,
+                    tone: "danger",
+                  });
+                }
+              }}
+            >
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </div>
+        </div>
       ) : null}
     </Panel>
   );

@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth/config";
 import { isStaffRole } from "@/lib/auth/roles";
+import { crmApplyHref, crmApplicationsHref } from "@/lib/crm/urls";
 import { publicRequestOrigin } from "@/lib/urls";
 
 // Edge-safe instance only — never import `@/lib/auth` (Prisma) from proxy.
@@ -11,6 +12,20 @@ export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
   const origin = publicRequestOrigin(req);
+
+  if (
+    pathname === "/student/applications" ||
+    pathname === "/admin/applications"
+  ) {
+    const dest = new URL(
+      pathname === "/student/applications"
+        ? crmApplyHref({
+            programSlug: req.nextUrl.searchParams.get("program"),
+          })
+        : crmApplicationsHref(),
+    );
+    return NextResponse.redirect(dest);
+  }
 
   const isAuthPage =
     pathname.startsWith("/login") ||
