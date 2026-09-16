@@ -26,7 +26,7 @@ export function FreeEnrollButton({
           setError(null);
           startTransition(async () => {
             const result = await enrollFree(courseSlug, intakeId);
-            if (result.error) {
+            if ("error" in result && result.error) {
               setError(result.error);
               return;
             }

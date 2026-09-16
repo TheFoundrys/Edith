@@ -99,6 +99,18 @@ export async function searchStaffPrograms(
   });
 }
 
+export type ResolvedPublishedProgram = NonNullable<
+  Awaited<ReturnType<typeof resolvePublishedProgramBySlug>>
+>;
+
+type NamedRelation = { name: string } | null | undefined;
+
+export type PublishedProgramIntake = {
+  id: string;
+  name: string;
+  startDate: Date | null;
+};
+
 /** Resolve a published program/course by slug in either DB profile. */
 export async function resolvePublishedProgramBySlug(
   slug: string,
@@ -115,12 +127,37 @@ export async function resolvePublishedProgramBySlug(
       status: "PUBLISHED",
     },
     include: {
+      campus: true,
+      department: true,
       intakes: {
         where: { isActive: true },
         orderBy: { startDate: "asc" },
       },
     },
   });
+}
+
+export function publishedProgramDepartmentName(
+  program: ResolvedPublishedProgram,
+): string | null {
+  const department = (program as { department?: NamedRelation }).department;
+  return department?.name ?? null;
+}
+
+export function publishedProgramCampusName(
+  program: ResolvedPublishedProgram,
+): string | null {
+  const campus = (program as { campus?: NamedRelation }).campus;
+  return campus?.name ?? null;
+}
+
+export function publishedProgramIntakes(
+  program: ResolvedPublishedProgram,
+): PublishedProgramIntake[] {
+  const intakes = (
+    program as { intakes?: PublishedProgramIntake[] }
+  ).intakes;
+  return intakes ?? [];
 }
 
 /** Staff-scoped program/course lookup (no relations). */

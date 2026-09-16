@@ -41,7 +41,13 @@ export async function GET(request: Request) {
         ? `/admin/programs/${program.id}`
         : canViewPrograms
           ? "/admin/programs"
-          : catalogHrefForProgram(program),
+          : program.slug
+            ? catalogHrefForProgram({
+                slug: program.slug,
+                domainSlug: program.domainSlug,
+                sku: program.sku,
+              })
+            : `/admin/programs/${program.id}`,
     });
   }
 

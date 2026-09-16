@@ -55,12 +55,16 @@ async function loadProgram(programId: string, organizationId: string) {
   });
 }
 
-function lessonsForModule(
-  lessons: Array<{ isPublished: boolean }>,
-  allLessons: typeof lessons,
-) {
-  const published = allLessons.filter((lesson) => lesson.isPublished);
-  return published.length > 0 ? published : allLessons;
+type OutlineLesson = {
+  id: string;
+  title: string;
+  summary: string | null;
+  isPublished: boolean;
+};
+
+function lessonsForModule(lessons: OutlineLesson[]): OutlineLesson[] {
+  const published = lessons.filter((lesson) => lesson.isPublished);
+  return published.length > 0 ? published : lessons;
 }
 
 /** AI-generate weekly assignments, module quizzes, lesson MCQs, and course MCQ banks. */
@@ -95,7 +99,7 @@ export async function generateEngagementSeriesWithAi(input: {
     modules.map((mod) => ({
       title: mod.title,
       summary: mod.summary,
-      lessons: lessonsForModule(mod.lessons, mod.lessons),
+      lessons: lessonsForModule(mod.lessons),
     })),
   );
 
@@ -137,7 +141,7 @@ export async function generateEngagementSeriesWithAi(input: {
 
   for (let index = 0; index < modules.length; index += 1) {
     const mod = modules[index]!;
-    const moduleLessons = lessonsForModule(mod.lessons, mod.lessons);
+    const moduleLessons = lessonsForModule(mod.lessons);
     const modOutline = moduleOutline({
       title: mod.title,
       summary: mod.summary,
@@ -276,7 +280,7 @@ export async function generateEngagementSeriesWithAi(input: {
       });
       if ("error" in result && result.error) {
         errors.push(`Course MCQ banks: ${result.error}`);
-      } else if ("sets" in result) {
+      } else if ("sets" in result && result.sets) {
         courseMcqSets = result.sets.length;
         if (publish) {
           const mcqs = await prisma.courseMcq.findMany({

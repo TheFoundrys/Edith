@@ -2,9 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  serverActions: {
-    bodySizeLimit: "200mb",
-  },
   images: {
     remotePatterns: [
       {

@@ -5,11 +5,14 @@ import { StartApplicationButton } from "@/components/student/start-application-b
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import { Button } from "@/components/ui/button";
 import { Label, Select } from "@/components/ui/input";
-import { resolvePublishedProgramBySlug } from "@/lib/compass/program-bridge";
+import {
+  publishedProgramCampusName,
+  publishedProgramDepartmentName,
+  publishedProgramIntakes,
+  resolvePublishedProgramBySlug,
+} from "@/lib/compass/program-bridge";
 import { requireStudent } from "@/lib/auth/session";
 import { findStudentEnrollment } from "@/lib/enrollment/queries";
-import { prisma } from "@/lib/db";
-import { isCompassDatabase } from "@/lib/db/profile";
 import { coursePrice } from "@/lib/programs/pricing";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -31,70 +34,51 @@ export default async function EnrollPage({
   const { intake: requestedIntakeId } = await searchParams;
   const session = await requireStudent();
 
-  const resolved = isCompassDatabase()
-    ? await resolvePublishedProgramBySlug(slug, session.user.organizationId)
-    : await prisma.program.findFirst({
-        where: {
-          organizationId: session.user.organizationId,
-          slug,
-          status: "PUBLISHED",
-        },
-        include: {
-          campus: true,
-          department: true,
-          intakes: {
-            where: { isActive: true },
-            orderBy: { startDate: "asc" },
-          },
-        },
-      });
-  if (!resolved || resolved.status !== "PUBLISHED") notFound();
+  const program = await resolvePublishedProgramBySlug(
+    slug,
+    session.user.organizationId,
+  );
+  if (!program) notFound();
 
-  const course = isCompassDatabase()
-    ? {
-        ...resolved,
-        campus: null,
-        department: null,
-        intakes: [] as typeof resolved extends { intakes: infer I } ? I : never[],
-        applicationFee: null as number | null,
-      }
-    : resolved;
+  const departmentName = publishedProgramDepartmentName(program);
+  const campusName = publishedProgramCampusName(program);
+  const intakes = publishedProgramIntakes(program);
 
-  const enrollment = await findStudentEnrollment(session.user.id, course.id);
-  const assessment = isPersonalityProfileProgram(course);
+  const enrollment = await findStudentEnrollment(session.user.id, program.id);
+  const assessment = isPersonalityProfileProgram(program);
   if (enrollment?.status === "ACTIVE") {
     const examPaid =
       !assessment ||
       (await hasPaidPersonalityExamAccess({
         userId: session.user.id,
-        programId: course.id,
+        programId: program.id,
       }));
     if (examPaid) {
-      redirect(afterEnrollmentHref(course));
+      redirect(afterEnrollmentHref(program));
     }
   }
 
-  const price = coursePrice(course);
+  const price = coursePrice(program);
   const free = price === 0;
   const quote =
-    !free && !course.formDefinitionId
+    !free && !program.formDefinitionId
       ? await buildCourseQuote({
           organizationId: session.user.organizationId,
           userId: session.user.id,
-          program: course,
+          program,
         })
       : null;
   const quoteOk = quote && !("error" in quote) ? quote : null;
   const awaitingCrm =
-    enrollment?.status === "PENDING" && course.requiresCrmCallback;
+    enrollment?.status === "PENDING" && program.requiresCrmCallback;
   const awaitingPayment =
     !free &&
-    !course.requiresCrmCallback &&
+    !program.requiresCrmCallback &&
     (enrollment?.status === "PENDING" ||
       (assessment && enrollment?.status === "ACTIVE"));
   const selectedIntake =
-    course.intakes.find((intake) => intake.id === requestedIntakeId) ??
-    course.intakes[0] ??
+    intakes.find((intake) => intake.id === requestedIntakeId) ??
+    intakes[0] ??
     null;
 
   return (
@@ -102,18 +86,16 @@ export default async function EnrollPage({
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fg-muted">
         {assessment ? "Assessment" : "Enrollment"}
       </p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">{course.title}</h1>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight">{program.title}</h1>
       <p className="mt-2 text-sm text-fg-muted">
-        {course.department?.name ? `${course.department.name} · ` : ""}
-        {assessment
-          ? "Online · Self-paced"
-          : (course.campus?.name ?? "Online / Hybrid")}
+        {departmentName ? `${departmentName} · ` : ""}
+        {assessment ? "Online · Self-paced" : (campusName ?? "Online / Hybrid")}
       </p>
-      {course.description ? (
-        <p className="mt-4 text-sm text-fg leading-relaxed">{course.description}</p>
+      {program.description ? (
+        <p className="mt-4 text-sm text-fg leading-relaxed">{program.description}</p>
       ) : null}
 
-      {course.intakes.length > 0 && !course.formDefinitionId ? (
+      {intakes.length > 0 && !program.formDefinitionId ? (
         <form method="get" className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <Label htmlFor="intake">Choose intake</Label>
@@ -122,7 +104,7 @@ export default async function EnrollPage({
               name="intake"
               defaultValue={selectedIntake?.id}
             >
-              {course.intakes.map((intake) => (
+              {intakes.map((intake) => (
                 <option key={intake.id} value={intake.id}>
                   {intake.name}
                   {intake.startDate
@@ -145,7 +127,7 @@ export default async function EnrollPage({
             Your enrollment request was sent to CRM. Learning unlocks after they
             confirm.
           </p>
-          <Link href={`/student/my-courses/${course.id}`}>
+          <Link href={`/student/my-courses/${program.id}`}>
             <Button variant="secondary">View status</Button>
           </Link>
         </div>
@@ -158,7 +140,7 @@ export default async function EnrollPage({
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
-              href={`/checkout?course=${encodeURIComponent(course.slug)}${
+              href={`/checkout?course=${encodeURIComponent(program.slug)}${
                 selectedIntake
                   ? `&intake=${encodeURIComponent(selectedIntake.id)}`
                   : ""
@@ -166,7 +148,7 @@ export default async function EnrollPage({
             >
               <Button>Continue to payment</Button>
             </Link>
-            <Link href={catalogHrefForProgram(course)}>
+            <Link href={catalogHrefForProgram(program)}>
               <Button variant="ghost">Back to course</Button>
             </Link>
           </div>
@@ -174,20 +156,20 @@ export default async function EnrollPage({
       ) : (
         <div className="mt-8 border border-border bg-bg-elevated p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">
-            {course.formDefinitionId
+            {program.formDefinitionId
               ? "Admissions"
               : assessment
                 ? "Assessment fee"
                 : "Course fee"}
           </p>
           <p className="mt-2 text-2xl font-semibold">
-            {course.formDefinitionId
+            {program.formDefinitionId
               ? "Application required"
               : free
                 ? "Free"
                 : formatCurrency(
                     quoteOk?.totalAmount ?? price,
-                    quoteOk?.currency ?? course.tuitionCurrency,
+                    quoteOk?.currency ?? program.tuitionCurrency,
                   )}
           </p>
           {quoteOk?.offerId ? (
@@ -201,32 +183,32 @@ export default async function EnrollPage({
               {formatCurrency(quoteOk.gstAmount, quoteOk.currency)}
             </p>
           ) : null}
-          {course.formDefinitionId ? (
+          {program.formDefinitionId ? (
             <p className="mt-3 text-sm text-fg-muted leading-relaxed">
               Admissions for this programme are handled in CRM. Apply there to
               submit documents and track the offer.
             </p>
           ) : null}
-          {course.requiresCrmCallback ? (
+          {program.requiresCrmCallback ? (
             <p className="mt-3 text-sm text-fg-muted leading-relaxed">
               This course requires CRM confirmation after you enroll
               {free ? "" : " and pay"}.
             </p>
           ) : null}
           <div className="mt-6 flex flex-wrap gap-3">
-            {course.formDefinitionId ? (
+            {program.formDefinitionId ? (
               <StartApplicationButton
-                programSlug={course.slug}
+                programSlug={program.slug}
                 fullWidth
               />
             ) : free ? (
               <FreeEnrollButton
-                courseSlug={course.slug}
+                courseSlug={program.slug}
                 intakeId={selectedIntake?.id}
               />
             ) : (
               <Link
-                href={`/checkout?course=${encodeURIComponent(course.slug)}${
+                href={`/checkout?course=${encodeURIComponent(program.slug)}${
                   selectedIntake
                     ? `&intake=${encodeURIComponent(selectedIntake.id)}`
                     : ""
@@ -235,7 +217,7 @@ export default async function EnrollPage({
                 <Button>Continue to payment</Button>
               </Link>
             )}
-            <Link href={catalogHrefForProgram(course)}>
+            <Link href={catalogHrefForProgram(program)}>
               <Button variant="ghost">Cancel</Button>
             </Link>
           </div>
