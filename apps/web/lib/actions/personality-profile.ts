@@ -328,7 +328,11 @@ export async function getPersonalityProfileWorkspace() {
           resumeKeywords: keywords,
         })
       : null;
-  const insights = parseInsights(attempt?.personalizedInsights);
+  const insights = parseInsights(
+    attempt && "personalizedInsights" in attempt
+      ? (attempt as { personalizedInsights?: unknown }).personalizedInsights
+      : attempt?.aiMetadata,
+  );
   const keywordRecs = resumeRecommendations(keywords);
   const resumeRecs = await hydrateRecs(session.user.organizationId, keywordRecs);
   const board = examComplete
@@ -410,7 +414,12 @@ export async function getPersonalityProfileWorkspace() {
           resumeFileName: meta.kyc.resumeFileName,
         }
       : null,
-    status: attempt?.status ?? "PENDING",
+    status:
+      attempt && "status" in attempt
+        ? String((attempt as { status: string }).status)
+        : examComplete
+          ? "COMPLETED"
+          : "PENDING",
     batteries: PERSONALITY_SECTIONS.map((section) => ({
       ...section,
       questionCount: SECTION_QUESTIONS[section.id].length,

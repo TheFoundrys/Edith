@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { pickRandomCourseMcqSet } from "@/lib/assessments/course-mcq-sets";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
@@ -12,7 +12,7 @@ import { parseMcqQuestions } from "@/lib/assessments/mcq-types";
 export async function startRandomCourseMcqAction(formData: FormData) {
   const session = await requireStudent();
   const programId = String(formData.get("programId") || "").trim();
-  if (!programId) return { error: "Course not found." };
+  if (!programId) notFound();
 
   const banks = await prisma.courseMcq.findMany({
     where: {
@@ -24,9 +24,7 @@ export async function startRandomCourseMcqAction(formData: FormData) {
     select: { id: true },
   });
 
-  if (banks.length === 0) {
-    return { error: "No published assessment sets for this course." };
-  }
+  if (banks.length === 0) notFound();
 
   const picked =
     banks.length === 1 ? banks[0]! : pickRandomCourseMcqSet(banks)!;

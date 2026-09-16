@@ -201,7 +201,7 @@ export function CourseCheckoutPanel({
 
         if (order.provider === "MOCK") {
           const result = await completeMockCoursePayment(order.paymentId);
-          if (result.error) {
+          if ("error" in result && result.error) {
             setError(result.error);
             return;
           }

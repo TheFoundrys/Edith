@@ -66,7 +66,7 @@ export function CourseMcqAiPanel({
             .join(" · ")}. Review and publish each set.`,
           tone: "success",
         });
-      } else if ("ok" in result && result.ok) {
+      } else if ("ok" in result && result.ok && "imported" in result) {
         toast({
           title: "Questions generated",
           description: `${result.provider}: ${result.imported} questions added (${result.total} in bank). Publish when ready.`,

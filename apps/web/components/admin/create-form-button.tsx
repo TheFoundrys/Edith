@@ -21,7 +21,7 @@ export function CreateFormButton() {
             fd.set("name", "New application form");
             fd.set("description", "Draft form");
             const result = await createFormDefinition(fd);
-            if (result.error) {
+            if ("error" in result) {
               setError(result.error);
               return;
             }

@@ -9,8 +9,6 @@ import { Panel } from "@/components/ui/page";
 import { resolvePublishedProgramBySlug } from "@/lib/compass/program-bridge";
 import { requireStudent } from "@/lib/auth/session";
 import { findStudentEnrollment } from "@/lib/enrollment/queries";
-import { prisma } from "@/lib/db";
-import { isCompassDatabase } from "@/lib/db/profile";
 import {
   canCheckoutAdmissionsProgram,
   requiresApplication,
@@ -34,29 +32,11 @@ export default async function CheckoutPage({
   if (!slug) redirect("/courses");
 
   const session = await requireStudent();
-  const course = isCompassDatabase()
-    ? await resolvePublishedProgramBySlug(slug, session.user.organizationId)
-    : await prisma.program.findFirst({
-        where: {
-          organizationId: session.user.organizationId,
-          slug,
-          status: "PUBLISHED",
-        },
-        select: {
-          id: true,
-          slug: true,
-          title: true,
-          formDefinitionId: true,
-          price: true,
-          tuitionCurrency: true,
-          applicationFee: true,
-          category: true,
-          type: true,
-          sku: true,
-          domainSlug: true,
-        },
-      });
-  if (!course || course.status !== "PUBLISHED") notFound();
+  const course = await resolvePublishedProgramBySlug(
+    slug,
+    session.user.organizationId,
+  );
+  if (!course) notFound();
 
   const enrollment = await findStudentEnrollment(session.user.id, course.id);
   if (enrollment?.status === "ACTIVE") {

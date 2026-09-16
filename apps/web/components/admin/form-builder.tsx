@@ -102,7 +102,7 @@ export function FormBuilder({
   function save() {
     startTransition(async () => {
       const result = await saveFormDraft(formId, JSON.stringify(schema));
-      setMessage(result.error ? result.error : "Draft saved");
+      setMessage("error" in result && result.error ? result.error : "Draft saved");
       router.refresh();
     });
   }
@@ -110,12 +110,12 @@ export function FormBuilder({
   function publish() {
     startTransition(async () => {
       const saveResult = await saveFormDraft(formId, JSON.stringify(schema));
-      if (saveResult.error) {
+      if ("error" in saveResult && saveResult.error) {
         setMessage(saveResult.error);
         return;
       }
       const result = await publishFormVersion(formId);
-      setMessage(result.error ? result.error : "Version published");
+      setMessage("error" in result && result.error ? result.error : "Version published");
       router.refresh();
     });
   }
