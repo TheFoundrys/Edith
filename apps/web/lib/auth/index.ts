@@ -6,6 +6,10 @@ import { prisma } from "@/lib/db";
 import type { AppRole, Capability } from "@/lib/auth/roles";
 import { authConfig } from "@/lib/auth/config";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { compassRoleToAppRole } from "@/lib/compass/roles";
+import { getCompassDefaultDomainId } from "@/lib/compass/domain";
+import { findCompassUserByEmail } from "@/lib/compass/users";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { canAuthenticateMembership } from "@/lib/members/status";
 
 export type SessionUser = {
@@ -55,8 +59,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
         if (!loginLimit.allowed) return null;
 
+        const email = parsed.data.email.toLowerCase();
+        if (isCompassDatabase()) {
+          const user = await findCompassUserByEmail(email);
+          if (!user?.password) return null;
+          const valid = await bcrypt.compare(parsed.data.password, user.password);
+          if (!valid) return null;
+          const organizationId = await getCompassDefaultDomainId();
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: compassRoleToAppRole(user.role ?? "learner"),
+            organizationId,
+          };
+        }
+
         const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email.toLowerCase() },
+          where: { email },
           include: {
             memberships: {
               where: { status: "ACTIVE" },

@@ -2,7 +2,7 @@
 
 **Product:** Edith — Map Your Future.  
 **Organisation:** The Foundrys  
-**Last updated:** August 2026  
+**Last updated:** September 2026  
 **Scope:** `apps/web` — all routes, actions, APIs, and integrations currently implemented.
 
 ---
@@ -196,7 +196,7 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 ### 4.3 Forgot password (`/forgot-password`)
 
 - Email input → hashed reset token stored in DB
-- **Production:** no email delivery (token logged only)
+- **Production:** Resend email when `RESEND_API_KEY` and `EMAIL_FROM` are set (requires `AUTH_URL`)
 - **Development:** reset URL returned in response for testing
 
 ### 4.4 Reset password (`/reset-password?token=…`)
@@ -216,8 +216,10 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 ### 5.1 Workspace shell
 
 - Sidebar navigation (capability-free; all enrolled students)
-- **Learn group:** Dashboard, My Learning, Courses (enroll), Certificates, Assessments
-- **Community group:** Forums, Messages (announcements), Settings
+- **Learn group:** Dashboard, My Learning, Courses (enroll), Personality Profile, Assessments, Progress, Submissions, Certificates, Badges
+- **Community group:** Forums
+- **Admissions group:** Apply in CRM (redirect), Transactions
+- **Support group:** Announcements, Help tickets, Settings
 - User menu with profile link
 - Unified Edith header above sidebar
 - Vintage workspace backdrop
@@ -254,9 +256,10 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 
 - Course title, description, campus/department
 - Progress bar (% activities complete)
+- **Course assessments** panel when READY MCQ banks exist (links per bank)
 - Module/section summary with completion counts
 - Continue learning / Full outline buttons
-- Pending CRM blocking panel when applicable
+- Pending CRM / payment blocking panels when applicable
 - All courses back link
 
 ### 5.5 Enroll catalog (`/student/enroll`)
@@ -271,6 +274,7 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 #### Course outline (`/student/learning/[course-id]`)
 
 - Module → lesson tree (published syllabus only)
+- **Quiz badge** on lessons with a READY lesson MCQ
 - Continue button to next incomplete lesson
 - Requires ACTIVE enrollment
 
@@ -278,12 +282,25 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 
 - **Content types:**
   - `RICH_TEXT` — markdown rendering
-  - `VIDEO_URL` — YouTube/Vimeo embed
+  - `VIDEO_URL` — YouTube/Vimeo embed (+ uploaded file playback)
+  - `PDF_FILE` — inline PDF viewer + download
   - `EXTERNAL_LINK` — outbound link
+- **Lesson quiz** panel when a READY `LessonMcq` exists → `/…/mcq` (randomized per attempt)
 - Mark complete / mark incomplete toggle
 - Previous / next lesson navigation
 - **AI lesson tutor chat** (when org AI plugin enabled)
 - Auto-certificate trigger when all lessons complete
+
+#### Course MCQ (`/student/my-courses/[course-id]/mcq`, `/…/mcq/[mcq-id]`)
+
+- Random question subset + shuffled options per attempt (from admin bank)
+- Retake draws a new paper
+- Index route lists banks when multiple exist; single bank redirects to take page
+
+#### Lesson MCQ (`/student/learning/…/lessons/[lesson-id]/mcq`)
+
+- All bank questions per attempt, randomized order and options
+- Retake for a new shuffle
 
 #### Legacy redirects
 
@@ -296,8 +313,9 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 
 ### 5.8 Assessments hub (`/student/assessments`)
 
-- Combined list of open assignments + available quizzes
-- Deep links to each item
+- **Personality profile** block (KYC + exam progress) always shown
+- Assignments, **course MCQ banks**, **lesson quizzes**, and legacy quizzes
+- Deep links to each item (course MCQs use per-bank `/mcq/[mcq-id]` URLs)
 
 ### 5.9 Assignments
 
@@ -316,14 +334,17 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 | `/student/quizzes` | List published quizzes for enrolled programs |
 | `/student/quizzes/[id]` | MCQ form, immediate score on submit, single-attempt flow |
 
-### 5.11 Certificates
+### 5.11 Certificates & badges
 
 | Route | Features |
 |-------|----------|
 | `/student/certificates` | List earned certificates |
-| `/student/certificates/[certificate-id]` | Printable-style view with unique certificate code |
+| `/student/certificates/[certificate-id]` | Printable view with unique certificate code + browser print |
+| `/student/badges` | Badges gallery (earned + available) |
+| `/student/achievements` | Dashboard-style achievements summary |
 
-- **Auto-issued** when all published syllabus lessons are marked complete
+- **Auto-issued certificate** when all published syllabus lessons are marked complete
+- MCQ pass does not yet mark lessons complete or trigger certificates
 - No PDF export or template designer UI
 
 ### 5.12 Profile & settings
@@ -348,10 +369,10 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 
 ### 5.15 Forums (`/student/forums`)
 
-- List forum categories
-- List recent threads
-- Create new thread (category ID field — minimal UX)
-- **No thread detail / reply UI** (partial)
+- List forum categories and recent threads
+- Create new thread (category picker)
+- Thread detail at `/student/forums/[threadId]` with reply list and reply form
+- View count increment on thread open
 
 ### 5.16 Support tickets
 
@@ -362,10 +383,12 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 
 ### 5.17 Recommendations engine
 
-- Track/category/tag affinity scoring
-- Jaccard similarity between courses
-- Experience tier matching
-- Used on dashboard and enroll page
+- Track/category/tag affinity from enrollments and lesson progress
+- **Resume RAG boost** — keywords from Personality Profile KYC + profile fields → `retrieveForStudent` against indexed catalogue; top slug matches raise score with “Matches … skills on your resume”
+- Coarse resume track affinity (ai, cyber, data, etc.) merged into track weights
+- Jaccard similarity between course tags
+- Experience tier matching (entry → professional progression)
+- Used on dashboard, enroll page, and `/student/recommendations`
 
 ### 5.18 Study stats engine
 
@@ -390,10 +413,11 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 
 ### 6.2 Checkout (`/checkout?course=slug`)
 
-- Paid: Razorpay popup or mock one-click pay
+- Paid: Razorpay popup, Stripe redirect, or mock one-click pay
 - Free: confirm enrollment button
+- **Degree programmes** (`formDefinitionId`): blocks payment until CRM admission (ACTIVE enrollment); shows Apply in CRM or awaiting-admission message
 - Terms link
-- Redirect if already enrolled
+- Redirect if already enrolled and paid
 
 ### 6.3 Payment result pages
 
@@ -402,10 +426,12 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 | `/payment/success` | Success message, enrollment reference, links to dashboard / learning / CRM pending status |
 | `/payment/failed` | Failure message, retry guidance |
 
-### 6.4 Payment center (`/student/payment`)
+### 6.4 Transactions (`/student/transactions`)
 
-- Lists paid courses awaiting checkout completion
-- Links to checkout and enroll review
+- **Fees due** — only courses with an unpaid enrollment (not the whole catalog)
+- **Installments due** — pay partial tuition plans created by finance
+- Transaction history with printable invoices at `/student/transactions/invoices/[paymentId]`
+- Legacy `/student/payment` redirects here
 
 ### 6.5 Enrollment states handled in UI
 
@@ -427,33 +453,28 @@ Capabilities are stored per org in a **capability matrix** (`PermissionRole` row
 
 ## 7. Admissions & applications (student)
 
-### 7.1 Applications list (`/student/applications`)
+Degree applications and admin application review **live in CentraCRM**. Edith redirects there and receives webhooks when CRM admits students.
 
-- User's applications with status badges and timeline labels
-- **Open for applications** — programs with published form + active intake
-- Start application button (intake picker when multiple intakes)
+### 7.1 Student applications (`/student/applications`)
 
-### 7.2 Application detail (`/student/applications/[id]`)
+- **Redirects to CRM** apply URL (`source=edith`, optional `program` slug)
+- Course landing “Apply in CRM” uses the same flow
+- Legacy in-app application inbox removed from student nav
 
-- Multi-section dynamic form driven by published form schema
-- Field types: text, email, phone, select, date, textarea, checkbox, **file upload**
-- Conditional fields (`showIf` rules)
-- Section navigation + progress stepper
-- Save draft
-- Review mode before submit
-- Attestation confirm dialog on submit
-- Status timeline (events)
-- Read-only after submission
-- **Application fee payment panel** when status is fee-requested (Razorpay or mock)
-- Document upload to local storage
+### 7.2 Admin applications (`/admin/applications`, `/admin/applications/[id]`)
 
-### 7.3 Application workflow statuses
+- **List → CRM applications inbox**
+- **Detail → CRM application by `crmApplicationId`** (local `Application` row must exist for deep link)
 
-15 states with enforced transitions, e.g.:
+### 7.3 CRM → LMS admission bridge
 
-`DRAFT` → `SUBMITTED` → review states → `OFFERED` / `FEE_REQUESTED` → `PAID` → `ENROLLED` → `LOCKED` / `REJECTED` / etc.
+- `POST /api/crm/admission-callback` — CRM admits degree applicant → Edith creates/activates `Enrollment` (ACTIVE)
+- Student email must match an Edith user; requires `CRM_WEBHOOK_SECRET`
+- Tuition checkout unlocks only after ACTIVE enrollment (`canCheckoutAdmissionsProgram`)
 
-Labels surfaced in UI via `APPLICATION_STATUS_LABELS`.
+### 7.4 Legacy application workflow (schema retained)
+
+`Application`, form builder, and workflow actions remain in schema/code for CRM sync and historical rows; not exposed as a full in-app admissions inbox.
 
 ---
 
@@ -489,6 +510,8 @@ Labels surfaced in UI via `APPLICATION_STATUS_LABELS`.
 - **Intake management:** create, toggle active/inactive, capacity, application open/close dates
 - Pricing fields gated by `managePricing` capability
 - Next steps checklist (syllabus, intakes, publish)
+- **Assessments panel** — course MCQ banks for this program + lesson quiz count
+- Header links to Course MCQs and Lesson MCQs admin
 
 ### 8.3 Syllabus (`/admin/syllabus`)
 
@@ -509,6 +532,8 @@ Labels surfaced in UI via `APPLICATION_STATUS_LABELS`.
 - Duration in minutes
 - Markdown hint for rich text
 - Draft status badge + publish guidance
+- Per-lesson **quiz badge** and **Manage quiz / Add quiz** links
+- Header links to Course MCQs and Lesson MCQs admin
 
 ### 8.4 Assignments (`/admin/assignments`)
 
@@ -529,6 +554,25 @@ Labels surfaced in UI via `APPLICATION_STATUS_LABELS`.
 | | **AI quiz draft** from syllabus outline |
 | | Publish / archive status |
 
+### 8.5a Course MCQs (`/admin/course-mcqs`)
+
+| Route | Features |
+|-------|----------|
+| List | Create bank per program, set questions-per-attempt and pass % |
+| `/[id]` | Manual questions, **bulk JSON import** (append/replace), publish |
+
+- Students get randomized subset + shuffled options per attempt
+- Append import to a published bank stays READY; replace requires republish
+
+### 8.5b Lesson MCQs (`/admin/lesson-mcqs`)
+
+| Route | Features |
+|-------|----------|
+| List | Attach quiz to published lesson, set pass % |
+| `/[id]` | Manual questions, bulk JSON import, publish |
+
+- All bank questions per attempt, randomized order and options
+
 ### 8.6 Forms (`/admin/forms`)
 
 | Route | Features |
@@ -539,23 +583,18 @@ Labels surfaced in UI via `APPLICATION_STATUS_LABELS`.
 | | Save draft version, publish version |
 | | Attach form to program |
 
-### 8.7 Applications inbox (`/admin/applications`)
+### 8.7 Applications (`/admin/applications`)
 
-| Route | Features |
-|-------|----------|
-| List | Search, filter by status/program, pagination |
-| `/[id]` | Full application review |
+- **Redirects to CentraCRM** applications inbox (see §7.2)
+- Local application review UI removed; use CRM for intake decisions
 
-**Application review features:**
+### 8.7a Enrollments (`/admin/enrollments`)
 
-- Applicant answers grouped by form section
-- Status transition with allowed-state enforcement + notes
-- Event timeline
-- Document list with verify / unverify actions
-- CRM lead ID and application ID display
-- CRM sync log preview
-- Offline fee recording (UTR/reference) when offered or fee-requested
-- Payment history
+- Org enrollment list and status overview
+
+### 8.7b Personality profile admin (`/admin/personality-profile`, `/admin/personality-profile/[userId]`)
+
+- Staff view of student KYC + assessment progress
 
 ### 8.8 Members (`/admin/members`)
 
@@ -595,7 +634,7 @@ Labels surfaced in UI via `APPLICATION_STATUS_LABELS`.
 
 - Create badge (name, description, icon)
 - Manually award badge to student by user ID
-- **No student-facing badges gallery** (partial)
+- Student gallery at `/student/badges`
 
 ### 8.14 Support tickets (`/admin/tickets`)
 
@@ -608,7 +647,7 @@ Labels surfaced in UI via `APPLICATION_STATUS_LABELS`.
 
 - Create coupon: code, value, type (percentage/fixed), scope, expiry, max uses
 - List coupons with usage counts
-- **Not applied in student checkout UI yet** (admin + DB only)
+- Applied at checkout via quote preview and coupon code field
 
 ### 8.16 Offers (`/admin/offers`)
 
@@ -620,7 +659,8 @@ Labels surfaced in UI via `APPLICATION_STATUS_LABELS`.
 - GST percentage
 - Convenience fee percentage
 - Enable/disable Razorpay
-- Enable/disable Stripe (**toggle only — no Stripe adapter in code**)
+- Enable/disable Stripe (use `PAYMENT_ADAPTER=stripe` + `STRIPE_SECRET_KEY`)
+- Create installment plans by student email (partial payments on Transactions)
 
 ### 8.18 AI plugins (`/admin/plugins/ai`)
 
@@ -684,17 +724,20 @@ All syncs logged to `CrmSyncLog`.
 - On application status change
 - On enrollment when `requiresCrmCallback` (free or paid)
 
-### 10.3 Inbound CRM webhook
+### 10.3 Inbound CRM webhooks
 
-- `POST /api/crm/enrollment-callback` (Bearer secret)
-- **Approve** → activate PENDING enrollment
-- **Reject** → cancel enrollment
+| Endpoint | When |
+|----------|------|
+| `POST /api/crm/enrollment-callback` | YGP/PGP direct enroll — approve/reject PENDING enrollment |
+| `POST /api/crm/admission-callback` | Degree admission — CRM admits → ACTIVE LMS enrollment |
+
+Both require Bearer `CRM_WEBHOOK_SECRET`.
 
 ### 10.4 CRM-gated programs
 
-- `requiresCrmCallback` flag on program
-- Enrollment stays PENDING until CRM approves
-- UI surfaces “Awaiting CRM confirmation” across my courses, course landing, payment success
+- **`requiresCrmCallback`** — YGP/PGP enroll stays PENDING until enrollment-callback approves
+- **`formDefinitionId`** — degree programmes: apply in CRM only; LMS unlocks via admission-callback after admit
+- UI surfaces “Awaiting CRM confirmation” / “Apply in CRM” across landing, my courses, checkout, transactions
 
 ---
 
@@ -718,11 +761,16 @@ Org settings stored in `AiPluginSetting`; configured in admin.
 | Lesson tutor chat | Student lesson player |
 | Connection test | Admin AI settings |
 
-### 11.3 Schema-only AI models (no UI)
+### 11.3 MCQ banks (manual + JSON; AI generation not wired)
 
-- `BloomsAnalysis`, `CourseMcq`, `LessonMcq`
-- AI MCQ generation status enums
-- Compass-ported assessment attempt tables
+- `CourseMcq` / `LessonMcq` — admin CRUD, bulk JSON import, publish
+- Randomized student papers via `CourseAssessmentAttempt` / `LessonMcqAttempt`
+- AI auto-generation enums exist in schema; no generate action yet
+
+### 11.4 Schema-only AI models (no UI)
+
+- `BloomsAnalysis`
+- Compass-ported models without full UI
 
 ---
 
@@ -759,7 +807,8 @@ Org settings stored in `AiPluginSetting`; configured in admin.
 | Endpoint | Description |
 |----------|-------------|
 | `POST /api/payments/razorpay/webhook` | Razorpay payment events |
-| `POST /api/crm/enrollment-callback` | CRM enrollment approval/rejection |
+| `POST /api/crm/enrollment-callback` | CRM enrollment approval/rejection (YGP/PGP direct enroll) |
+| `POST /api/crm/admission-callback` | CRM degree admission → ACTIVE LMS enrollment |
 
 ---
 
@@ -841,27 +890,20 @@ Org settings stored in `AiPluginSetting`; configured in admin.
 | Feature | Status |
 |---------|--------|
 | Newsletter signup | UI-only; no list/backend |
-| Password reset email | Token created; no email in production |
 | Mock CRM / Mock payments / Mock AI | Dev defaults |
-| Forum thread detail & replies (student) | Create/list only |
-| Student badges gallery | Admin award only |
 | Email campaigns / sends | DB schema only |
-| Coupons at checkout | Admin create only |
-| Stripe payments | Admin toggle only; no adapter |
-| Installments | DB schema only |
 | Assignment grading UI (admin) | Server logic partial; no UI |
 | Direct messaging / group chat | DB schema only |
 | Clifton / Bloom's assessments | DB schema only |
-| AI MCQ course/lesson assessments | DB schema only |
-| Certificate template designer | DB schema only |
+| AI MCQ generation pipeline | Admin manual + JSON import; no AI generate action |
+| MCQ pass → lesson progress / certificates | Attempts stored; does not mark lessons complete |
+| Certificate template designer | Print/save PDF via browser; no template renderer |
 | Admin dashboard Export Report | Button stub |
 | Campus / department CRUD pages | Selected on programs; no standalone admin |
-| Intake selection on direct enroll | Intakes displayed; not stored on enrollment |
-| Capacity enforcement on enroll | Shown in UI; not enforced in checkout |
-| Application form vs direct enroll | Two parallel paths; not fully unified |
-| UPI / offline student self-serve payment | Limited; admin offline form on applications |
-| Groups management (admin) | List only |
+| UPI / offline student self-serve payment | Limited; CRM handles application fees |
 | Email template edit/delete | Create + list only |
+| Forum voting / nested replies | Not implemented |
+| Razorpay installment popup | Installments use shared payment adapters (mock/stripe) |
 
 ---
 
@@ -874,11 +916,11 @@ Org settings stored in `AiPluginSetting`; configured in admin.
 `/login`, `/register`, `/forgot-password`, `/reset-password`
 
 ### Student
-`/student/dashboard`, `/student/my-courses`, `/student/my-courses/[course-id]`, `/student/enroll`, `/student/learning/[course-id]`, `/student/learning/[course-id]/lessons/[lesson-id]`, `/student/progress`, `/student/assessments`, `/student/assignments`, `/student/assignments/[assignment-id]`, `/student/submissions`, `/student/quizzes`, `/student/quizzes/[id]`, `/student/certificates`, `/student/certificates/[certificate-id]`, `/student/applications`, `/student/applications/[id]`, `/student/forums`, `/student/announcements`, `/student/notifications`, `/student/tickets`, `/student/tickets/[id]`, `/student/payment`, `/student/profile`, `/student/settings`
+`/student/dashboard`, `/student/my-courses`, `/student/my-courses/[course-id]`, `/student/my-courses/[course-id]/mcq`, `/student/my-courses/[course-id]/mcq/[mcq-id]`, `/student/enroll`, `/student/learning/[course-id]`, `/student/learning/[course-id]/lessons/[lesson-id]`, `/student/learning/[course-id]/lessons/[lesson-id]/mcq`, `/student/personality-profile`, `/student/progress`, `/student/assessments`, `/student/assignments`, `/student/assignments/[assignment-id]`, `/student/submissions`, `/student/quizzes`, `/student/quizzes/[id]`, `/student/certificates`, `/student/certificates/[certificate-id]`, `/student/badges`, `/student/achievements`, `/student/applications` (→ CRM), `/student/forums`, `/student/forums/[threadId]`, `/student/transactions`, `/student/transactions/invoices/[paymentId]`, `/student/announcements`, `/student/notifications`, `/student/tickets`, `/student/tickets/[id]`, `/student/profile`, `/student/settings`
 
 ### Admin
-`/admin`, `/admin/programs`, `/admin/programs/new`, `/admin/programs/[id]`, `/admin/syllabus`, `/admin/syllabus/[programId]`, `/admin/syllabus/[programId]/progress`, `/admin/assignments`, `/admin/assignments/new`, `/admin/assignments/[id]`, `/admin/quizzes`, `/admin/quizzes/new`, `/admin/quizzes/[id]`, `/admin/forms`, `/admin/forms/[id]`, `/admin/applications`, `/admin/applications/[id]`, `/admin/members`, `/admin/members/roles`, `/admin/announcements`, `/admin/email-templates`, `/admin/forums`, `/admin/badges`, `/admin/tickets`, `/admin/tickets/[id]`, `/admin/coupons`, `/admin/offers`, `/admin/payment-settings`, `/admin/plugins/ai`, `/admin/roles` (redirect)
+`/admin`, `/admin/programs`, `/admin/programs/new`, `/admin/programs/[id]`, `/admin/enrollments`, `/admin/syllabus`, `/admin/syllabus/[programId]`, `/admin/syllabus/[programId]/progress`, `/admin/assignments`, `/admin/assignments/new`, `/admin/assignments/[id]`, `/admin/quizzes`, `/admin/quizzes/new`, `/admin/quizzes/[id]`, `/admin/course-mcqs`, `/admin/course-mcqs/[id]`, `/admin/lesson-mcqs`, `/admin/lesson-mcqs/[id]`, `/admin/forms`, `/admin/forms/[id]`, `/admin/applications` (→ CRM), `/admin/applications/[id]` (→ CRM), `/admin/members`, `/admin/members/roles`, `/admin/personality-profile`, `/admin/personality-profile/[userId]`, `/admin/announcements`, `/admin/email-templates`, `/admin/forums`, `/admin/badges`, `/admin/tickets`, `/admin/tickets/[id]`, `/admin/coupons`, `/admin/offers`, `/admin/transactions`, `/admin/transactions/invoices/[paymentId]`, `/admin/payment-settings`, `/admin/plugins/ai`, `/admin/roles` (redirect)
 
 ---
 
-*This document reflects the codebase as of August 2026. For implementation details, see route files under `app/`, server actions under `lib/actions/`, and the Prisma schema at `prisma/schema.prisma`.*
+*This document reflects the codebase as of September 2026. For implementation details, see route files under `app/`, server actions under `lib/actions/`, and the Prisma schema at `prisma/schema.prisma`.*

@@ -5,9 +5,12 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { getAiAdapterForOrg } from "@/lib/ai";
 import { requireCapability, requireStudent } from "@/lib/auth/session";
+import { resolveStaffProgram } from "@/lib/compass/program-bridge";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 
 async function programContext(programId: string, organizationId: string) {
+  if (isCompassDatabase()) return null;
   return prisma.program.findFirst({
     where: { id: programId, organizationId },
     include: {
@@ -55,13 +58,14 @@ export async function createQuiz(input: {
   status?: "DRAFT" | "PUBLISHED";
   questions: z.infer<typeof questionSchema>[];
 }) {
+  if (isCompassDatabase()) {
+    return { error: "Edith quizzes are not available on compass_dev." };
+  }
   const session = await requireCapability("manageContent");
-  const program = await prisma.program.findFirst({
-    where: {
-      id: input.programId,
-      organizationId: session.user.organizationId,
-    },
-  });
+  const program = await resolveStaffProgram(
+    input.programId,
+    session.user.organizationId,
+  );
   if (!program) return { error: "Program not found." };
 
   const questions = z.array(questionSchema).min(1).safeParse(input.questions);
@@ -107,6 +111,9 @@ export async function updateQuiz(
     questions: z.infer<typeof questionSchema>[];
   },
 ) {
+  if (isCompassDatabase()) {
+    return { error: "Edith quizzes are not available on compass_dev." };
+  }
   const session = await requireCapability("manageContent");
   const existing = await prisma.quiz.findFirst({
     where: { id: quizId, organizationId: session.user.organizationId },
@@ -145,6 +152,9 @@ export async function updateQuiz(
 }
 
 export async function deleteQuiz(quizId: string) {
+  if (isCompassDatabase()) {
+    return { error: "Edith quizzes are not available on compass_dev." };
+  }
   const session = await requireCapability("manageContent");
   const existing = await prisma.quiz.findFirst({
     where: { id: quizId, organizationId: session.user.organizationId },
@@ -162,6 +172,9 @@ export async function generateQuizDraft(input: {
   questionCount?: number;
   difficulty?: "intro" | "intermediate" | "advanced";
 }) {
+  if (isCompassDatabase()) {
+    return { error: "Edith quizzes are not available on compass_dev." };
+  }
   const session = await requireCapability("manageContent");
   const program = await programContext(
     input.programId,
@@ -191,6 +204,9 @@ export async function submitQuizAttempt(
   quizId: string,
   answers: Record<string, number>,
 ) {
+  if (isCompassDatabase()) {
+    return { error: "Edith quizzes are not available on compass_dev." };
+  }
   const session = await requireStudent();
   const quiz = await prisma.quiz.findFirst({
     where: {

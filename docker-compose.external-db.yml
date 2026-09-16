@@ -1,0 +1,14 @@
+# Run Edith against a remote Postgres (e.g. compass_dev on LAN).
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.external-db.yml up web
+#
+# Requires apps/web/.env with DATABASE_URL pointing at the remote host.
+# The bundled postgres service is not started.
+
+name: edith
+
+services:
+  web:
+    depends_on: {}
+    environment:
+      DATABASE_URL: ${DATABASE_URL}

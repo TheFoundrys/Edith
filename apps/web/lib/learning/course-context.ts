@@ -1,4 +1,12 @@
+import {
+  loadCompassCourseLessonContext,
+  loadCompassModules,
+} from "@/lib/compass/syllabus";
+import { loadCompassSyllabus } from "@/lib/compass/catalog";
+import { getCompassCourseById } from "@/lib/compass/courses";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
+import { filterVisibleModules } from "@/lib/learning/syllabus-visible";
 
 export type CourseLessonContext = {
   organizationId: string;
@@ -62,6 +70,10 @@ export async function loadCourseLessonContext(opts: {
   lessonId?: string | null;
   organizationId?: string;
 }): Promise<CourseLessonContext | null> {
+  if (isCompassDatabase()) {
+    return loadCompassCourseLessonContext(opts);
+  }
+
   const program = await prisma.program.findFirst({
     where: {
       id: opts.programId,
@@ -97,7 +109,7 @@ export async function loadCourseLessonContext(opts: {
 
   if (!program?.syllabus) return null;
 
-  const modules = program.syllabus.modules.filter((m) => m.lessons.length > 0);
+  const modules = filterVisibleModules(program.syllabus.modules);
   let lesson: CourseLessonContext["lesson"] = null;
 
   if (opts.lessonId) {
@@ -150,6 +162,33 @@ export async function loadCourseLessonContext(opts: {
 
 /** Public catalog view of published syllabus (no lesson bodies). */
 export async function loadPublicCourseSyllabus(programId: string) {
+  if (isCompassDatabase()) {
+    const [course, modules, syllabus] = await Promise.all([
+      getCompassCourseById(programId),
+      loadCompassModules(programId),
+      loadCompassSyllabus(programId),
+    ]);
+    if (!course || course.status !== "PUBLISHED") return null;
+    const visible = filterVisibleModules(modules);
+    if (visible.length === 0) return null;
+    return {
+      title: syllabus?.title ?? course.title,
+      description: syllabus?.description ?? course.description,
+      modules: visible.map((mod) => ({
+        id: mod.id,
+        title: mod.title,
+        summary: mod.summary,
+        lessons: mod.lessons.map((l) => ({
+          id: l.id,
+          title: l.title,
+          summary: l.summary,
+          durationMin: l.durationMin,
+          contentType: l.contentType,
+        })),
+      })),
+    };
+  }
+
   const syllabus = await prisma.programSyllabus.findFirst({
     where: { programId, status: "PUBLISHED" },
     select: {
@@ -179,6 +218,6 @@ export async function loadPublicCourseSyllabus(programId: string) {
   if (!syllabus) return null;
   return {
     ...syllabus,
-    modules: syllabus.modules.filter((m) => m.lessons.length > 0),
+    modules: filterVisibleModules(syllabus.modules),
   };
 }

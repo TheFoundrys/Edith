@@ -1,18 +1,14 @@
 import Link from "next/link";
 import { createAnnouncementAction } from "@/lib/actions/compass-modules";
+import { listAdminAnnouncements } from "@/lib/announcements/queries";
 import { requireCapability } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { PageHeader, Panel } from "@/components/ui/page";
 
 export default async function AdminAnnouncementsPage() {
   const session = await requireCapability("manageContent");
-  const items = await prisma.announcement.findMany({
-    where: { organizationId: session.user.organizationId },
-    orderBy: { createdAt: "desc" },
-    include: { author: { select: { name: true } } },
-  });
+  const items = await listAdminAnnouncements(session.user.organizationId);
 
   return (
     <div>
@@ -50,7 +46,7 @@ export default async function AdminAnnouncementsPage() {
                 <p className="font-medium text-fg">{a.title}</p>
                 <p className="text-sm text-fg-muted line-clamp-2">{a.content}</p>
                 <p className="text-xs text-fg-muted mt-1">
-                  {a.priority} · {a.author.name}
+                  {a.priority} · {a.author?.name ?? "Staff"}
                   {a.publishedAt ? ` · published` : " · draft"}
                 </p>
               </li>

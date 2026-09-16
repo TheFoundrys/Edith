@@ -1,9 +1,17 @@
 import type { DegreeLevel, ProgramCategory } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import { listCompassActiveEnrollmentCounts } from "@/lib/compass/enrollment";
 import { loadPublishedCatalogPrograms } from "@/lib/catalog/service";
+import { loadStudentEnrollments } from "@/lib/enrollment/queries";
+import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
+import { getUserCompletedLessonIds } from "@/lib/learning/progress";
 import { flattenPublishedActivities } from "@/lib/learning/outline";
 import { displayProgramName } from "@/lib/programs/categories";
 import { catalogDurationLabel } from "@/lib/programs/catalog-meta";
+import {
+  loadResumeRecommendationContext,
+  resumeTrackAffinityBoost,
+} from "@/lib/learning/resume-signals";
 import {
   inferExperienceTier,
   inferProgramTrack,
@@ -91,6 +99,10 @@ function scoreCandidate(
     maxEnrollmentCount: number;
   },
   profile: LearnerProfile,
+  resume?: {
+    ragSlugScores: Map<string, number>;
+    skillLabels: string[];
+  },
 ): ScoredCandidate {
   const track = inferProgramTrack(candidate);
   const tier = inferExperienceTier(candidate.domainSlug, candidate.category);
@@ -106,6 +118,21 @@ function scoreCandidate(
 
   const reasons: string[] = [];
   let score = 0;
+
+  const ragMatch = resume?.ragSlugScores.get(candidate.slug) ?? 0;
+  if (ragMatch >= 0.35) {
+    score += ragMatch * 34;
+    const skillHint =
+      resume?.skillLabels.length &&
+      resume.skillLabels.length <= 2
+        ? resume.skillLabels.join(" and ")
+        : resume?.skillLabels[0];
+    reasons.push(
+      skillHint
+        ? `Matches ${skillHint} skills on your resume`
+        : "Matches skills on your resume",
+    );
+  }
 
   const trackWeight = profile.trackAffinity[track] ?? 0;
   if (trackWeight > 0) {
@@ -214,6 +241,67 @@ function selectDiverse(items: ScoredCandidate[], limit: number): ScoredCandidate
   return selected;
 }
 
+async function buildCompassLearnerProfile(userId: string): Promise<{
+  profile: LearnerProfile;
+  completedLessonIds: Set<string>;
+}> {
+  const enrollmentRows = await loadStudentEnrollments(userId, [
+    "ACTIVE",
+    "COMPLETED",
+  ]);
+  const courseIds = enrollmentRows.map((e) => e.programId);
+  const completedLessonIds = await getUserCompletedLessonIds(userId, courseIds);
+
+  const profile: LearnerProfile = {
+    enrolledIds: new Set(courseIds),
+    trackAffinity: emptyTrackAffinity(),
+    categoryAffinity: {},
+    tagWeights: new Map(),
+    completedTracks: new Set(),
+    entryTracks: new Set(),
+    professionalTracks: new Set(),
+    hasHistory: enrollmentRows.length > 0,
+  };
+
+  for (const enrollment of enrollmentRows) {
+    const program = enrollment.program;
+    const track = inferProgramTrack({
+      title: program.title,
+      domainSlug: program.slug,
+      tags: [],
+    });
+    const tier = inferExperienceTier(null, program.category);
+    const activities =
+      program.syllabus?.status === "PUBLISHED"
+        ? flattenPublishedActivities(program.syllabus.modules)
+        : [];
+    const done = activities.filter((a) => completedLessonIds.has(a.id)).length;
+    const progress =
+      activities.length === 0 ? 0 : done / Math.max(activities.length, 1);
+    const engagement = 0.45 + progress * 0.55;
+
+    profile.trackAffinity[track] = (profile.trackAffinity[track] ?? 0) + engagement;
+    profile.categoryAffinity[program.category] =
+      (profile.categoryAffinity[program.category] ?? 0) + engagement;
+
+    if (progress >= 0.99) profile.completedTracks.add(track);
+    if (tier === "entry") profile.entryTracks.add(track);
+    if (tier === "professional") profile.professionalTracks.add(track);
+  }
+
+  const maxTrack = Math.max(...Object.values(profile.trackAffinity), 1);
+  for (const track of TRACK_KEYS) {
+    profile.trackAffinity[track] = (profile.trackAffinity[track] ?? 0) / maxTrack;
+  }
+  const maxCategory = Math.max(...Object.values(profile.categoryAffinity), 1);
+  for (const category of Object.keys(profile.categoryAffinity)) {
+    profile.categoryAffinity[category] =
+      (profile.categoryAffinity[category] ?? 0) / maxCategory;
+  }
+
+  return { profile, completedLessonIds };
+}
+
 async function buildLearnerProfile(
   userId: string,
   organizationId: string,
@@ -221,6 +309,10 @@ async function buildLearnerProfile(
   profile: LearnerProfile;
   completedLessonIds: Set<string>;
 }> {
+  if (isCompassDatabase()) {
+    return buildCompassLearnerProfile(userId);
+  }
+
   const enrollments = await prisma.enrollment.findMany({
     where: {
       userId,
@@ -334,28 +426,59 @@ async function buildLearnerProfile(
   return { profile, completedLessonIds };
 }
 
+function applyResumeTrackBoost(
+  profile: LearnerProfile,
+  keywords: string[],
+) {
+  const boost = resumeTrackAffinityBoost(keywords);
+  for (const track of TRACK_KEYS) {
+    const extra = boost[track];
+    if (extra == null) continue;
+    profile.trackAffinity[track] = Math.min(
+      1,
+      (profile.trackAffinity[track] ?? 0) + extra,
+    );
+  }
+}
+
 export async function getCourseRecommendationsForUser(
   userId: string,
   options: { organizationId: string; limit?: number },
 ): Promise<CourseRecommendation[]> {
   const limit = options?.limit ?? 8;
-  const { profile } = await buildLearnerProfile(
-    userId,
-    options.organizationId,
-  );
+  const [{ profile }, resumeContext] = await Promise.all([
+    buildLearnerProfile(userId, options.organizationId),
+    loadResumeRecommendationContext(userId, options.organizationId),
+  ]);
+
+  if (resumeContext.keywords.length > 0) {
+    applyResumeTrackBoost(profile, resumeContext.keywords);
+  }
+
+  const resumeScoring =
+    resumeContext.ragSlugScores.size > 0 || resumeContext.skillLabels.length > 0
+      ? {
+          ragSlugScores: resumeContext.ragSlugScores,
+          skillLabels: resumeContext.skillLabels,
+        }
+      : undefined;
 
   const [published, enrollmentCounts] = await Promise.all([
     loadPublishedCatalogPrograms({ organizationId: options.organizationId }),
-    prisma.enrollment.groupBy({
-      by: ["programId"],
-      where: { organizationId: options.organizationId, status: "ACTIVE" },
-      _count: { programId: true },
-    }),
+    isCompassDatabase()
+      ? listCompassActiveEnrollmentCounts()
+      : prisma.enrollment
+          .groupBy({
+            by: ["programId"],
+            where: { organizationId: options.organizationId, status: "ACTIVE" },
+            _count: { programId: true },
+          })
+          .then((rows) =>
+            new Map(rows.map((row) => [row.programId, row._count.programId])),
+          ),
   ]);
 
-  const countByProgram = new Map(
-    enrollmentCounts.map((row) => [row.programId, row._count.programId]),
-  );
+  const countByProgram = enrollmentCounts;
   const maxEnrollmentCount = Math.max(...countByProgram.values(), 1);
 
   const candidates = published
@@ -368,6 +491,7 @@ export async function getCourseRecommendationsForUser(
           maxEnrollmentCount,
         },
         profile,
+        resumeScoring,
       ),
     );
 

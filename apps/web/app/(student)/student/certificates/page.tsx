@@ -1,17 +1,13 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, Panel } from "@/components/ui/page";
+import { loadStudentCertificates } from "@/lib/certificates/queries";
 import { requireStudent } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
 
 export default async function StudentCertificatesPage() {
   const session = await requireStudent();
 
-  const certificates = await prisma.certificate.findMany({
-    where: { userId: session.user.id },
-    include: { program: { select: { title: true } } },
-    orderBy: { issueDate: "desc" },
-  });
+  const certificates = await loadStudentCertificates(session.user.id);
 
   return (
     <div>

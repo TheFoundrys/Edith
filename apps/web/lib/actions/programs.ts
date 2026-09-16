@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { DegreeLevel, ProgramStatus } from "@prisma/client";
+import { CourseType, DegreeLevel, ProgramStatus } from "@prisma/client";
 import { z } from "zod";
 import { requireCapability, canUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
-import { PROGRAM_CATEGORIES } from "@/lib/programs/categories";
+import {
+  isContentProgram,
+  PROGRAM_CATEGORIES,
+} from "@/lib/programs/categories";
 import { saveProgramImage } from "@/lib/storage";
 import { slugify } from "@/lib/utils";
 
@@ -17,7 +20,7 @@ const categoryValues = PROGRAM_CATEGORIES.map((c) => c.value) as [
 const programSchema = z.object({
   name: z.string().min(2),
   category: z.enum(categoryValues),
-  degreeLevel: z.nativeEnum(DegreeLevel),
+  degreeLevel: z.nativeEnum(DegreeLevel).default(DegreeLevel.CERTIFICATE),
   summary: z.string().optional(),
   eligibilitySummary: z.string().optional(),
   price: z.coerce.number().optional().nullable(),
@@ -30,6 +33,7 @@ const programSchema = z.object({
   requiredDocs: z.string().optional(),
   crmCatalogId: z.string().optional().nullable(),
   requiresCrmCallback: z.boolean().optional().default(false),
+  deliveryMode: z.enum(["ONLINE", "OFFLINE", "HYBRID"]).optional(),
 });
 
 function parseDocs(raw: string | undefined) {
@@ -39,6 +43,19 @@ function parseDocs(raw: string | undefined) {
     .map((s) => s.trim())
     .filter(Boolean);
   return JSON.stringify(items);
+}
+
+function deliveryFields(mode: "ONLINE" | "OFFLINE" | "HYBRID" | undefined) {
+  if (mode === "ONLINE") {
+    return { type: CourseType.SELF_PACED, isHybridOnly: false };
+  }
+  if (mode === "OFFLINE") {
+    return { type: CourseType.HYBRID, isHybridOnly: false };
+  }
+  if (mode === "HYBRID") {
+    return { type: CourseType.HYBRID, isHybridOnly: true };
+  }
+  return {};
 }
 
 async function resolveImageUrl(
@@ -56,13 +73,18 @@ async function resolveImageUrl(
 
 export async function createProgram(formData: FormData) {
   const session = await requireCapability("managePrograms");
-  if (!canUser(session.user, "managePricing")) {
+  const category = String(formData.get("category") || "");
+  const settingPrice = String(formData.get("price") || formData.get("applicationFee") || "").trim();
+  if (
+    !canUser(session.user, "managePricing") &&
+    (!isContentProgram(category) || settingPrice)
+  ) {
     return { error: "You do not have permission to set program pricing." };
   }
   const parsed = programSchema.safeParse({
     name: formData.get("name"),
     category: formData.get("category"),
-    degreeLevel: formData.get("degreeLevel"),
+    degreeLevel: formData.get("degreeLevel") || DegreeLevel.CERTIFICATE,
     summary: formData.get("summary") || undefined,
     eligibilitySummary: formData.get("eligibilitySummary") || undefined,
     price: formData.get("price") || null,
@@ -75,9 +97,11 @@ export async function createProgram(formData: FormData) {
     requiredDocs: String(formData.get("requiredDocs") || ""),
     crmCatalogId: formData.get("crmCatalogId") || null,
     requiresCrmCallback: formData.get("requiresCrmCallback") === "on",
+    deliveryMode: formData.get("deliveryMode") || undefined,
   });
   if (!parsed.success) return { error: "Invalid program details." };
 
+  const contentCourse = isContentProgram(parsed.data.category);
   const image = await resolveImageUrl(formData);
   if ("error" in image) return { error: image.error };
 
@@ -103,21 +127,26 @@ export async function createProgram(formData: FormData) {
       title: parsed.data.name,
       slug,
       category: parsed.data.category,
-      degreeLevel: parsed.data.degreeLevel,
+      degreeLevel: contentCourse ? DegreeLevel.CERTIFICATE : parsed.data.degreeLevel,
       description: parsed.data.summary,
-      eligibilitySummary: parsed.data.eligibilitySummary,
+      eligibilitySummary: contentCourse ? null : parsed.data.eligibilitySummary,
       imageUrl: image.imageUrl,
       price: parsed.data.price,
       tuitionCurrency: parsed.data.tuitionCurrency,
       capacity: parsed.data.capacity,
-      applicationFee: parsed.data.applicationFee,
-      campusId: parsed.data.campusId || null,
+      applicationFee: contentCourse ? null : parsed.data.applicationFee,
+      campusId: contentCourse ? null : parsed.data.campusId || null,
       departmentId: parsed.data.departmentId || null,
-      formDefinitionId: parsed.data.formDefinitionId || null,
-      requiredDocs: parseDocs(parsed.data.requiredDocs),
-      crmCatalogId: parsed.data.crmCatalogId || null,
-      requiresCrmCallback: parsed.data.requiresCrmCallback ?? false,
+      formDefinitionId: contentCourse ? null : parsed.data.formDefinitionId || null,
+      requiredDocs: contentCourse ? "[]" : parseDocs(parsed.data.requiredDocs),
+      crmCatalogId: contentCourse ? null : parsed.data.crmCatalogId || null,
+      requiresCrmCallback: contentCourse
+        ? false
+        : (parsed.data.requiresCrmCallback ?? false),
       status: ProgramStatus.DRAFT,
+      ...(contentCourse
+        ? { type: CourseType.SELF_PACED, isHybridOnly: false }
+        : deliveryFields(parsed.data.deliveryMode)),
     },
   });
 
@@ -137,7 +166,7 @@ export async function updateProgram(programId: string, formData: FormData) {
   const parsed = programSchema.safeParse({
     name: formData.get("name"),
     category: formData.get("category"),
-    degreeLevel: formData.get("degreeLevel"),
+    degreeLevel: formData.get("degreeLevel") || DegreeLevel.CERTIFICATE,
     summary: formData.get("summary") || undefined,
     eligibilitySummary: formData.get("eligibilitySummary") || undefined,
     price: allowPricing
@@ -156,9 +185,11 @@ export async function updateProgram(programId: string, formData: FormData) {
     requiredDocs: String(formData.get("requiredDocs") || ""),
     crmCatalogId: formData.get("crmCatalogId") || null,
     requiresCrmCallback: formData.get("requiresCrmCallback") === "on",
+    deliveryMode: formData.get("deliveryMode") || undefined,
   });
   if (!parsed.success) return { error: "Invalid program details." };
 
+  const contentCourse = isContentProgram(parsed.data.category);
   const image = await resolveImageUrl(formData, existing.imageUrl);
   if ("error" in image) return { error: image.error };
 
@@ -167,26 +198,41 @@ export async function updateProgram(programId: string, formData: FormData) {
     data: {
       title: parsed.data.name,
       category: parsed.data.category,
-      degreeLevel: parsed.data.degreeLevel,
+      degreeLevel: contentCourse
+        ? DegreeLevel.CERTIFICATE
+        : parsed.data.degreeLevel,
       description: parsed.data.summary,
-      eligibilitySummary: parsed.data.eligibilitySummary,
+      eligibilitySummary: contentCourse
+        ? existing.eligibilitySummary
+        : parsed.data.eligibilitySummary,
       imageUrl: image.imageUrl,
-      price: allowPricing
-        ? parsed.data.price
-        : existing.price,
+      price: allowPricing ? parsed.data.price : existing.price,
       tuitionCurrency: allowPricing
         ? parsed.data.tuitionCurrency
         : existing.tuitionCurrency,
       capacity: parsed.data.capacity,
-      applicationFee: allowPricing
-        ? parsed.data.applicationFee
-        : existing.applicationFee,
-      campusId: parsed.data.campusId || null,
+      applicationFee: contentCourse
+        ? existing.applicationFee
+        : allowPricing
+          ? parsed.data.applicationFee
+          : existing.applicationFee,
+      campusId: contentCourse
+        ? existing.campusId
+        : parsed.data.campusId || null,
       departmentId: parsed.data.departmentId || null,
-      formDefinitionId: parsed.data.formDefinitionId || null,
-      requiredDocs: parseDocs(parsed.data.requiredDocs),
-      crmCatalogId: parsed.data.crmCatalogId || null,
-      requiresCrmCallback: parsed.data.requiresCrmCallback ?? false,
+      formDefinitionId: contentCourse
+        ? existing.formDefinitionId
+        : parsed.data.formDefinitionId || null,
+      requiredDocs: contentCourse
+        ? existing.requiredDocs
+        : parseDocs(parsed.data.requiredDocs),
+      crmCatalogId: contentCourse
+        ? existing.crmCatalogId
+        : parsed.data.crmCatalogId || null,
+      requiresCrmCallback: contentCourse
+        ? existing.requiresCrmCallback
+        : (parsed.data.requiresCrmCallback ?? false),
+      ...(contentCourse ? {} : deliveryFields(parsed.data.deliveryMode)),
     },
   });
 
@@ -206,7 +252,10 @@ export async function setProgramStatus(programId: string, status: ProgramStatus)
   if (!program) return { error: "Program not found." };
 
   if (status === "PUBLISHED") {
-    if (!program.formDefinitionId || !program.formDefinition?.versions.length) {
+    if (
+      !isContentProgram(program.category) &&
+      (!program.formDefinitionId || !program.formDefinition?.versions.length)
+    ) {
       return { error: "Attach a published application form before publishing." };
     }
   }

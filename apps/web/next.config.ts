@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  serverActions: {
+    bodySizeLimit: "200mb",
+  },
   images: {
     remotePatterns: [
       {
@@ -112,7 +115,27 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/student/checkout",
-        destination: "/student/payment",
+        destination: "/student/transactions",
+        permanent: false,
+      },
+      {
+        source: "/student/payment",
+        destination: "/student/transactions",
+        permanent: false,
+      },
+      {
+        source: "/student/payment/invoices/:paymentId",
+        destination: "/student/transactions/invoices/:paymentId",
+        permanent: false,
+      },
+      {
+        source: "/admin/payments",
+        destination: "/admin/transactions",
+        permanent: false,
+      },
+      {
+        source: "/admin/payments/invoices/:paymentId",
+        destination: "/admin/transactions/invoices/:paymentId",
         permanent: false,
       },
       {

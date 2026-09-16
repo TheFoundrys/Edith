@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/**/*.test.ts",
+    "db:check": "tsx scripts/check-db-connection.ts",
     "db:verify-migrations": "tsx scripts/verify-migrations.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

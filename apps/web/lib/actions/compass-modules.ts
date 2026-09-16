@@ -3,16 +3,21 @@
 import { revalidatePath } from "next/cache";
 import {
   AnnouncementPriority,
-  CouponScope,
-  CouponType,
-  OfferStatus,
   TicketCategory,
   TicketPriority,
   TicketStatus,
 } from "@prisma/client";
+import { findCompassEnrollmentById } from "@/lib/compass/enrollment";
 import { requireCapability, requireStudent, requireSuperAdmin } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
+import { createAnnouncementRecord } from "@/lib/announcements/queries";
+import {
+  createSupportTicket,
+  replySupportTicket,
+} from "@/lib/tickets/queries";
 import { recordAudit } from "@/lib/audit";
+import { createCoupon, createProgramOffer } from "@/lib/actions/pricing";
 
 function csvList(raw: string | null | undefined) {
   return String(raw || "")
@@ -34,6 +39,32 @@ export async function updateEnrollmentProgress(
   },
 ) {
   const session = await requireStudent();
+
+  if (isCompassDatabase()) {
+    const enrollment = await findCompassEnrollmentById(session.user.id, enrollmentId);
+    if (!enrollment) return { error: "Enrollment not found." };
+
+    const progressJson =
+      data.progress === undefined ? null : JSON.stringify(data.progress);
+    await prisma.$executeRaw`
+      UPDATE "Enrollment"
+      SET
+        progress = CASE WHEN ${progressJson}::text IS NULL THEN progress ELSE ${progressJson}::jsonb END,
+        "lastModuleIndex" = COALESCE(${data.lastModuleIndex ?? null}, "lastModuleIndex"),
+        "lastLessonIndex" = COALESCE(${data.lastLessonIndex ?? null}, "lastLessonIndex"),
+        "totalLearningMinutes" = "totalLearningMinutes" + ${data.totalLearningMinutesDelta ?? 0},
+        "unlockedPercentage" = COALESCE(${data.unlockedPercentage ?? null}, "unlockedPercentage"),
+        "lastAccessedAt" = NOW(),
+        "completedAt" = CASE WHEN ${Boolean(data.completed)} THEN NOW() ELSE "completedAt" END,
+        status = CASE WHEN ${Boolean(data.completed)} THEN 'COMPLETED'::"EnrollmentStatus" ELSE status END,
+        "updatedAt" = NOW()
+      WHERE id = ${enrollmentId} AND "userId" = ${session.user.id}
+    `;
+    revalidatePath("/student/my-courses");
+    revalidatePath(`/student/learning/${enrollment.programId}`);
+    return { ok: true as const };
+  }
+
   const enrollment = await prisma.enrollment.findFirst({
     where: { id: enrollmentId, userId: session.user.id },
   });
@@ -186,74 +217,20 @@ export async function createAnnouncement(formData: FormData) {
   if (!title || !content) return { error: "Title and content required." };
 
   const priority = String(formData.get("priority") || "INFO") as AnnouncementPriority;
-  await prisma.announcement.create({
-    data: {
-      organizationId: session.user.organizationId,
-      title,
-      content,
-      priority: Object.values(AnnouncementPriority).includes(priority)
-        ? priority
-        : AnnouncementPriority.INFO,
-      isPinned: formData.get("isPinned") === "on",
-      publishedAt: formData.get("publishNow") === "on" ? new Date() : null,
-      mediaUrls: csvList(String(formData.get("mediaUrls") || "")),
-      authorId: session.user.id,
-    },
+  await createAnnouncementRecord({
+    organizationId: session.user.organizationId,
+    authorId: session.user.id,
+    title,
+    content,
+    priority: Object.values(AnnouncementPriority).includes(priority)
+      ? priority
+      : AnnouncementPriority.INFO,
+    isPinned: formData.get("isPinned") === "on",
+    publishedAt: formData.get("publishNow") === "on" ? new Date() : null,
+    mediaUrls: csvList(String(formData.get("mediaUrls") || "")),
   });
   revalidatePath("/admin/announcements");
   revalidatePath("/student/announcements");
-  return { ok: true as const };
-}
-
-export async function createCoupon(formData: FormData) {
-  const session = await requireCapability("managePricing");
-  const code = String(formData.get("code") || "").trim().toUpperCase();
-  const value = Number(formData.get("value") || 0);
-  const expiresAt = String(formData.get("expiresAt") || "");
-  if (!code || !expiresAt) return { error: "Code and expiry required." };
-
-  const type = String(formData.get("type") || "PERCENTAGE") as CouponType;
-  const scope = String(formData.get("scope") || "GLOBAL") as CouponScope;
-  const resolvedType = Object.values(CouponType).includes(type)
-    ? type
-    : CouponType.PERCENTAGE;
-  const maxUses = Number(formData.get("maxUses") || 0);
-  const expiry = new Date(expiresAt);
-  if (
-    !Number.isFinite(value) ||
-    value <= 0 ||
-    (resolvedType === CouponType.PERCENTAGE && value > 100) ||
-    !Number.isInteger(maxUses) ||
-    maxUses < 0 ||
-    Number.isNaN(expiry.getTime()) ||
-    expiry.getTime() <= Date.now()
-  ) {
-    return { error: "Enter a valid value, future expiry, and usage limit." };
-  }
-
-  await prisma.coupon.create({
-    data: {
-      organizationId: session.user.organizationId,
-      code,
-      value,
-      type: resolvedType,
-      scope: Object.values(CouponScope).includes(scope) ? scope : CouponScope.GLOBAL,
-      description: String(formData.get("description") || "").trim() || null,
-      maxUses,
-      expiresAt: expiry,
-      isActive: formData.get("isActive") !== "off",
-      createdBy: session.user.id,
-    },
-  });
-  await recordAudit({
-    organizationId: session.user.organizationId,
-    actor: session.user,
-    action: "COUPON_CREATED",
-    entityType: "Coupon",
-    targetResource: code,
-    metadata: { code, value, type: resolvedType, scope, maxUses },
-  });
-  revalidatePath("/admin/coupons");
   return { ok: true as const };
 }
 
@@ -266,25 +243,17 @@ export async function createTicket(formData: FormData) {
   const category = String(formData.get("category") || "OTHER") as TicketCategory;
   const priority = String(formData.get("priority") || "MEDIUM") as TicketPriority;
 
-  const ticket = await prisma.ticket.create({
-    data: {
-      organizationId: session.user.organizationId,
-      userId: session.user.id,
-      subject,
-      category: Object.values(TicketCategory).includes(category)
-        ? category
-        : TicketCategory.OTHER,
-      priority: Object.values(TicketPriority).includes(priority)
-        ? priority
-        : TicketPriority.MEDIUM,
-      messages: {
-        create: {
-          userId: session.user.id,
-          content,
-          isStaff: false,
-        },
-      },
-    },
+  const ticket = await createSupportTicket({
+    userId: session.user.id,
+    organizationId: session.user.organizationId,
+    subject,
+    content,
+    category: Object.values(TicketCategory).includes(category)
+      ? category
+      : TicketCategory.OTHER,
+    priority: Object.values(TicketPriority).includes(priority)
+      ? priority
+      : TicketPriority.MEDIUM,
   });
   revalidatePath("/student/tickets");
   revalidatePath("/admin/tickets");
@@ -304,32 +273,24 @@ export async function replyTicket(ticketId: string, formData: FormData) {
     session = await requireStudent();
   }
 
-  const ticket = await prisma.ticket.findFirst({
-    where: {
-      id: ticketId,
-      organizationId: session.user.organizationId,
-      ...(isStaff ? {} : { userId: session.user.id }),
-    },
+  const statusRaw = formData.get("status");
+  const status =
+    isStaff && statusRaw
+      ? String(statusRaw)
+      : undefined;
+  const result = await replySupportTicket({
+    ticketId,
+    userId: session.user.id,
+    organizationId: session.user.organizationId,
+    content,
+    isStaff,
+    status:
+      status && Object.values(TicketStatus).includes(status as TicketStatus)
+        ? status
+        : undefined,
   });
-  if (!ticket) return { error: "Ticket not found." };
+  if ("error" in result) return result;
 
-  await prisma.ticketMessage.create({
-    data: {
-      ticketId,
-      userId: session.user.id,
-      senderId: session.user.id,
-      content,
-      message: content,
-      isStaff,
-      isAdmin: isStaff,
-    },
-  });
-  if (isStaff && formData.get("status")) {
-    const status = String(formData.get("status")) as TicketStatus;
-    if (Object.values(TicketStatus).includes(status)) {
-      await prisma.ticket.update({ where: { id: ticketId }, data: { status } });
-    }
-  }
   revalidatePath(`/admin/tickets/${ticketId}`);
   revalidatePath(`/student/tickets/${ticketId}`);
   return { ok: true as const };
@@ -370,6 +331,8 @@ export async function awardBadge(formData: FormData) {
     update: {},
   });
   revalidatePath("/admin/badges");
+  revalidatePath("/student/badges");
+  revalidatePath("/student/achievements");
   return { ok: true as const };
 }
 
@@ -419,6 +382,9 @@ export async function createForumThread(formData: FormData) {
 }
 
 export async function upsertPaymentSettings(formData: FormData) {
+  if (isCompassDatabase()) {
+    return { error: "Payment settings are managed in Skill Compass." };
+  }
   const session = await requireSuperAdmin();
   const orgId = session.user.organizationId;
   const gstPercent = Number(formData.get("gstPercent") || 0);
@@ -439,6 +405,7 @@ export async function upsertPaymentSettings(formData: FormData) {
     .trim()
     .toUpperCase();
   const razorpayEnabled = formData.get("razorpayEnabled") === "on";
+  const stripeEnabled = formData.get("stripeEnabled") === "on";
   await prisma.paymentSettings.upsert({
     where: { organizationId: orgId },
     create: {
@@ -447,7 +414,7 @@ export async function upsertPaymentSettings(formData: FormData) {
       gstPercent,
       convenienceFeePercent,
       razorpayEnabled,
-      stripeEnabled: false,
+      stripeEnabled,
       enabled: true,
     },
     update: {
@@ -455,7 +422,7 @@ export async function upsertPaymentSettings(formData: FormData) {
       gstPercent,
       convenienceFeePercent,
       razorpayEnabled,
-      stripeEnabled: false,
+      stripeEnabled,
       enabled: true,
     },
   });
@@ -472,53 +439,6 @@ export async function upsertPaymentSettings(formData: FormData) {
     },
   });
   revalidatePath("/admin/payment-settings");
-  return { ok: true as const };
-}
-
-export async function createProgramOffer(formData: FormData) {
-  const session = await requireCapability("managePricing");
-  const organizationId = session.user.organizationId;
-  const userId = String(formData.get("userId") || "");
-  const programId = String(formData.get("programId") || "");
-  if (!userId || !programId) return { error: "User and program required." };
-  const customPrice = Number(formData.get("customPrice") || 0);
-  if (!Number.isFinite(customPrice) || customPrice < 0) {
-    return { error: "Custom price must be zero or greater." };
-  }
-  const [membership, program] = await Promise.all([
-    prisma.membership.findUnique({
-      where: { organizationId_userId: { organizationId, userId } },
-      select: { id: true },
-    }),
-    prisma.program.findFirst({
-      where: { id: programId, organizationId },
-      select: { id: true },
-    }),
-  ]);
-  if (!membership || !program) {
-    return { error: "Select a student and program from this organization." };
-  }
-  const offer = await prisma.programOffer.create({
-    data: {
-      organizationId,
-      userId,
-      programId,
-      customPrice,
-      tokenRequired: Number(formData.get("tokenRequired") || 0),
-      discountAmount: Number(formData.get("discountAmount") || 0),
-      discountType: String(formData.get("discountType") || "").trim() || null,
-      status: OfferStatus.OFFERED,
-    },
-  });
-  await recordAudit({
-    organizationId,
-    actor: session.user,
-    action: "PROGRAM_OFFER_CREATED",
-    entityType: "ProgramOffer",
-    entityId: offer.id,
-    metadata: { userId, programId, customPrice },
-  });
-  revalidatePath("/admin/offers");
   return { ok: true as const };
 }
 

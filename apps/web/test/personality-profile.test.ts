@@ -23,6 +23,7 @@ import {
   catalogExperienceLabel,
   catalogMode,
 } from "../lib/programs/catalog-meta";
+import { resolveCourseListPrice } from "../lib/programs/pricing";
 
 test("personality SKU is recognised for any-level direct enroll", () => {
   assert.equal(
@@ -92,6 +93,12 @@ test("psyche scoring treats Likert polarity and builds a report", () => {
   assert.equal(personalityProgress(responses).done, 90);
   assert.equal(personalityProgress(responses).total, 90);
   assert.equal(personalityProgress(responses).pct, 100);
+
+  const partial = {
+    aptitude: { [APTITUDE_QUESTIONS[0]!.id]: 0 },
+  };
+  assert.equal(personalityProgress(partial).done, 1);
+  assert.equal(personalityProgress(partial).pct, 1);
 });
 
 test("catalog meta treats the 90-minute assessment as a self-paced session", () => {
@@ -166,4 +173,21 @@ test("resume-only recommendations land before the exam", () => {
   assert.equal(exam.title, "Edith Personality Profile");
   assert.equal(exam.fee, "₹3,500 + GST");
   assert.match(exam.reason, /AI \/ machine learning/);
+});
+
+test("personality assessment fee resolves when programme price is unset", () => {
+  assert.equal(
+    resolveCourseListPrice({
+      price: null,
+      slug: "edith-personality-profile",
+    }),
+    3500,
+  );
+  assert.equal(
+    resolveCourseListPrice({
+      price: null,
+      pricing: { original: { INR: 3500, USD: 42 } },
+    }),
+    3500,
+  );
 });

@@ -312,6 +312,8 @@ export async function markPaymentFailed(opts: {
   });
 }
 
-export function providerEnum(provider: "MOCK" | "RAZORPAY" | "OFFLINE"): PaymentProvider {
+export function providerEnum(
+  provider: "MOCK" | "RAZORPAY" | "STRIPE" | "OFFLINE",
+): PaymentProvider {
   return provider;
 }

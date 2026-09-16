@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { replyTicketAction } from "@/lib/actions/compass-modules";
 import { requireStudent } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
+import { loadStudentTicketDetail } from "@/lib/tickets/queries";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
 import { PageHeader, Panel } from "@/components/ui/page";
@@ -13,25 +13,20 @@ export default async function StudentTicketDetailPage({
 }) {
   const { id } = await params;
   const session = await requireStudent();
-  const ticket = await prisma.ticket.findFirst({
-    where: { id, userId: session.user.id },
-    include: {
-      messages: { orderBy: { createdAt: "asc" }, include: { user: { select: { name: true } } } },
-    },
-  });
+  const ticket = await loadStudentTicketDetail(session.user.id, id);
   if (!ticket) notFound();
 
   return (
     <div>
       <PageHeader title={ticket.subject} description={ticket.status} />
       <Panel className="p-5 space-y-4 mb-6">
-        {ticket.messages.map((m) => (
-          <div key={m.id} className="border-b border-border pb-3">
+        {ticket.messages.map((message) => (
+          <div key={message.id} className="border-b border-border pb-3">
             <p className="text-xs text-fg-muted">
-              {m.user.name}
-              {m.isStaff ? " (staff)" : ""}
+              {message.user.name}
+              {message.isStaff ? " (staff)" : ""}
             </p>
-            <p className="text-sm mt-1 whitespace-pre-wrap">{m.content}</p>
+            <p className="text-sm mt-1 whitespace-pre-wrap">{message.content}</p>
           </div>
         ))}
       </Panel>

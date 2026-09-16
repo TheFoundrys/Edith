@@ -6,7 +6,7 @@ export type DashboardAchievement = {
   title: string;
   subtitle: string;
   whenLabel: string;
-  kind: "certificate" | "streak" | "performance";
+  kind: "certificate" | "streak" | "performance" | "badge";
   href?: string;
 };
 
@@ -14,6 +14,7 @@ const ICONS = {
   certificate: Award,
   streak: Flame,
   performance: Medal,
+  badge: Medal,
 } as const;
 
 export function DashboardAchievements({ items }: { items: DashboardAchievement[] }) {

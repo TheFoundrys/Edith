@@ -3,17 +3,16 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, Panel } from "@/components/ui/page";
 import { requireStudent } from "@/lib/auth/session";
+import { listStudentActiveProgramIds } from "@/lib/enrollment/queries";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 
 export default async function StudentQuizzesPage() {
   const session = await requireStudent();
-  const enrollments = await prisma.enrollment.findMany({
-    where: { userId: session.user.id, status: "ACTIVE" },
-    select: { programId: true },
-  });
-  const programIds = enrollments.map((e) => e.programId);
+  const compass = isCompassDatabase();
+  const programIds = await listStudentActiveProgramIds(session.user.id);
 
-  const quizzes = programIds.length
+  const quizzes = !compass && programIds.length
     ? await prisma.quiz.findMany({
         where: { programId: { in: programIds }, status: "PUBLISHED" },
         include: {

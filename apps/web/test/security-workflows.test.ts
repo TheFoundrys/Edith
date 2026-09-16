@@ -32,18 +32,17 @@ test("admin sidebar groups people separately from applications", () => {
     people?.items.map((item) => item.href),
     [
       "/admin/members",
-      "/admin/members/invites",
-      "/admin/members/groups",
-      "/admin/members/activity",
       "/admin/members/roles",
     ],
   );
   const admissions = groups.find((group) => group.label === "Admissions");
-  assert.ok(admissions?.items.some((item) => item.href === "/admin/applications"));
-  assert.ok(!admissions?.items.some((item) => item.href.startsWith("/admin/members")));
+  assert.ok(!admissions?.items.some((item) => item.href === "/admin/applications"));
+  assert.ok(admissions?.items.some((item) => item.href === "/admin/forms"));
 
   const commerce = groups.find((group) => group.label === "Commerce");
-  assert.ok(commerce?.items.some((item) => item.href === ROUTES.adminPayments));
+  assert.ok(
+    commerce?.items.some((item) => item.href === ROUTES.adminTransactions),
+  );
   assert.ok(commerce?.items.some((item) => item.href === ROUTES.adminPaymentSettings));
 
   const admissionsNav = adminNavGroupsFor(
@@ -60,7 +59,9 @@ test("admin sidebar groups people separately from applications", () => {
     (group) => group.label === "Commerce",
   );
   assert.ok(
-    admissionsCommerce?.items.some((item) => item.href === ROUTES.adminPayments),
+    admissionsCommerce?.items.some(
+      (item) => item.href === ROUTES.adminTransactions,
+    ),
   );
   assert.ok(
     !admissionsCommerce?.items.some(

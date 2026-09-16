@@ -1,3 +1,4 @@
+import { extractJsonFromAiContent } from "@/lib/ai/parse-json-content";
 import type {
   AiGenerateAssignmentInput,
   AiGenerateQuizInput,
@@ -47,7 +48,60 @@ async function chatJson<T>(
   };
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error("AI provider returned an empty response.");
-  return JSON.parse(content) as T;
+  try {
+    return extractJsonFromAiContent(content) as T;
+  } catch (err) {
+    const preview = content.replace(/\s+/g, " ").slice(0, 160);
+    if (err instanceof SyntaxError) {
+      throw new Error(
+        `AI returned invalid JSON (${err.message}). Preview: ${preview}`,
+      );
+    }
+    throw err;
+  }
+}
+
+function flattenQuizQuestion(raw: unknown): Partial<QuizQuestionDraft> {
+  if (!raw || typeof raw !== "object") return {};
+  const record = raw as Record<string, unknown>;
+  const nested =
+    record.question && typeof record.question === "object"
+      ? (record.question as Record<string, unknown>)
+      : null;
+  const source = nested ?? record;
+
+  const options = Array.isArray(source.options)
+    ? source.options.map((option) => String(option)).filter(Boolean)
+    : Array.isArray(record.options)
+      ? record.options.map((option) => String(option)).filter(Boolean)
+      : [];
+
+  const correctRaw =
+    source.correctIndex ??
+    source.correctAnswer ??
+    record.correctIndex ??
+    record.correctAnswer;
+
+  return {
+    prompt: String(
+      source.prompt ?? source.question ?? record.prompt ?? record.question ?? "",
+    ),
+    options,
+    correctIndex:
+      typeof correctRaw === "number"
+        ? correctRaw
+        : typeof correctRaw === "string" && options.length > 0
+          ? options.findIndex(
+              (option) => option.toLowerCase() === correctRaw.toLowerCase(),
+            )
+          : Number(correctRaw),
+    explanation:
+      source.explanation != null
+        ? String(source.explanation)
+        : record.explanation != null
+          ? String(record.explanation)
+          : undefined,
+  };
 }
 
 function normalizeAssignment(raw: Partial<AssignmentDraft>): AssignmentDraft {
@@ -63,22 +117,23 @@ function normalizeAssignment(raw: Partial<AssignmentDraft>): AssignmentDraft {
 
 function normalizeQuiz(raw: Partial<QuizDraft>): QuizDraft {
   const questions = Array.isArray(raw.questions) ? raw.questions : [];
-  const normalized: QuizQuestionDraft[] = questions.slice(0, 12).map((q) => {
-    const options = Array.isArray(q.options)
-      ? q.options.map((o) => String(o)).filter(Boolean).slice(0, 6)
+  const normalized: QuizQuestionDraft[] = questions.slice(0, 25).map((q) => {
+    const flat = flattenQuizQuestion(q);
+    const options = Array.isArray(flat.options)
+      ? flat.options.slice(0, 6)
       : [];
     while (options.length < 2) options.push(`Option ${options.length + 1}`);
     const correctIndex =
-      typeof q.correctIndex === "number" &&
-      q.correctIndex >= 0 &&
-      q.correctIndex < options.length
-        ? q.correctIndex
+      typeof flat.correctIndex === "number" &&
+      flat.correctIndex >= 0 &&
+      flat.correctIndex < options.length
+        ? flat.correctIndex
         : 0;
     return {
-      prompt: String(q.prompt ?? "Untitled question"),
+      prompt: String(flat.prompt ?? "Untitled question"),
       options,
       correctIndex,
-      explanation: q.explanation ? String(q.explanation) : undefined,
+      explanation: flat.explanation ? String(flat.explanation) : undefined,
     };
   });
 
@@ -121,7 +176,7 @@ export class OpenAiCompatibleAdapter implements AiPort {
   }
 
   async generateQuizDraft(input: AiGenerateQuizInput): Promise<QuizDraft> {
-    const count = Math.min(Math.max(input.questionCount ?? 5, 3), 10);
+    const count = Math.min(Math.max(input.questionCount ?? 5, 3), 20);
     const raw = await chatJson<Partial<QuizDraft>>(
       this.config,
       `You are an assessment designer. Return JSON only with keys: title, description, questions[]. Each question needs prompt, options (4 strings), correctIndex (0-based), optional explanation. Exactly ${count} questions.`,

@@ -5,6 +5,8 @@ import { DashboardAchievements, type DashboardAchievement } from "@/components/s
 import { DashboardContinueCard } from "@/components/student/dashboard-continue-card";
 import { DashboardCourseTrack } from "@/components/student/dashboard-course-track";
 import { DashboardDeadlines, type DashboardDeadline } from "@/components/student/dashboard-deadlines";
+import { EngagementQueue } from "@/components/student/engagement-queue";
+import type { EngagementItem } from "@/lib/learning/student-engagement";
 import { DashboardProgressWidget } from "@/components/student/dashboard-progress-widget";
 import { DashboardProgramsCta } from "@/components/student/dashboard-programs-cta";
 import { DashboardRecommendedCard } from "@/components/student/dashboard-recommended-card";
@@ -37,6 +39,7 @@ type DashboardHomeProps = {
   streakDays: number;
   activeDays: boolean[];
   deadlines: DashboardDeadline[];
+  engagementItems: EngagementItem[];
   achievements: DashboardAchievement[];
   recommended: DashboardRecommended[];
 };
@@ -53,6 +56,7 @@ export function DashboardHome({
   streakDays,
   activeDays,
   deadlines,
+  engagementItems,
   achievements,
   recommended,
 }: DashboardHomeProps) {
@@ -136,6 +140,10 @@ export function DashboardHome({
           ))
         )}
       </DashboardCourseTrack>
+
+      {engagementItems.length > 0 ? (
+        <EngagementQueue items={engagementItems} title="Quizzes & assignments" />
+      ) : null}
 
       <div className="dash-home-split">
         <DashboardDeadlines items={deadlines} />

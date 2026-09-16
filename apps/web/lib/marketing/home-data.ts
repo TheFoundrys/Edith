@@ -1,5 +1,13 @@
-import { prisma } from "@/lib/db";
+import {
+  countCompassDistinctLearners,
+  countCompassStaffUsers,
+  countCompassTotalCertificates,
+  countCompassTotalEnrollments,
+  fetchCompassRecentLearnerAvatars,
+} from "@/lib/compass/platform-stats";
 import { loadPublishedCatalogPrograms } from "@/lib/catalog/service";
+import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import {
   getHomeTestimonials,
   type HomeTestimonial,
@@ -63,7 +71,155 @@ export type HomePageData = {
   };
 };
 
+async function getCompassHomePageData(): Promise<
+  Pick<
+    HomePageData,
+    "stats" | "socialProof" | "featuredCourses" | "demoHref" | "featureHighlights"
+  > & { testimonials: HomePageData["testimonials"] }
+> {
+  const newThreshold = new Date();
+  newThreshold.setDate(newThreshold.getDate() - 90);
+  const organizationId = await getDefaultOrganizationId();
+
+  const [
+    publishedPrograms,
+    distinctLearners,
+    staffCount,
+    completedEnrollments,
+    totalEnrollments,
+    certificateCount,
+    recentLearners,
+  ] = await Promise.all([
+    loadPublishedCatalogPrograms({ organizationId }),
+    countCompassDistinctLearners(),
+    countCompassStaffUsers(),
+    countCompassTotalEnrollments("COMPLETED"),
+    countCompassTotalEnrollments(),
+    countCompassTotalCertificates(),
+    fetchCompassRecentLearnerAvatars(8),
+  ]);
+
+  const learners = Math.max(distinctLearners, totalEnrollments);
+  const courseCount = publishedPrograms.length;
+  const hybridCourses = publishedPrograms.filter(
+    (program) => program.isHybridOnly || program.campus,
+  ).length;
+
+  const satisfactionRate =
+    totalEnrollments === 0
+      ? null
+      : Math.min(
+          99,
+          Math.max(
+            85,
+            Math.round(
+              ((completedEnrollments + certificateCount) / totalEnrollments) *
+                100,
+            ),
+          ),
+        );
+
+  const maxEnrollments = Math.max(
+    1,
+    ...publishedPrograms.map((program) => program._count.enrollments),
+  );
+
+  const trackPriority: Record<ProgramTrack, number> = {
+    ai: 0,
+    cyber: 1,
+    data: 2,
+    quantum: 3,
+    blockchain: 4,
+    general: 5,
+  };
+
+  const ranked = publishedPrograms
+    .map((program) => {
+      const track = programTrack(program.title);
+      const enrollmentCount = program._count.enrollments;
+      let badge: "Bestseller" | "New" | null = null;
+
+      if (program.publishedAt && program.publishedAt >= newThreshold) {
+        badge = "New";
+      } else if (
+        enrollmentCount >= Math.max(1, Math.ceil(maxEnrollments * 0.55))
+      ) {
+        badge = "Bestseller";
+      }
+
+      return {
+        id: program.id,
+        slug: program.slug,
+        title: displayProgramName(program.title, program.category),
+        description: program.description?.trim() ?? "",
+        durationLabel: catalogDurationLabel(program),
+        track,
+        badge,
+        learnerCount: enrollmentCount,
+        departmentName: program.department?.name ?? null,
+        href: catalogHrefForProgram(program),
+        _trackPriority: trackPriority[track],
+        _enrollments: enrollmentCount,
+      };
+    })
+    .sort((a, b) => {
+      if (a._trackPriority !== b._trackPriority) {
+        return a._trackPriority - b._trackPriority;
+      }
+      return b._enrollments - a._enrollments;
+    });
+
+  const pinned = ranked.filter(
+    (course) => course.slug === PERSONALITY_PROFILE_SLUG,
+  );
+  const rest = ranked.filter(
+    (course) => course.slug !== PERSONALITY_PROFILE_SLUG,
+  );
+  const featuredCourses: HomeFeaturedCourse[] = [...pinned, ...rest]
+    .slice(0, 4)
+    .map((rankedCourse) => {
+      const { _trackPriority, _enrollments, ...course } = rankedCourse;
+      void _trackPriority;
+      void _enrollments;
+      return course;
+    });
+
+  return {
+    stats: {
+      learners,
+      learnersLabel: formatCount(learners),
+      instructors: staffCount,
+      instructorsLabel: formatCount(staffCount),
+      courses: courseCount,
+      coursesLabel: formatCount(courseCount),
+      certificates: certificateCount,
+      satisfactionRate,
+    },
+    socialProof: {
+      learnerCount: learners,
+      learnerLabel: formatCount(learners),
+      avatars: recentLearners.map((entry) => ({
+        name: entry.name,
+        image: entry.image,
+      })),
+    },
+    featuredCourses,
+    testimonials: getHomeTestimonials(),
+    demoHref: featuredCourses[0]?.href ?? "/courses",
+    featureHighlights: {
+      instructors: staffCount,
+      hybridCourses,
+      certificates: certificateCount,
+      activeLearners: learners,
+    },
+  };
+}
+
 export async function getHomePageData(): Promise<HomePageData> {
+  if (isCompassDatabase()) {
+    return getCompassHomePageData();
+  }
+
   const newThreshold = new Date();
   newThreshold.setDate(newThreshold.getDate() - 90);
   const organizationId = await getDefaultOrganizationId();

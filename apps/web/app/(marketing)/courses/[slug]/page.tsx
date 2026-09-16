@@ -3,9 +3,9 @@ import { auth } from "@/lib/auth";
 import { isStaffRole } from "@/lib/auth/session";
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import { CourseLandingPage } from "@/components/marketing/course-landing-page";
-import { prisma } from "@/lib/db";
 import { getStudentCourseEnrollmentState } from "@/lib/enrollment/student-state";
 import { buildCourseLandingModel } from "@/lib/marketing/course-page-data";
+import { loadPublicCourseLandingSource } from "@/lib/marketing/public-course-detail";
 import { getDefaultOrganizationId } from "@/lib/organizations/default";
 import {
   PERSONALITY_PROFILE_PUBLIC_HREF,
@@ -24,38 +24,7 @@ export default async function PublicCourseDetailPage({
   const session = await auth();
   const organizationId = await getDefaultOrganizationId();
 
-  const course = await prisma.program.findFirst({
-    where: { organizationId, slug, status: "PUBLISHED" },
-    include: {
-      campus: true,
-      department: true,
-      intakes: { where: { isActive: true }, orderBy: { startDate: "asc" } },
-      _count: { select: { enrollments: true } },
-      syllabus: {
-        where: { status: "PUBLISHED" },
-        select: {
-          title: true,
-          modules: {
-            orderBy: { order: "asc" },
-            select: {
-              id: true,
-              title: true,
-              summary: true,
-              lessons: {
-                where: { isPublished: true },
-                orderBy: { order: "asc" },
-                select: {
-                  id: true,
-                  title: true,
-                  durationMin: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  const course = await loadPublicCourseLandingSource(slug, organizationId);
   if (!course) notFound();
 
   const isStaff = Boolean(session?.user && isStaffRole(session.user.role));
@@ -70,6 +39,11 @@ export default async function PublicCourseDetailPage({
         })
       : { kind: "none" as const };
 
+  const requiresApplication = Boolean(course.formDefinitionId);
+  const applyCallback = encodeURIComponent(
+    `/student/applications?program=${course.slug}`,
+  );
+
   const enrollState = isStaff
     ? ("staff" as const)
     : enrollmentState.kind === "active"
@@ -78,9 +52,13 @@ export default async function PublicCourseDetailPage({
         ? ("pending_crm" as const)
         : enrollmentState.kind === "pending_payment"
           ? ("pending_payment" as const)
-          : isStudent
-            ? ("open" as const)
-            : ("guest" as const);
+          : isStudent && requiresApplication
+            ? ("apply" as const)
+            : isStudent
+              ? ("open" as const)
+              : requiresApplication
+                ? ("guest_apply" as const)
+                : ("guest" as const);
 
   const landing = buildCourseLandingModel({
     course,
@@ -96,7 +74,10 @@ export default async function PublicCourseDetailPage({
           enroll={{
             state: enrollState,
             enrollCallback,
+            applyCallback,
             programId: course.id,
+            programSlug: course.slug,
+            requiresApplication,
           }}
         />
       </div>

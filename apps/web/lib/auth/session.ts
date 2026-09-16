@@ -7,7 +7,11 @@ import {
   type Capability,
 } from "@/lib/auth/roles";
 import { getCapabilitiesForRole } from "@/lib/auth/org-capabilities";
+import { compassRoleToAppRole } from "@/lib/compass/roles";
+import { getCompassDefaultDomainId, readCompassUserRole } from "@/lib/compass/domain";
+import { findCompassUserById } from "@/lib/compass/users";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { redirect } from "next/navigation";
 
 export { isStaffRole, can };
@@ -38,6 +42,25 @@ export async function requireSession() {
   const session = await auth();
   if (!session?.user?.id || session.error === "InvalidSession") {
     redirect("/login");
+  }
+
+  if (isCompassDatabase()) {
+    const user = await findCompassUserById(session.user.id);
+    if (!user) redirect("/api/auth/clear-stale");
+
+    const organizationId = await getCompassDefaultDomainId();
+    const compassRole = await readCompassUserRole(user.id);
+    const role = compassRoleToAppRole(compassRole) as AppRole;
+    const capabilities = await getCapabilitiesForRole(organizationId, role);
+    return {
+      ...session,
+      user: {
+        ...session.user,
+        role,
+        organizationId,
+        capabilities,
+      },
+    };
   }
 
   const membership = await prisma.membership.findUnique({

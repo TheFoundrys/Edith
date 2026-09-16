@@ -4,9 +4,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getAiAdapterForOrg } from "@/lib/ai";
 import { requireCapability } from "@/lib/auth/session";
+import {
+  listStaffProgramOptions,
+  resolveStaffProgram,
+} from "@/lib/compass/program-bridge";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 
 async function programContext(programId: string, organizationId: string) {
+  if (isCompassDatabase()) return null;
   return prisma.program.findFirst({
     where: { id: programId, organizationId },
     include: {
@@ -42,11 +48,7 @@ function outlineFromProgram(
 
 export async function listProgramsForStaff() {
   const session = await requireCapability("manageContent");
-  return prisma.program.findMany({
-    where: { organizationId: session.user.organizationId },
-    select: { id: true, title: true, slug: true, status: true },
-    orderBy: { title: "asc" },
-  });
+  return listStaffProgramOptions(session.user.organizationId);
 }
 
 export async function createAssignment(formData: FormData) {
@@ -68,12 +70,10 @@ export async function createAssignment(formData: FormData) {
     });
   if (!parsed.success) return { error: "Invalid assignment fields." };
 
-  const program = await prisma.program.findFirst({
-    where: {
-      id: parsed.data.programId,
-      organizationId: session.user.organizationId,
-    },
-  });
+  const program = await resolveStaffProgram(
+    parsed.data.programId,
+    session.user.organizationId,
+  );
   if (!program) return { error: "Program not found." };
 
   const dueAt = parsed.data.dueAt
@@ -93,6 +93,8 @@ export async function createAssignment(formData: FormData) {
 
   revalidatePath("/admin/assignments");
   revalidatePath(`/admin/assignments/${assignment.id}`);
+  revalidatePath(`/admin/syllabus/${program.id}`);
+  revalidatePath("/admin/syllabus");
   revalidatePath("/student/assignments");
   return { ok: true as const, id: assignment.id };
 }

@@ -15,14 +15,16 @@ const navGroups = [
       { href: "/student/progress", label: "Progress" },
       { href: "/student/submissions", label: "Submissions" },
       { href: "/student/certificates", label: "Certificates" },
+      { href: "/student/badges", label: "Badges" },
     ],
   },
   {
+    label: "Community",
+    items: [{ href: "/student/forums", label: "Forums" }],
+  },
+  {
     label: "Admissions",
-    items: [
-      { href: "/student/applications", label: "Applications" },
-      { href: "/student/payment", label: "Payments" },
-    ],
+    items: [{ href: "/student/transactions", label: "Transactions" }],
   },
   {
     label: "Support",

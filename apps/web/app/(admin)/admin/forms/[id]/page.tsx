@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { FormBuilder } from "@/components/admin/form-builder";
 import { requireCapability } from "@/lib/auth/session";
+import { redirectIfCompassAdminRoute } from "@/lib/compass/require-edith";
 import { prisma } from "@/lib/db";
 import { parseFormSchema } from "@/lib/forms/schema";
 
@@ -9,6 +10,7 @@ export default async function FormDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  redirectIfCompassAdminRoute();
   const { id } = await params;
   const session = await requireCapability("manageForms");
   const form = await prisma.formDefinition.findFirst({

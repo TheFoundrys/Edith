@@ -4,7 +4,14 @@ import {
   STAFF_ROLES,
   type Capability,
 } from "@/lib/auth/roles";
+import { compassRoleToAppRole } from "@/lib/compass/roles";
+import {
+  getCompassDefaultDomainId,
+  readCompassUserRole,
+} from "@/lib/compass/domain";
+import { findCompassUserById } from "@/lib/compass/users";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { jsonError } from "@/lib/api/http";
 
 export type ApiAuthResult =
@@ -16,6 +23,25 @@ async function resolveSessionUser(): Promise<
 > {
   const session = await auth();
   if (!session?.user?.id || session.error === "InvalidSession") return null;
+
+  if (isCompassDatabase()) {
+    const user = await findCompassUserById(session.user.id);
+    if (!user) return null;
+
+    const organizationId = await getCompassDefaultDomainId();
+    const compassRole = await readCompassUserRole(user.id);
+    const role = compassRoleToAppRole(compassRole) as SessionUser["role"];
+    const capabilities = await getCapabilitiesForRole(organizationId, role);
+
+    return {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name,
+      role,
+      organizationId,
+      capabilities,
+    };
+  }
 
   const membership = await prisma.membership.findUnique({
     where: {

@@ -121,12 +121,14 @@ export const ROUTES = {
   adminMembers: "/admin/members",
   adminPrograms: "/admin/programs",
   adminEnrollments: "/admin/enrollments",
-  adminPayments: "/admin/payments",
+  adminTransactions: "/admin/transactions",
   adminPaymentSettings: "/admin/payment-settings",
   studentDashboard: "/student/dashboard",
-  studentPayment: "/student/payment",
-  studentInvoice: (paymentId: string) => `/student/payment/invoices/${paymentId}`,
-  adminInvoice: (paymentId: string) => `/admin/payments/invoices/${paymentId}`,
+  studentTransactions: "/student/transactions",
+  studentInvoice: (paymentId: string) =>
+    `/student/transactions/invoices/${paymentId}`,
+  adminInvoice: (paymentId: string) =>
+    `/admin/transactions/invoices/${paymentId}`,
   paymentSuccess: "/payment/success",
 } as const;
 

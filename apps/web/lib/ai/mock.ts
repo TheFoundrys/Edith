@@ -42,7 +42,7 @@ export class MockAiAdapter implements AiPort {
 
   async generateQuizDraft(input: AiGenerateQuizInput): Promise<QuizDraft> {
     const topic = topicLabel(input);
-    const count = Math.min(Math.max(input.questionCount ?? 5, 3), 10);
+    const count = Math.min(Math.max(input.questionCount ?? 5, 3), 20);
     const questions = Array.from({ length: count }, (_, i) => {
       const n = i + 1;
       return {

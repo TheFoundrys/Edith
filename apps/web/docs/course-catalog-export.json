@@ -1,0 +1,1125 @@
+{
+  "copiedAt": "2026-09-15T15:01:03.429Z",
+  "courses": [
+    {
+      "id": "cmtsjkrop0001ou01yo0qns4t",
+      "title": "AI Fluency",
+      "slug": "ai-fluency",
+      "modules": [
+        {
+          "title": "Introduction to AI",
+          "lessons": []
+        },
+        {
+          "title": "AI Fluency",
+          "lessons": [
+            {
+              "title": "How this track works",
+              "contentType": "RICH_TEXT",
+              "content": "# AI Fluency\n\nThis track is for experienced Java developers building practical AI skills in Python: language basics, data work, model training, and a production deploy.\n\nWatch each video activity in order. Later lessons assume the earlier Python and data pipeline.\n\nThe full series is also on YouTube: https://www.youtube.com/playlist?list=PLM0upyoEdKOM\n\nVideos mark complete when they finish playing.",
+              "summary": "Watch the videos in order. Java developers, Python, then production AI."
+            },
+            {
+              "title": "1.1 Transitioning from Object-Oriented Java to Functional",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=dUclJ0Hs56Y&list=PLM0upyoEdKOM",
+              "summary": "How Java OO habits map onto Python's functional data style."
+            },
+            {
+              "title": "1.2 Python Basics for Data Processing & AI",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=FDAGTZTBdyI&list=PLM0upyoEdKOM",
+              "summary": "Python syntax you need before NumPy and model training."
+            },
+            {
+              "title": "1.3 Mastering Core Frameworks: NumPy, Pandas, Matplotlib",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=gJ0jZdcvlVU&list=PLM0upyoEdKOM",
+              "summary": "Arrays, tables and plots for an AI workflow."
+            },
+            {
+              "title": "1.4 Data Preparation & Preprocessing for GIS & Enterprise Data",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=L1MWWhWPT5A&list=PLM0upyoEdKOM",
+              "summary": "Clean and shape messy enterprise and geospatial inputs."
+            },
+            {
+              "title": "1.5 Building your first Data Driven Analysis Pipeline",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=JEzphqzjv0I&list=PLM0upyoEdKOM",
+              "summary": "Wire ingest, transform and a first analysis end to end."
+            },
+            {
+              "title": "2.1 Modern Model Training Workflows From Scikit-learn to Deep Learning",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=XialLojeXCg&list=PLM0upyoEdKOM",
+              "summary": "Train classical models, then step into deep learning."
+            },
+            {
+              "title": "2.2 Practical Usage of Transformers, LLMs, BERT, Vision Transformers",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=3WZ9XmUiYJI&list=PLM0upyoEdKOM",
+              "summary": "Use transformer models without building them from scratch."
+            },
+            {
+              "title": "2.3 Integrating AI Components into Existing APIs & Web Apps",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=f0Ju-PC_Ius&list=PLM0upyoEdKOM",
+              "summary": "Call models from the APIs and apps you already ship."
+            },
+            {
+              "title": "2.4 Deploying Production Grade AI Models with FastAPI & Docker",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=-ZFLo7secF4&list=PLM0upyoEdKOM",
+              "summary": "Package an inference service and run it in Docker."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpd3u006z43edhvxpyyeg",
+      "title": "AI for Educators: Foundation & Practice",
+      "slug": "fdp-ai-for-educators",
+      "modules": [
+        {
+          "title": "Hands-on Workshops",
+          "lessons": []
+        },
+        {
+          "title": "Real-world Tools",
+          "lessons": []
+        },
+        {
+          "title": "Community Support",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xp9f6001r43edg6nqynaq",
+      "title": "B.Sc / BCA in Artificial Intelligence",
+      "slug": "bsc-artificial-intelligence",
+      "modules": [
+        {
+          "title": "Year 1 — Foundations of Intelligence",
+          "lessons": []
+        },
+        {
+          "title": "Year 2 — Engineering & Specialization",
+          "lessons": []
+        },
+        {
+          "title": "Year 3 — Mastery & Real-World Impact",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpa3s002n43edm3rx5xz7",
+      "title": "B.Sc in Blockchain Technology",
+      "slug": "bsc-blockchain-technology",
+      "modules": [
+        {
+          "title": "Year 1 — Cryptographic Foundations",
+          "lessons": []
+        },
+        {
+          "title": "Year 2 — Smart Contracts & VM Architecture",
+          "lessons": []
+        },
+        {
+          "title": "Year 3 — Scaling & Privacy (ZK)",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xp9s2002743edgng4n9j6",
+      "title": "B.Sc in Cyber Security",
+      "slug": "bsc-cyber-security",
+      "modules": [
+        {
+          "title": "Year 1 — Foundations of Security",
+          "lessons": []
+        },
+        {
+          "title": "Year 2 — Offensive & Defensive Operations",
+          "lessons": []
+        },
+        {
+          "title": "Year 3 — Mastery & Specialization",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xp9nc001z43edv4r1gix7",
+      "title": "B.Sc in Data Science",
+      "slug": "bsc-data-science",
+      "modules": [
+        {
+          "title": "Year 1 — Analytics Foundations",
+          "lessons": []
+        },
+        {
+          "title": "Year 2 — Machine Learning & Engineering",
+          "lessons": []
+        },
+        {
+          "title": "Year 3 — Advanced Modelling & Applications",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpa9b002v43edkrt761w9",
+      "title": "B.Sc in ESG & Governance",
+      "slug": "bsc-esg-governance",
+      "modules": [
+        {
+          "title": "Environmental",
+          "lessons": []
+        },
+        {
+          "title": "Social",
+          "lessons": []
+        },
+        {
+          "title": "Governance",
+          "lessons": []
+        },
+        {
+          "title": "Green Finance",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xp9wk002f43edkvfq30ri",
+      "title": "B.Sc in Quantum Computing",
+      "slug": "bsc-quantum-computing",
+      "modules": [
+        {
+          "title": "Year 1 — Mathematical Foundations",
+          "lessons": []
+        },
+        {
+          "title": "Year 2 — Quantum Circuits & Algorithms",
+          "lessons": []
+        },
+        {
+          "title": "Year 3 — Quantum Communication & Sensing",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpah9003443edgez2v3vi",
+      "title": "B.Sc in Renewable Energy",
+      "slug": "bsc-renewable-energy",
+      "modules": [
+        {
+          "title": "Year 1 — Foundations of Energy Systems",
+          "lessons": []
+        },
+        {
+          "title": "Year 2 — Advanced Grid & Sustainability",
+          "lessons": []
+        },
+        {
+          "title": "Year 3 — Innovation & Leadership",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpan9003c43edwpd13uir",
+      "title": "B.Sc in Venture Building",
+      "slug": "bsc-venture-building",
+      "modules": [
+        {
+          "title": "Phase 01 — Zero-to-One (12 Months)",
+          "lessons": []
+        },
+        {
+          "title": "Phase 02 — Growth Architect (24 Months)",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpdlm007v43ed2mhvisax",
+      "title": "Centre of Excellence in AI & Data Science",
+      "slug": "coe-ai-data-science",
+      "modules": [
+        {
+          "title": "High-Performance Computing",
+          "lessons": []
+        },
+        {
+          "title": "Integrated Labs",
+          "lessons": []
+        },
+        {
+          "title": "Curriculum & Faculty Enablement",
+          "lessons": []
+        },
+        {
+          "title": "Innovation & Industry Collaboration",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpdtb008d43edphhdhctm",
+      "title": "Centre of Excellence in Blockchain",
+      "slug": "coe-blockchain",
+      "modules": [
+        {
+          "title": "High-Performance Computing",
+          "lessons": []
+        },
+        {
+          "title": "Integrated Labs",
+          "lessons": []
+        },
+        {
+          "title": "Curriculum & Faculty Enablement",
+          "lessons": []
+        },
+        {
+          "title": "Innovation & Industry Collaboration",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpdpt008443edn7voavam",
+      "title": "Centre of Excellence in Cybersecurity",
+      "slug": "coe-cybersecurity",
+      "modules": [
+        {
+          "title": "High-Performance Computing",
+          "lessons": []
+        },
+        {
+          "title": "Integrated Labs",
+          "lessons": []
+        },
+        {
+          "title": "Curriculum & Faculty Enablement",
+          "lessons": []
+        },
+        {
+          "title": "Innovation & Industry Collaboration",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpdwn008m43edxkcrd3y9",
+      "title": "Centre of Excellence in Quantum",
+      "slug": "coe-quantum",
+      "modules": [
+        {
+          "title": "High-Performance Computing",
+          "lessons": []
+        },
+        {
+          "title": "Integrated Labs",
+          "lessons": []
+        },
+        {
+          "title": "Curriculum & Faculty Enablement",
+          "lessons": []
+        },
+        {
+          "title": "Innovation & Industry Collaboration",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpe2k008v43edjpbq1pje",
+      "title": "Certified Applied AI Practitioner",
+      "slug": "cert-applied-ai-practitioner",
+      "modules": [
+        {
+          "title": "Foundations of Generative AI",
+          "lessons": [
+            {
+              "title": "How language models generate text",
+              "contentType": "RICH_TEXT",
+              "content": "## From tokens to output\n\nA language model does not \"know\" facts. It predicts the next **token** given the\ncontext window it can see.\n\nTwo consequences follow, and they explain most surprises:\n\n- Anything outside the context window does not exist to the model.\n- Sampling settings change the output even when the prompt is identical.",
+              "summary": "Tokens, context windows and sampling."
+            },
+            {
+              "title": "Prompting patterns that survive contact with users",
+              "contentType": "RICH_TEXT",
+              "content": "## Write prompts like interfaces\n\nState the task, the format and what to do when the model is unsure.\n\nAn instruction to say \"I don't know\" is worth more than another paragraph of\nencouragement.",
+              "summary": "Structure, examples and explicit failure instructions."
+            }
+          ]
+        },
+        {
+          "title": "Retrieval and Grounding",
+          "lessons": [
+            {
+              "title": "Embeddings and vector search",
+              "contentType": "RICH_TEXT",
+              "content": "## Retrieval decides the answer\n\nMost \"the model is wrong\" bugs are retrieval bugs. If the right passage never\nreaches the context window, no amount of prompt tuning recovers it.\n\nTune chunk size and retrieval depth before you tune the prompt.",
+              "summary": "Chunking, indexing and why retrieval quality dominates."
+            },
+            {
+              "title": "Building a grounded question-answering service",
+              "contentType": "EXTERNAL_LINK",
+              "content": "https://platform.openai.com/docs/guides/embeddings",
+              "summary": "Wire retrieval into an API endpoint end to end."
+            }
+          ]
+        },
+        {
+          "title": "Evaluation, Cost and Deployment",
+          "lessons": [
+            {
+              "title": "Building an evaluation set",
+              "contentType": "RICH_TEXT",
+              "content": "## Measure before you ship\n\nCollect thirty real questions with known-good answers. Re-run them on every\nprompt or model change.\n\nWithout this, \"the new prompt feels better\" is the only evidence you will have.",
+              "summary": "Golden answers, regression runs and scoring."
+            },
+            {
+              "title": "Capstone: deploy and defend your application",
+              "contentType": "RICH_TEXT",
+              "content": "## Capstone\n\nDeploy your application and present:\n\n1. What it does and who for.\n2. Your evaluation set and current scores.\n3. Cost per request and the failure modes you found.",
+              "summary": "Ship the project and present its evaluation results."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpeln00a143edpxfr1ioo",
+      "title": "Certified Blockchain & Web3 Developer",
+      "slug": "cert-blockchain-web3-developer",
+      "modules": [
+        {
+          "title": "Chains, Consensus and State",
+          "lessons": [
+            {
+              "title": "Consensus and finality",
+              "contentType": "RICH_TEXT",
+              "content": "## Confirmed is not the same as final\n\nA transaction included in a block can still be reorganised away. Knowing how\nmany confirmations your application needs is a design decision, not a detail.",
+              "summary": "Proof of work, proof of stake and reorganisations."
+            },
+            {
+              "title": "Accounts, state and gas",
+              "contentType": "RICH_TEXT",
+              "content": "## Every operation has a price\n\nGas is not a fee bolted on afterwards. It is a hard constraint that shapes how\nyou store data and structure loops.",
+              "summary": "The EVM execution model from the outside in."
+            }
+          ]
+        },
+        {
+          "title": "Smart Contract Development",
+          "lessons": [
+            {
+              "title": "Solidity fundamentals",
+              "contentType": "EXTERNAL_LINK",
+              "content": "https://docs.soliditylang.org/",
+              "summary": "Types, storage, visibility and events."
+            },
+            {
+              "title": "Testing contracts properly",
+              "contentType": "RICH_TEXT",
+              "content": "## You cannot patch a deployed contract\n\nImmutability means testing is not optional hygiene, it is the only safety net\nyou get. Fuzz the invariants you actually care about.",
+              "summary": "Unit tests, forked mainnet tests and fuzzing."
+            }
+          ]
+        },
+        {
+          "title": "Security and Auditing",
+          "lessons": [
+            {
+              "title": "Reentrancy, oracles and access control",
+              "contentType": "RICH_TEXT",
+              "content": "## Update state before you call out\n\nReentrancy is old and still profitable. Follow checks-effects-interactions, and\ntreat any external call as a point where control leaves your contract.",
+              "summary": "The recurring causes behind the largest losses."
+            },
+            {
+              "title": "Capstone: ship a dApp and audit a peer's",
+              "contentType": "RICH_TEXT",
+              "content": "## Capstone\n\nTwo deliverables:\n\n1. A working dApp deployed to a public testnet.\n2. A written audit of another participant's contract, with severity ratings and\n   a suggested fix for each finding.",
+              "summary": "Deploy your own, then find a real bug in someone else's."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpe8i009943edqxqwwljz",
+      "title": "Certified Cybersecurity Analyst (SOC)",
+      "slug": "cert-cybersecurity-analyst",
+      "modules": [
+        {
+          "title": "The Security Operations Centre",
+          "lessons": [
+            {
+              "title": "Alert triage and escalation paths",
+              "contentType": "RICH_TEXT",
+              "content": "## Triage is a queue, not a puzzle\n\nYour job is to decide quickly: benign, needs investigation, or escalate now.\n\nThe expensive mistake is not a wrong call. It is an alert nobody looked at.",
+              "summary": "Severity, false positives and when to wake someone up."
+            },
+            {
+              "title": "Reading logs without drowning",
+              "contentType": "RICH_TEXT",
+              "content": "## Correlate three sources\n\nA single log line rarely proves anything. Identity plus endpoint plus network\nturns a suspicion into a timeline.",
+              "summary": "Endpoint, network and identity telemetry side by side."
+            }
+          ]
+        },
+        {
+          "title": "Threat Detection and Hunting",
+          "lessons": [
+            {
+              "title": "MITRE ATT&CK as a working map",
+              "contentType": "EXTERNAL_LINK",
+              "content": "https://attack.mitre.org/",
+              "summary": "Techniques, coverage gaps and detection engineering."
+            },
+            {
+              "title": "Writing and tuning detection rules",
+              "contentType": "RICH_TEXT",
+              "content": "## A rule that fires constantly is a broken rule\n\nEvery detection has a budget: the analyst hours it consumes. Tune against real\ntraffic and measure the false-positive rate before you deploy it.",
+              "summary": "Balance recall against a queue nobody can service."
+            }
+          ]
+        },
+        {
+          "title": "Incident Response",
+          "lessons": [
+            {
+              "title": "Containment and eradication",
+              "contentType": "RICH_TEXT",
+              "content": "## Preserve while you contain\n\nPulling the network cable stops the bleeding and can also erase volatile\nevidence. Capture memory and logs first where the risk allows.",
+              "summary": "Isolate without destroying the evidence you need."
+            },
+            {
+              "title": "Capstone: run a full incident",
+              "contentType": "RICH_TEXT",
+              "content": "## Capstone\n\nYou will be given a compromised environment and must produce:\n\n1. A timeline of attacker activity.\n2. The techniques used, mapped to ATT&CK.\n3. A blameless post-mortem with concrete detection improvements.",
+              "summary": "A live-fire scenario in the lab, ending in a post-mortem."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpeel009n43edj0atjjzf",
+      "title": "Certified Quantum Computing Associate",
+      "slug": "cert-quantum-computing-associate",
+      "modules": [
+        {
+          "title": "Qubits and Circuits",
+          "lessons": [
+            {
+              "title": "From bits to qubits",
+              "contentType": "RICH_TEXT",
+              "content": "## Measurement destroys the state\n\nA qubit holds amplitudes until you measure it. Measurement collapses it to a\nclassical bit, which is why you cannot simply read a quantum computer's\n\"working memory\" mid-calculation.",
+              "summary": "State vectors, the Bloch sphere and measurement."
+            },
+            {
+              "title": "Your first circuit in Qiskit",
+              "contentType": "EXTERNAL_LINK",
+              "content": "https://docs.quantum.ibm.com/",
+              "summary": "Build a Bell pair and inspect the results."
+            }
+          ]
+        },
+        {
+          "title": "Core Algorithms",
+          "lessons": [
+            {
+              "title": "Grover and Shor without the hype",
+              "contentType": "RICH_TEXT",
+              "content": "## Read the exponent, not the headline\n\nGrover is a quadratic speedup, not an exponential one. Shor is exponential but\nneeds error-corrected hardware that does not exist yet at scale.\n\nBeing precise about this is most of the value you add as an associate.",
+              "summary": "Real speedups, and the conditions attached to them."
+            },
+            {
+              "title": "Variational algorithms on today's hardware",
+              "contentType": "RICH_TEXT",
+              "content": "## Hybrid by necessity\n\nCurrent devices are small and noisy, so the practical pattern is a quantum\ncircuit inside a classical optimisation loop.",
+              "summary": "VQE and QAOA in the noisy, small-device regime."
+            }
+          ]
+        },
+        {
+          "title": "Noise and Real Hardware",
+          "lessons": [
+            {
+              "title": "Decoherence, gate error and readout error",
+              "contentType": "RICH_TEXT",
+              "content": "## The simulator lied to you\n\nOn hardware, every gate adds error and the qubit decoheres while it waits.\nShorter circuits beat cleverer ones.",
+              "summary": "Why the same circuit gives a different answer each run."
+            },
+            {
+              "title": "Capstone: run and report on real hardware",
+              "contentType": "RICH_TEXT",
+              "content": "## Capstone\n\nRun one algorithm on both a simulator and real hardware, then explain the\ndifference in the results and what you would change to narrow it.",
+              "summary": "Execute your circuit on a device and analyse the gap."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpcya006r43ed4fu4yzq2",
+      "title": "Custom Campus Programs",
+      "slug": "amp-custom-campus-programs",
+      "modules": [
+        {
+          "title": "Curriculum mapping",
+          "lessons": []
+        },
+        {
+          "title": "Cohort delivery",
+          "lessons": []
+        },
+        {
+          "title": "Assessment & reporting",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpeux00af43edmfphbxmk",
+      "title": "Cybersecurity Essentials",
+      "slug": "edith-demo-cybersecurity-essentials",
+      "modules": [
+        {
+          "title": "Module 1 — Welcome & orientation",
+          "lessons": [
+            {
+              "title": "Welcome to Cybersecurity Essentials",
+              "contentType": "RICH_TEXT",
+              "content": "# Welcome to Cybersecurity Essentials\n\nThis course trains you to think like a defender: name the asset, name the threat, choose a control, and write down why. Work the modules in order. Each activity is either a reading, a video, or a short lab.\n\n## What you will be able to do\n- Frame any system in terms of confidentiality, integrity and availability, including the trade-offs those three create.\n- Separate threat, vulnerability and risk so a standup conversation stays precise under pressure.\n- Apply MFA, least privilege and an offboarding rule that actually closes accounts.\n- Triage a suspicious-login alert the way a junior SOC analyst would, then write a one-page incident note a manager can act on.\n\n## How to use Learning\n1. Open the course from **My courses**. Complete activities in order — later labs assume earlier vocabulary.\n2. Videos mark complete when they finish. Readings and labs use **Mark complete**.\n3. Faculty can attach PDFs (playbooks, policy extracts, lab sheets) on any activity. Open them in the player; download only if you need a local copy.\n\nKeep a scratch pad. The capstone asks for a timeline, not a slogan.",
+              "summary": "Course goals, structure, and how to use Learning."
+            },
+            {
+              "title": "Why cybersecurity matters now",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=inWWhr5tnEA",
+              "summary": "Short video on the modern threat landscape."
+            }
+          ]
+        },
+        {
+          "title": "Module 2 — Security fundamentals",
+          "lessons": [
+            {
+              "title": "The CIA triad",
+              "contentType": "RICH_TEXT",
+              "content": "## Confidentiality, integrity, availability\n\nEvery control you will meet in this course maps to at least one of these questions:\n\n| Pillar | Question | Typical control | Failure mode |\n|--------|----------|-----------------|--------------|\n| **Confidentiality** | Who can read this? | Encryption at rest, TLS, access lists | Over-sharing, leaked backups |\n| **Integrity** | Has this been altered? | Hashing, signed packages, audit logs | Silent tampering, poisoned updates |\n| **Availability** | Can authorised people reach it? | Redundancy, backups, rate limits | Ransomware, a single overloaded API |\n\nA control that helps one pillar often taxes another. Encrypting a laptop protects confidentiality; lose the recovery key and you have destroyed availability for that user. Turning off a compromised account protects integrity of the tenant; if it is the only admin, you may have locked the organisation out.\n\n## How to write it down\nWhen you evaluate a system, write three sentences — one per pillar — then name the trade-off you accepted. \"We require hardware keys for admins (confidentiality) knowing that lost keys add a 30-minute recovery path (availability).\" That sentence is more useful than a slide titled \"we take security seriously.\"\n\nNIST SP 800-12 and the CIS Controls both start here. If you cannot name the pillar, you are not ready to pick a product.",
+              "summary": "How defenders describe risk when a control helps one pillar and hurts another."
+            },
+            {
+              "title": "Threats vs vulnerabilities vs risks",
+              "contentType": "RICH_TEXT",
+              "content": "## Speak the same language\n\nTeams collapse under incident pressure when they mix these three words:\n\n- **Threat** — an actor or event that *could* cause harm. A phishing kit, a ransomware affiliate, a disgruntled contractor with residual VPN access.\n- **Vulnerability** — a weakness that *could* be exploited. An unpatched VPN appliance, a reused password, an S3 bucket with public ACLs.\n- **Risk** — the combination of likelihood and impact *if* the threat exploits the vulnerability. \"If that affiliate phishes finance, they can instruct a ₹40 lakh payment\" is a risk statement. \"Phishing exists\" is not.\n\n## A worked example\nThreat: credential stuffing against the student portal.\nVulnerability: 18% of accounts still have passwords that appeared in 2024 breach corpora; MFA is optional for learners.\nRisk: an attacker takes over a bursar-adjacent mailbox and issues a fee-waiver that posts to the ledger.\n\nThe work is then prioritisation. Forcing MFA on staff this week reduces more risk than rewriting the public \"we use encryption\" page. STRIDE (spoofing, tampering, repudiation, information disclosure, denial of service, elevation of privilege) is a useful prompt when you are staring at a blank threat model — walk each letter against the asset.\n\nWrite risk as: *actor + action + asset + consequence*. If any of those four is missing, the statement will not survive a steering committee.",
+              "summary": "Vocabulary that keeps teams aligned under pressure."
+            }
+          ]
+        },
+        {
+          "title": "Module 3 — Defensive basics",
+          "lessons": [
+            {
+              "title": "Authentication and access control",
+              "contentType": "RICH_TEXT",
+              "content": "## Defend the front door\n\nMost account takeovers in education and SaaS still start with a password and a missing second factor. Treat identity as the perimeter.\n\n**Multi-factor authentication.** Prefer phishing-resistant factors (hardware keys, passkeys) for anyone who can move money, change DNS, or reset other admins. SMS OTP is better than nothing and worse than a key — attackers run MFA-fatigue prompts against it. If you cannot roll hardware keys this quarter, at least turn off \"remember this browser\" on admin consoles.\n\n**Least privilege.** Role-based access should match the job, not the org chart. Academic Dean does not need bursar refunds; faculty does not need identity-provider admin. Service accounts get a unique identity, a vaulted secret, and a named owner — never a shared \"admin@\".\n\n**Joiner–mover–leaver.** Access granted on day one must have a removal path. Offboarding that takes more than 24 hours for email, VPN, Git and cloud consoles is an incident waiting for a date.\n\n### Audit this week\n- MFA enforced on email and every console that can change production.\n- No standing domain-admin or root sessions; break-glass accounts are monitored and stored offline.\n- A leaver from the last 30 days has zero remaining tokens.\n- Password reset for privileged roles requires a second person.\n\nIf your IdP cannot answer those four without a spreadsheet hunt, the control is theatre.",
+              "summary": "Passwords, MFA, and least privilege in practice."
+            },
+            {
+              "title": "OWASP Top 10 — further reading",
+              "contentType": "EXTERNAL_LINK",
+              "content": "https://owasp.org/www-project-top-ten/",
+              "summary": "Official reference for the most critical web application risks."
+            }
+          ]
+        },
+        {
+          "title": "Module 4 — Capstone",
+          "lessons": [
+            {
+              "title": "Lab: triage a suspicious login alert",
+              "contentType": "RICH_TEXT",
+              "content": "## Scenario\n\nYour SIEM fires at 09:14 IST: **\"Impossible travel — same user principal authenticated from Hyderabad (office egress) and Frankfurt (consumer VPN ASN) nine minutes apart.\"** The account belongs to a finance coordinator who can initiate fee refunds.\n\nThis is not a pop quiz. Work it as a junior analyst on a recorded shift.\n\n### 1. Verify before you panic\n- Is the user on leave, in an airport, or on the corporate VPN that egresses in the EU?\n- Shared mailbox or shared password? Check the last password-change and device list.\n- Compare user-agent and MFA method. A password + SMS from Frankfurt after a hardware-key login in Hyderabad is not \"the same user.\"\n\n### 2. Contain if it still looks hostile\n- Revoke refresh tokens and active sessions for that principal.\n- Force a password reset *after* you have a channel to the real human (call the number on file, do not email the inbox you suspect is owned).\n- If refunds or payouts are in flight, freeze the maker-checker queue and tell bursar.\n\n### 3. Investigate\nPull auth logs for 24 hours: source IPs, ASN, geolocation, success/failure, MFA result. Note the first failure that precedes the Frankfurt success — stuffing often shows up as a burst. Preserve the original alert payload; do not overwrite it by \"closing\" the ticket.\n\n### 4. Write it down\nThree sentences on a pad now, full report in the capstone:\n1. What you checked first and why it was or was not the user.\n2. What you contained, with timestamps.\n3. What evidence you would attach (log export IDs, ticket number, who you called).\n\nImpossible travel is a *hypothesis generator*, not a verdict. Plenty of false positives come from split-tunnel VPNs. Plenty of true positives look exactly like a tired colleague. Your job is the evidence trail.",
+              "summary": "Walk through a realistic SOC-style scenario."
+            },
+            {
+              "title": "Capstone: submit your incident report",
+              "contentType": "RICH_TEXT",
+              "content": "## Capstone deliverable\n\nWrite a **one-page incident report** for the impossible-travel alert in the previous lab. Use the house voice of a SOC that has to brief bursar and the academic dean in the same document.\n\nRequired sections:\n\n1. **Summary** — five to eight lines, no jargon. Who, what, when, current status. A non-technical reader should know whether money moved.\n2. **Timeline** — bullets with IST timestamps. Include the alert, each check, containment, and who you notified. Placeholders are fine (e.g. T+12 min).\n3. **Evidence** — log sources, IPs/ASNs, MFA method, whether sessions were revoked. Do not paste secrets.\n4. **Actions taken** — what you did, in order, and what you explicitly did *not* do (and why).\n5. **Recommendations** — two controls that would have reduced this risk *before* the alert. Tie each to a CIA pillar or to identity (MFA, token lifetime, geo-velocity policy).\n\nMark this activity complete when the draft is on paper or in your notes. That is the end of the syllabus; the badge is earned by the report, not by scrolling.",
+              "summary": "Bring the course together in one written deliverable."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpclo006a43ed12owp87w",
+      "title": "Delivering in the Age of AI",
+      "slug": "delivering-in-the-age-of-ai",
+      "modules": [
+        {
+          "title": "AI Platforms",
+          "lessons": []
+        },
+        {
+          "title": "Governance",
+          "lessons": []
+        },
+        {
+          "title": "Cyber-Resilience",
+          "lessons": []
+        },
+        {
+          "title": "Legacy Modernization",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpdhl007n43edivj8jyco",
+      "title": "Digital Leadership for School Heads",
+      "slug": "fdp-digital-leadership",
+      "modules": [
+        {
+          "title": "Hands-on Workshops",
+          "lessons": []
+        },
+        {
+          "title": "Real-world Tools",
+          "lessons": []
+        },
+        {
+          "title": "Community Support",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmtht6cys000343klmbv79znm",
+      "title": "Edith Personality Profile",
+      "slug": "edith-personality-profile",
+      "modules": [
+        {
+          "title": "Aptitude",
+          "lessons": []
+        },
+        {
+          "title": "Quantitative",
+          "lessons": []
+        },
+        {
+          "title": "Qualitative psyche analysis",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpd7s007743edsoph3sup",
+      "title": "Integrating Deep Tech in Curriculum",
+      "slug": "fdp-integrating-deep-tech",
+      "modules": [
+        {
+          "title": "Hands-on Workshops",
+          "lessons": []
+        },
+        {
+          "title": "Real-world Tools",
+          "lessons": []
+        },
+        {
+          "title": "Community Support",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpc81005w43ed6cf2a50h",
+      "title": "MBA in Applied AI & GenAI",
+      "slug": "mba-applied-ai-genai",
+      "modules": [
+        {
+          "title": "Years 1–3 — Intelligence Engineering",
+          "lessons": []
+        },
+        {
+          "title": "Year 4 — MBA in Venture Scaling",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpcg2006343edkg6azfpi",
+      "title": "MBA in Cybersecurity Venture Building",
+      "slug": "mba-cybersecurity-venture-building",
+      "modules": [
+        {
+          "title": "Years 1–3 — Cybersecurity Engineering",
+          "lessons": []
+        },
+        {
+          "title": "Year 4 — MBA in Venture Building",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpcrn006j43eddi734efo",
+      "title": "Personalized Transformation Program",
+      "slug": "amp-personalized-transformation",
+      "modules": [
+        {
+          "title": "Profile evaluation",
+          "lessons": []
+        },
+        {
+          "title": "Pathway design",
+          "lessons": []
+        },
+        {
+          "title": "Portfolio & positioning",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpblv004t43edz3rfr3qw",
+      "title": "Post Graduate Program in Applied AI & GenAI",
+      "slug": "pgp-applied-ai-genai",
+      "modules": [
+        {
+          "title": "AI 001 · Certified Professional in AI Research",
+          "lessons": []
+        },
+        {
+          "title": "AI 002 · Certified Professional in AI Engineering",
+          "lessons": []
+        },
+        {
+          "title": "AI 003 · Certified Professional in AI Operations",
+          "lessons": []
+        },
+        {
+          "title": "AI 004 · AI Fluency",
+          "lessons": [
+            {
+              "title": "How this track works",
+              "contentType": "RICH_TEXT",
+              "content": "# AI Fluency\n\nThis track is for experienced Java developers building practical AI skills in Python: language basics, data work, model training, and a production deploy.\n\nWatch each video activity in order. Later lessons assume the earlier Python and data pipeline.\n\nThe full series is also on YouTube: https://www.youtube.com/playlist?list=PLM0upyoEdKOM\n\nVideos mark complete when they finish playing.",
+              "summary": "Watch the videos in order. Java developers, Python, then production AI."
+            },
+            {
+              "title": "1.1 Transitioning from Object-Oriented Java to Functional",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=dUclJ0Hs56Y&list=PLM0upyoEdKOM",
+              "summary": "How Java OO habits map onto Python's functional data style."
+            },
+            {
+              "title": "1.2 Python Basics for Data Processing & AI",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=FDAGTZTBdyI&list=PLM0upyoEdKOM",
+              "summary": "Python syntax you need before NumPy and model training."
+            },
+            {
+              "title": "1.3 Mastering Core Frameworks: NumPy, Pandas, Matplotlib",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=gJ0jZdcvlVU&list=PLM0upyoEdKOM",
+              "summary": "Arrays, tables and plots for an AI workflow."
+            },
+            {
+              "title": "1.4 Data Preparation & Preprocessing for GIS & Enterprise Data",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=L1MWWhWPT5A&list=PLM0upyoEdKOM",
+              "summary": "Clean and shape messy enterprise and geospatial inputs."
+            },
+            {
+              "title": "1.5 Building your first Data Driven Analysis Pipeline",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=JEzphqzjv0I&list=PLM0upyoEdKOM",
+              "summary": "Wire ingest, transform and a first analysis end to end."
+            },
+            {
+              "title": "2.1 Modern Model Training Workflows From Scikit-learn to Deep Learning",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=XialLojeXCg&list=PLM0upyoEdKOM",
+              "summary": "Train classical models, then step into deep learning."
+            },
+            {
+              "title": "2.2 Practical Usage of Transformers, LLMs, BERT, Vision Transformers",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=3WZ9XmUiYJI&list=PLM0upyoEdKOM",
+              "summary": "Use transformer models without building them from scratch."
+            },
+            {
+              "title": "2.3 Integrating AI Components into Existing APIs & Web Apps",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=f0Ju-PC_Ius&list=PLM0upyoEdKOM",
+              "summary": "Call models from the APIs and apps you already ship."
+            },
+            {
+              "title": "2.4 Deploying Production Grade AI Models with FastAPI & Docker",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=-ZFLo7secF4&list=PLM0upyoEdKOM",
+              "summary": "Package an inference service and run it in Docker."
+            }
+          ]
+        },
+        {
+          "title": "AI 005 · Agentic AI Bootcamp (Instructor-Led Training)",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpc1w005o43edxy9j6klj",
+      "title": "Post Graduate Program in Blockchain & Web3",
+      "slug": "pgp-blockchain-web3",
+      "modules": [
+        {
+          "title": "BC 001 · Certified Professional in Block Chain",
+          "lessons": []
+        },
+        {
+          "title": "BC 002 · Certified Professional in NFT",
+          "lessons": []
+        },
+        {
+          "title": "BC 003 · Certified Professional in Decentralized Systems",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpbrh005343eddozo75re",
+      "title": "Post Graduate Program in Cybersecurity Analyst",
+      "slug": "pgp-cybersecurity-analyst",
+      "modules": [
+        {
+          "title": "CS 001 · Certified Professional in Cyber Security",
+          "lessons": []
+        },
+        {
+          "title": "CS 002 · Certified Professional in VAPT for AI",
+          "lessons": []
+        },
+        {
+          "title": "CS 003 · Certified Professional in Security for AI",
+          "lessons": []
+        },
+        {
+          "title": "CS 004 · Certified Professional in AI Security",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpbx6005c43edpcees2k4",
+      "title": "Post Graduate Program in Quantum Computing",
+      "slug": "pgp-quantum-computing",
+      "modules": [
+        {
+          "title": "Q 001 · Certified Professional in Quantum Engineering",
+          "lessons": []
+        },
+        {
+          "title": "Q 002 · Certified Professional in Quantum Computing",
+          "lessons": []
+        },
+        {
+          "title": "Q 003 · Certified Professional in Quantum Sensing",
+          "lessons": []
+        },
+        {
+          "title": "Q 004 · Certified Professional in Quantum Communication",
+          "lessons": []
+        },
+        {
+          "title": "Q 005 · Certified Professional in Quantum Information",
+          "lessons": []
+        },
+        {
+          "title": "Q 006 · Certified Professional in Post Quantum Cryptography",
+          "lessons": []
+        },
+        {
+          "title": "QAI 002 · Certified Professional in Quantum AI",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpddf007f43edjhclfhk7",
+      "title": "Project-Based Learning & Maker Culture",
+      "slug": "fdp-project-based-learning",
+      "modules": [
+        {
+          "title": "Hands-on Workshops",
+          "lessons": []
+        },
+        {
+          "title": "Real-world Tools",
+          "lessons": []
+        },
+        {
+          "title": "Community Support",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpauj003j43ed6mmu2arn",
+      "title": "Young Graduate Program in Applied AI & GenAI",
+      "slug": "ygp-applied-ai-genai",
+      "modules": [
+        {
+          "title": "Getting started",
+          "lessons": [
+            {
+              "title": "Welcome & program overview",
+              "contentType": "RICH_TEXT",
+              "content": "# Welcome to the Young Graduate Program\n\nYou are on a year-long path through applied AI and GenAI: foundations, research methods, engineering practice, and a launchpad project you can defend in front of faculty.\n\n## How the year is structured\nEach **section** in Learning is a certification track or a studio block. Activities inside a section are meant to be finished in order — later labs assume you can already name the system boundary, the data, and the failure mode.\n\n- Use **Continue** from the dashboard; do not skip to a capstone because the title looks impressive.\n- Videos complete when they finish playing. Readings, PDFs and labs need you to mark complete once you have actually done the work.\n- Faculty will upload reading packs as PDFs on some activities. Treat those as source material for critiques, not optional decoration.\n\n## What \"done\" looks like here\nYou can explain a model’s limits to a non-technical stakeholder, show a small system you built, and point at the evaluation set you used — not a screenshot of a chat window. Keep a lab notebook. The viva will ask what you tried that failed.",
+              "summary": "What you will build and how to succeed."
+            },
+            {
+              "title": "Campus orientation video",
+              "contentType": "VIDEO_URL",
+              "content": "https://www.youtube.com/watch?v=aircAruvnKk",
+              "summary": "Short intro to the learning environment."
+            }
+          ]
+        },
+        {
+          "title": "AI 001 · Certified in AI Research",
+          "lessons": [
+            {
+              "title": "Thinking in systems",
+              "contentType": "RICH_TEXT",
+              "content": "## Systems thinking for AI products\n\nA model is not a product. The product is the loop: input, retrieval or tools, the model, the guardrails, the human who sees the output, and the log you keep when it is wrong.\n\nWrite those pieces down before you pick a framework.\n\n- **Inputs** must be typed. Free text from a student is not the same artefact as a structured application record.\n- **Outputs** must have a contract: JSON schema, citation list, or a refusal. \"A helpful answer\" is not a contract.\n- **Failure** is a first-class path. Timeouts, empty retrieval, and policy blocks need UX, not an apology in the system prompt.\n- Ship the smallest loop that a faculty member can break in ten minutes. Then add evaluation. Then add another tool.\n\nIf you cannot sketch the loop on one page, you are not ready to train or fine-tune anything.",
+              "summary": "Mental models for AI products."
+            },
+            {
+              "title": "Further reading",
+              "contentType": "EXTERNAL_LINK",
+              "content": "https://testing.thefoundrys.com/programs",
+              "summary": "External resource pack."
+            }
+          ]
+        },
+        {
+          "title": "AI 002 · Certified in AI Engineering",
+          "lessons": []
+        },
+        {
+          "title": "AI 003 · Certified Prompt Engineering",
+          "lessons": []
+        },
+        {
+          "title": "AI 004 · 0-1 LLM: Certified in Large Language Models",
+          "lessons": []
+        },
+        {
+          "title": "AI 006 · AI Strategy & Institutional Intelligence",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpbgb004l43ed2t8wvcvg",
+      "title": "Young Graduate Program in Blockchain & Web3",
+      "slug": "ygp-blockchain-web3",
+      "modules": [
+        {
+          "title": "BC 001 · Certified in Block Chain",
+          "lessons": []
+        },
+        {
+          "title": "BC 002 · Certified in NFT",
+          "lessons": []
+        },
+        {
+          "title": "BC 003 · Certified in Decentralized Systems",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpb5k003y43ed8fetodme",
+      "title": "Young Graduate Program in Cybersecurity Analyst",
+      "slug": "ygp-cybersecurity-analyst",
+      "modules": [
+        {
+          "title": "CC 001 · Certified in Cyber Security (CC)",
+          "lessons": []
+        },
+        {
+          "title": "CS 002 · Certified in VAPT for AI",
+          "lessons": []
+        },
+        {
+          "title": "CS 003 · Certified in Malware Analysis",
+          "lessons": []
+        },
+        {
+          "title": "CS 004 · Certified in Security for AI",
+          "lessons": []
+        },
+        {
+          "title": "CS 005 · Certified in AI Security",
+          "lessons": []
+        }
+      ]
+    },
+    {
+      "id": "cmt0xpbae004843ed60w4i52n",
+      "title": "Young Graduate Program in Quantum Computing",
+      "slug": "ygp-quantum-computing",
+      "modules": [
+        {
+          "title": "Q 001 · Certified in Quantum Fundamentals",
+          "lessons": []
+        },
+        {
+          "title": "Q 002 · Certified in Quantum Engineering",
+          "lessons": []
+        },
+        {
+          "title": "Q 003 · Certified in Quantum Computing",
+          "lessons": []
+        },
+        {
+          "title": "Q 004 · Certified in Quantum Sensing",
+          "lessons": []
+        },
+        {
+          "title": "Q 005 · Certified in Quantum Communication",
+          "lessons": []
+        },
+        {
+          "title": "Q 006 · Certified in Quantum Information",
+          "lessons": []
+        },
+        {
+          "title": "Q 007 · Certified in Post Quantum Cryptography",
+          "lessons": []
+        },
+        {
+          "title": "QAI 001 · Certified in Quantum Artificial Intelligence",
+          "lessons": []
+        }
+      ]
+    }
+  ]
+}

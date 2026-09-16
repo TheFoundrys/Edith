@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import { Button } from "@/components/ui/button";
+import { resolveProgramById } from "@/lib/compass/program-bridge";
 import { requireStudent } from "@/lib/auth/session";
+import { findStudentEnrollmentById } from "@/lib/enrollment/queries";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { afterEnrollmentHref, isPersonalityProfileProgram } from "@/lib/assessments/personality-profile";
 
 export default async function PaymentSuccessPage({
@@ -18,33 +21,25 @@ export default async function PaymentSuccessPage({
   const session = await requireStudent();
 
   const enrollment = enrollmentId
-    ? await prisma.enrollment.findFirst({
-        where: {
-          id: enrollmentId,
-          userId: session.user.id,
-          organizationId: session.user.organizationId,
-        },
-        select: { id: true, status: true, programId: true },
-      })
+    ? await findStudentEnrollmentById(session.user.id, enrollmentId)
     : null;
 
-  const latestPaidPayment = enrollmentId
-    ? await prisma.payment.findFirst({
-        where: {
-          enrollmentId,
-          status: "PAID",
-        },
-        orderBy: { paymentDate: "desc" },
-        select: { id: true },
-      })
-    : null;
+  const latestPaidPayment =
+    enrollmentId && !isCompassDatabase()
+      ? await prisma.payment.findFirst({
+          where: {
+            enrollmentId,
+            status: "PAID",
+          },
+          orderBy: { paymentDate: "desc" },
+          select: { id: true },
+        })
+      : null;
 
-  const course = courseId && enrollment?.programId === courseId
-    ? await prisma.program.findUnique({
-        where: { id: courseId },
-        select: { id: true, title: true, slug: true, sku: true, domainSlug: true, requiresCrmCallback: true },
-      })
-    : null;
+  const course =
+    courseId && enrollment?.programId === courseId
+      ? await resolveProgramById(courseId)
+      : null;
 
   const awaitingCrm =
     pending === "crm" ||
@@ -93,7 +88,7 @@ export default async function PaymentSuccessPage({
           </Link>
         )}
         {latestPaidPayment ? (
-          <Link href={`/student/payment/invoices/${latestPaidPayment.id}`}>
+          <Link href={`/student/transactions/invoices/${latestPaidPayment.id}`}>
             <Button variant="secondary">View invoice</Button>
           </Link>
         ) : null}

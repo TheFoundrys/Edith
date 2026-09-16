@@ -1,4 +1,6 @@
+import { getCompassTransactionById } from "@/lib/compass/transactions";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import type { Prisma } from "@prisma/client";
 
 /** Stable invoice number for a paid transaction. */
@@ -28,6 +30,11 @@ export async function assignInvoiceId(
 
 /** Ensure a paid payment has an invoice id (backfill for older rows). */
 export async function ensureInvoiceId(paymentId: string) {
+  if (isCompassDatabase()) {
+    const tx = await getCompassTransactionById(paymentId);
+    return tx?.invoiceId ?? null;
+  }
+
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
     select: { invoiceId: true, status: true, paymentDate: true, createdAt: true },

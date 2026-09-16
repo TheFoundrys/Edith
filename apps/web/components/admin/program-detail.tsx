@@ -10,12 +10,17 @@ import {
   updateProgram,
 } from "@/lib/actions/programs";
 import { updateProgramCompassFields } from "@/lib/actions/compass-modules";
-import { PROGRAM_CATEGORIES } from "@/lib/programs/categories";
+import { PROGRAM_CATEGORIES, isContentProgram } from "@/lib/programs/categories";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/input";
 import { PageHeader, Panel } from "@/components/ui/page";
-import type { DegreeLevel, ProgramCategory, ProgramStatus } from "@prisma/client";
+import type {
+  CourseType,
+  DegreeLevel,
+  ProgramCategory,
+  ProgramStatus,
+} from "@prisma/client";
 
 type ProgramDetail = {
   id: string;
@@ -37,6 +42,7 @@ type ProgramDetail = {
   campusId: string | null;
   departmentId: string | null;
   formDefinitionId: string | null;
+  type: CourseType | null;
   sku: string | null;
   duration: string | null;
   weeks: number | null;
@@ -60,20 +66,40 @@ type ProgramDetail = {
   }[];
 };
 
+function deliveryModeOf(program: {
+  type: CourseType | null;
+  isHybridOnly: boolean;
+}) {
+  if (program.type === "SELF_PACED") return "ONLINE";
+  if (program.isHybridOnly) return "HYBRID";
+  if (program.type === "HYBRID") return "OFFLINE";
+  return "HYBRID";
+}
+
 export function ProgramDetailClient({
   program,
   campuses,
   departments,
   forms,
   canManagePricing = true,
+  courseMcqs = [],
+  lessonMcqCount = 0,
 }: {
   program: ProgramDetail;
   campuses: { id: string; name: string }[];
   departments: { id: string; name: string }[];
   forms: { id: string; name: string }[];
   canManagePricing?: boolean;
+  courseMcqs?: {
+    id: string;
+    title: string | null;
+    status: string;
+    setNumber: number;
+  }[];
+  lessonMcqCount?: number;
 }) {
   const router = useRouter();
+  const contentCourse = isContentProgram(program.category);
   const [error, setError] = useState<string | null>(null);
   const [intakeError, setIntakeError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -133,11 +159,21 @@ export function ProgramDetailClient({
 
       <PageHeader
         title={program.title}
-        description={`Slug /${program.slug} · keep pricing and syllabus ready before you publish.`}
+        description={
+          contentCourse
+            ? `Slug /${program.slug} · add sections, titles, and content, then publish.`
+            : `Slug /${program.slug} · CRM, enrollments, and online or offline payment before you publish.`
+        }
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href={`/admin/syllabus/${program.id}`}>
               <Button variant="secondary">Syllabus</Button>
+            </Link>
+            <Link href="/admin/course-mcqs">
+              <Button variant="ghost">Course MCQs</Button>
+            </Link>
+            <Link href="/admin/lesson-mcqs">
+              <Button variant="ghost">Lesson MCQs</Button>
             </Link>
             {program.status === "PUBLISHED" ? (
               <Link href={`/courses/${program.slug}`} target="_blank">
@@ -182,10 +218,48 @@ export function ProgramDetailClient({
             ? "Live in the catalog — save edits anytime."
             : program.status === "ARCHIVED"
               ? "Archived — publish again to restore."
-              : "Draft — finish details, pricing, syllabus, then publish."}
+              : contentCourse
+                ? "Draft — add the syllabus, then publish. No application form needed."
+                : "Draft — finish details, CRM, enrollments, and payment, then publish."}
         </p>
       </div>
       <FieldError>{error}</FieldError>
+
+      {courseMcqs.length > 0 || lessonMcqCount > 0 ? (
+        <Panel className="mb-[var(--grid-pad)] p-[var(--grid-pad)] space-y-3">
+          <h2 className="font-display text-xl text-fg">Assessments</h2>
+          {courseMcqs.length > 0 ? (
+            <ul className="space-y-2 text-sm">
+              {courseMcqs.map((mcq) => (
+                <li key={mcq.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    {mcq.title ?? `Set ${mcq.setNumber || 1}`}{" "}
+                    <Badge tone={mcq.status === "READY" ? "success" : "neutral"}>
+                      {mcq.status}
+                    </Badge>
+                  </span>
+                  <Link href={`/admin/course-mcqs/${mcq.id}`}>
+                    <Button size="sm" variant="secondary">
+                      Manage
+                    </Button>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-fg-muted">No course-level MCQ banks yet.</p>
+          )}
+          <p className="text-sm text-fg-muted">
+            {lessonMcqCount > 0
+              ? `${lessonMcqCount} lesson quiz${lessonMcqCount === 1 ? "" : "zes"} attached — manage from the `
+              : "Attach lesson quizzes from the "}
+            <Link href={`/admin/syllabus/${program.id}`} className="underline">
+              syllabus editor
+            </Link>
+            .
+          </p>
+        </Panel>
+      ) : null}
 
       <div className="cm-grid-2 items-start">
         <Panel className="p-[var(--grid-pad)]">
@@ -205,13 +279,42 @@ export function ProgramDetailClient({
                 defaultValue={program.category}
                 required
               >
-                {PROGRAM_CATEGORIES.map((c) => (
+                {(contentCourse
+                  ? PROGRAM_CATEGORIES.filter(
+                      (c) =>
+                        c.value === "YOUNG_POST_GRADUATE" ||
+                        c.value === "POST_GRADUATE",
+                    )
+                  : PROGRAM_CATEGORIES
+                ).map((c) => (
                   <option key={c.value} value={c.value}>
                     {c.label}
                   </option>
                 ))}
               </Select>
             </div>
+            {contentCourse ? (
+              <>
+                <input type="hidden" name="degreeLevel" value="CERTIFICATE" />
+                <input
+                  type="hidden"
+                  name="tuitionCurrency"
+                  value={program.tuitionCurrency}
+                />
+                {program.price != null ? (
+                  <input type="hidden" name="price" value={program.price} />
+                ) : null}
+                <div>
+                  <Label htmlFor="summary">Summary</Label>
+                  <Textarea
+                    id="summary"
+                    name="summary"
+                    defaultValue={program.description ?? ""}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="degreeLevel">Degree level</Label>
@@ -229,20 +332,36 @@ export function ProgramDetailClient({
                 </Select>
               </div>
               <div>
-                <Label htmlFor="formDefinitionId">Application form</Label>
+                <Label htmlFor="deliveryMode">Delivery</Label>
                 <Select
-                  id="formDefinitionId"
-                  name="formDefinitionId"
-                  defaultValue={program.formDefinitionId ?? ""}
+                  id="deliveryMode"
+                  name="deliveryMode"
+                  defaultValue={deliveryModeOf(program)}
                 >
-                  <option value="">None</option>
-                  {forms.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name}
-                    </option>
-                  ))}
+                  <option value="ONLINE">Online</option>
+                  <option value="OFFLINE">Offline (on campus)</option>
+                  <option value="HYBRID">Hybrid (online + campus)</option>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label htmlFor="formDefinitionId">Application form</Label>
+              <Select
+                id="formDefinitionId"
+                name="formDefinitionId"
+                defaultValue={program.formDefinitionId ?? ""}
+              >
+                <option value="">None</option>
+                {forms.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-1 text-xs text-fg-muted">
+                Required before publishing. Applications feed CRM enrollments;
+                fees can be collected online or recorded offline.
+              </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
@@ -280,7 +399,7 @@ export function ProgramDetailClient({
             <div className="border border-border p-[var(--grid-gap)] space-y-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-muted">
-                  Pricing
+                  Pricing · online and offline
                 </p>
                 {!canManagePricing ? (
                   <p className="text-xs text-fg-muted">
@@ -461,6 +580,8 @@ export function ProgramDetailClient({
                 Save catalogue extras
               </Button>
             </div>
+              </>
+            )}
             <div className="border-t border-border pt-4 space-y-3">
               <div>
                 <Label htmlFor="image">Cover image</Label>
@@ -501,19 +622,62 @@ export function ProgramDetailClient({
               Next steps
             </h2>
             <ol className="space-y-3 text-sm text-fg-muted">
-              <li>1. Save details and pricing.</li>
-              <li>
-                2.{" "}
-                <Link
-                  href={`/admin/syllabus/${program.id}`}
-                  className="text-fg underline underline-offset-2"
-                >
-                  Build the syllabus
-                </Link>
-                .
-              </li>
-              <li>3. Add at least one intake.</li>
-              <li>4. Publish to the student catalog.</li>
+              {contentCourse ? (
+                <>
+                  <li>1. Save the course title.</li>
+                  <li>
+                    2.{" "}
+                    <Link
+                      href={`/admin/syllabus/${program.id}`}
+                      className="text-fg underline underline-offset-2"
+                    >
+                      Add sections, titles, and content
+                    </Link>
+                    .
+                  </li>
+                  <li>3. Publish — no application form or CRM required.</li>
+                </>
+              ) : (
+                <>
+                  <li>1. Save details, delivery (online / offline / hybrid), and pricing.</li>
+                  <li>
+                    2. Attach an application form, then{" "}
+                    <Link
+                      href={`/admin/syllabus/${program.id}`}
+                      className="text-fg underline underline-offset-2"
+                    >
+                      build the syllabus
+                    </Link>
+                    .
+                  </li>
+                  <li>3. Add at least one intake for enrollments.</li>
+                  <li>
+                    4. Review{" "}
+                    <Link
+                      href="/admin/applications"
+                      className="text-fg underline underline-offset-2"
+                    >
+                      applications
+                    </Link>
+                    ,{" "}
+                    <Link
+                      href="/admin/enrollments"
+                      className="text-fg underline underline-offset-2"
+                    >
+                      enrollments
+                    </Link>
+                    , and{" "}
+                    <Link
+                      href="/admin/transactions"
+                      className="text-fg underline underline-offset-2"
+                    >
+                      online and offline transactions
+                    </Link>
+                    .
+                  </li>
+                  <li>5. Publish to the student catalog.</li>
+                </>
+              )}
             </ol>
             {program.status !== "ARCHIVED" ? (
               <Button
@@ -527,6 +691,7 @@ export function ProgramDetailClient({
             ) : null}
           </Panel>
 
+          {contentCourse ? null : (
           <Panel className="p-[var(--grid-pad)]">
             <h2 className="font-display text-xl text-fg mb-[var(--grid-pad)]">
               Intakes
@@ -609,6 +774,7 @@ export function ProgramDetailClient({
               </Button>
             </form>
           </Panel>
+          )}
         </div>
       </div>
     </div>

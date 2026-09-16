@@ -104,7 +104,7 @@ const DEFAULT_VALUE_PROPS = [
 ];
 
 const ASSESSMENT_DELIVERABLES = [
-  "Aadhaar and PAN on file (hash + mask only)",
+  "Contact details plus Aadhaar and PAN on file",
   "Resume skill keywords and recommended sitting",
   "Mandatory ₹3,500 + GST 90-question exam",
   "Percentile rank plus aptitude, quantitative and psyche scores on your profile",
@@ -228,10 +228,14 @@ export function buildCourseLandingModel(input: {
       lessons: mod.lessons,
     })) ?? [];
 
-  const curriculumModules = modules.filter((mod) => mod.lessonCount > 0);
+  const curriculumModules = modules.filter(
+    (mod) => mod.lessonCount > 0 || Boolean(mod.summary?.trim()),
+  );
   const methodologyModules =
     curriculumModules.length > 0
-      ? modules.filter((mod) => mod.lessonCount === 0)
+      ? modules.filter(
+          (mod) => mod.lessonCount === 0 && !mod.summary?.trim(),
+        )
       : modules;
 
   const titleTag = title.includes(":") ? title.split(":")[0]?.trim() : null;

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Tabs } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page";
+import { Tabs } from "@/components/ui/tabs";
 
 export const MEMBER_ADMIN_TABS = [
   { value: "people", label: "People", href: "/admin/members" },
@@ -10,39 +11,59 @@ export const MEMBER_ADMIN_TABS = [
 ] as const;
 
 export function MembersAdminHeader({
-  title,
   description,
   active,
   counts,
   actions,
   showRolesLink = false,
 }: {
-  title: string;
   description: string;
   active: (typeof MEMBER_ADMIN_TABS)[number]["value"];
   counts?: Partial<Record<(typeof MEMBER_ADMIN_TABS)[number]["value"], number>>;
   actions?: React.ReactNode;
   showRolesLink?: boolean;
 }) {
+  const people = counts?.people ?? 0;
+  const invites = counts?.invites ?? 0;
+  const groups = counts?.groups ?? 0;
+
   return (
     <div>
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-fg-muted">
+        People · Invite → Access → Groups
+      </p>
       <PageHeader
-        title={title}
+        title="People"
         description={description}
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
             {actions}
             {showRolesLink ? (
-              <Link
-                href="/admin/members/roles"
-                className="inline-flex h-9 items-center rounded-[var(--radius-sm)] border border-border-strong bg-bg-elevated px-3 text-sm text-fg hover:bg-bg-muted"
-              >
-                Roles & access
+              <Link href="/admin/members/roles">
+                <Button variant="secondary" size="sm">
+                  Roles & access
+                </Button>
               </Link>
             ) : null}
-          </>
+          </div>
         }
       />
+
+      <div className="peak-stats">
+        <div className="peak-stat">
+          <p className="peak-stat-label">Members</p>
+          <p className="peak-stat-value">{people}</p>
+        </div>
+        <div className="peak-stat">
+          <p className="peak-stat-label">Pending invites</p>
+          <p className="peak-stat-value">{invites}</p>
+        </div>
+        <div className="peak-stat">
+          <p className="peak-stat-label">Groups</p>
+          <p className="peak-stat-value">{groups}</p>
+        </div>
+      </div>
+
       <div className="mb-[var(--grid-pad)]">
         <Tabs
           items={MEMBER_ADMIN_TABS.map((tab) => ({

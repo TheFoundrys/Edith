@@ -1,6 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import { Panel } from "@/components/ui/page";
+import { loadPublicCertificate } from "@/lib/certificates/queries";
+import { APP_NAME } from "@/lib/brand";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { prisma } from "@/lib/db";
 
 export default async function VerifyCertificatePage({
@@ -9,14 +12,34 @@ export default async function VerifyCertificatePage({
   params: Promise<{ certificateId: string }>;
 }) {
   const { certificateId } = await params;
-  const certificate = await prisma.certificate.findUnique({
-    where: { certificateId },
-    include: {
-      user: { select: { name: true } },
-      program: { select: { title: true } },
-      organization: { select: { title: true } },
-    },
-  });
+  const certificate = isCompassDatabase()
+    ? await loadPublicCertificate(certificateId)
+    : await prisma.certificate
+        .findUnique({
+          where: { certificateId },
+          include: {
+            user: { select: { name: true } },
+            program: { select: { title: true } },
+            organization: { select: { title: true } },
+          },
+        })
+        .then((row) =>
+          row
+            ? {
+                user: row.user,
+                program: row.program,
+                issueDate: row.issueDate,
+                certificateId: row.certificateId,
+                status: row.status,
+                issuerName: row.organization.title,
+              }
+            : null,
+        );
+
+  const issuerName =
+    certificate && "issuerName" in certificate
+      ? certificate.issuerName
+      : APP_NAME;
 
   return (
     <MarketingShell maxWidth="max-w-xl" showArt={false}>
@@ -47,7 +70,7 @@ export default async function VerifyCertificatePage({
             </div>
             <div>
               <dt className="text-fg-muted">Issued by</dt>
-              <dd>{certificate.organization.title}</dd>
+              <dd>{issuerName}</dd>
             </div>
             <div>
               <dt className="text-fg-muted">Issued</dt>

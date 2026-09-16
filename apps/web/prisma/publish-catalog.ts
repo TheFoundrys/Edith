@@ -8,7 +8,9 @@
  * Default behaviour is create-only — a programme that already exists is left
  * exactly as it is, so nothing an administrator edited in the admin UI is
  * overwritten. Pass --update to also refresh descriptive fields on existing
- * programmes.
+ * programmes. AI Fluency activities are synced in place (titles and video URLs
+ * updated; extras are never deleted) and that syllabus is published when it
+ * has visible activities.
  *
  *   npx tsx prisma/publish-catalog.ts --dry-run     # report, write nothing
  *   npx tsx prisma/publish-catalog.ts               # create missing courses
@@ -16,12 +18,19 @@
  *   npx tsx prisma/publish-catalog.ts --org=the-foundrys
  */
 import {
+  LessonContentType,
   PrismaClient,
   ProgramKind,
   ProgramStatus,
   SyllabusStatus,
 } from "@prisma/client";
-import { FOUNDRYS_PROGRAMS, type SeedProgram } from "./catalog-data";
+import {
+  AI_FLUENCY_LESSONS,
+  AI_FLUENCY_MODULE_SUMMARY,
+  FOUNDRYS_PROGRAMS,
+  type SeedLesson,
+  type SeedProgram,
+} from "./catalog-data";
 
 const prisma = new PrismaClient();
 
@@ -298,6 +307,185 @@ function programUpdateData(program: SeedProgram) {
   };
 }
 
+function titleKey(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+type ExistingLesson = {
+  id: string;
+  title: string;
+  summary: string | null;
+  content: string;
+  contentType: LessonContentType;
+  durationMin: number | null;
+  order: number;
+};
+
+/** Update AI Fluency rows in place so private YouTube URLs are replaced. */
+async function syncLessonsInModule(
+  moduleId: string,
+  existing: ExistingLesson[],
+  incoming: SeedLesson[],
+  dryRun: boolean,
+) {
+  const rows = [...existing].sort((a, b) => a.order - b.order);
+  let changed = 0;
+  for (let i = 0; i < incoming.length; i++) {
+    const lesson = incoming[i]!;
+    const row = rows[i];
+    if (row) {
+      const same =
+        row.title === lesson.title &&
+        (row.summary ?? "") === lesson.summary &&
+        row.content === lesson.content &&
+        row.contentType === lesson.contentType &&
+        row.durationMin === lesson.durationMin;
+      if (same) continue;
+      if (!dryRun) {
+        await prisma.syllabusLesson.update({
+          where: { id: row.id },
+          data: {
+            title: lesson.title,
+            summary: lesson.summary,
+            contentType: lesson.contentType,
+            content: lesson.content,
+            durationMin: lesson.durationMin,
+            isPublished: true,
+          },
+        });
+      }
+      changed += 1;
+      console.log(`    ~ ${lesson.title}`);
+      continue;
+    }
+    const order =
+      (rows.reduce((max, item) => Math.max(max, item.order), -1) ?? -1) +
+      1 +
+      (i - rows.length);
+    if (!dryRun) {
+      await prisma.syllabusLesson.create({
+        data: {
+          moduleId,
+          title: lesson.title,
+          summary: lesson.summary,
+          contentType: lesson.contentType,
+          content: lesson.content,
+          durationMin: lesson.durationMin,
+          order,
+          isPublished: true,
+        },
+      });
+    }
+    changed += 1;
+    console.log(`    + ${lesson.title}`);
+  }
+  return changed;
+}
+
+async function publishSyllabusIfReady(syllabusId: string, dryRun: boolean) {
+  const visible = await prisma.syllabusLesson.count({
+    where: { isPublished: true, module: { syllabusId } },
+  });
+  if (visible === 0) return;
+  if (!dryRun) {
+    await prisma.programSyllabus.update({
+      where: { id: syllabusId },
+      data: { status: SyllabusStatus.PUBLISHED },
+    });
+  }
+}
+
+async function fillAiFluencySyllabus(organizationId: string, dryRun: boolean) {
+  console.log("\nAI Fluency syllabus");
+  const programs = await prisma.program.findMany({
+    where: {
+      organizationId,
+      OR: [
+        { slug: "pgp-applied-ai-genai" },
+        { title: { contains: "Fluency", mode: "insensitive" } },
+        { slug: { contains: "fluency", mode: "insensitive" } },
+      ],
+    },
+    include: {
+      syllabus: {
+        include: {
+          modules: { include: { lessons: true }, orderBy: { order: "asc" } },
+        },
+      },
+    },
+  });
+
+  if (programs.length === 0) {
+    console.log("  (no matching course yet — it will be created with the catalogue)");
+    return;
+  }
+
+  for (const program of programs) {
+    console.log(`  ~ ${program.slug}`);
+    let syllabus = program.syllabus;
+    if (!syllabus) {
+      if (dryRun) {
+        console.log("    would create syllabus and AI Fluency activities");
+        continue;
+      }
+      syllabus = await prisma.programSyllabus.create({
+        data: {
+          programId: program.id,
+          title: "Course outline",
+          status: SyllabusStatus.DRAFT,
+        },
+        include: {
+          modules: { include: { lessons: true }, orderBy: { order: "asc" } },
+        },
+      });
+    }
+
+    let module = syllabus.modules.find((item) => {
+      const key = titleKey(item.title);
+      return key.includes("ai fluency") || key === "ai 004";
+    });
+    if (!module) {
+      if (dryRun) {
+        console.log("    would create section AI 004 · AI Fluency");
+        continue;
+      }
+      const maxOrder = syllabus.modules.reduce(
+        (max, item) => Math.max(max, item.order),
+        -1,
+      );
+      module = await prisma.syllabusModule.create({
+        data: {
+          syllabusId: syllabus.id,
+          title:
+            program.slug === "pgp-applied-ai-genai"
+              ? "AI 004 · AI Fluency"
+              : "AI Fluency",
+          summary: AI_FLUENCY_MODULE_SUMMARY,
+          order: maxOrder + 1,
+        },
+        include: { lessons: true },
+      });
+    } else if (module.summary !== AI_FLUENCY_MODULE_SUMMARY) {
+      if (!dryRun) {
+        await prisma.syllabusModule.update({
+          where: { id: module.id },
+          data: { summary: AI_FLUENCY_MODULE_SUMMARY },
+        });
+      }
+    }
+
+    const synced = await syncLessonsInModule(
+      module.id,
+      module.lessons,
+      AI_FLUENCY_LESSONS,
+      dryRun,
+    );
+    if (synced === 0) console.log("    already complete");
+    await publishSyllabusIfReady(syllabus.id, dryRun);
+    if (!dryRun) console.log("    published");
+  }
+}
+
 async function main() {
   const org = await resolveOrganization();
   console.log(
@@ -367,6 +555,8 @@ async function main() {
     }
     created.push(program.slug);
   }
+
+  await fillAiFluencySyllabus(org.id, dryRun);
 
   console.log(
     `\ncreated ${created.length} · updated ${updated.length} · unchanged ${skipped.length}`,

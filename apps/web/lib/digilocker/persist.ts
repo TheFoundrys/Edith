@@ -1,4 +1,8 @@
 import { Prisma } from "@prisma/client";
+import { getCompassPublishedProgramBySlug } from "@/lib/compass/catalog";
+import { getCompassCourseBySlug } from "@/lib/compass/courses";
+import { getCompassCatalogDomainFilter } from "@/lib/compass/domain";
+import { findCompassActiveEnrollment } from "@/lib/compass/enrollment";
 import { jsonWithoutNul } from "@/lib/db/pg-json";
 import {
   recordDigilockerAadhaar,
@@ -9,9 +13,36 @@ import {
   PERSONALITY_PROFILE_SLUG,
 } from "@/lib/assessments/personality-profile";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 
-export async function loadPersonalityProgram(organizationId: string) {
-  const program = await prisma.program.findFirst({
+async function resolvePersonalityProgram(organizationId: string) {
+  if (isCompassDatabase()) {
+    const domainId = organizationId || (await getCompassCatalogDomainFilter());
+    const published =
+      (await getCompassPublishedProgramBySlug(
+        PERSONALITY_PROFILE_SLUG,
+        domainId,
+      )) ??
+      (await getCompassPublishedProgramBySlug(PERSONALITY_PROFILE_SLUG));
+    const course =
+      published ??
+      (await getCompassCourseBySlug(PERSONALITY_PROFILE_SLUG, domainId)) ??
+      (await getCompassCourseBySlug(PERSONALITY_PROFILE_SLUG));
+    if (!course || course.status !== "PUBLISHED") return null;
+
+    return {
+      id: course.id,
+      title: course.title,
+      slug: course.slug,
+      sku: course.sku ?? null,
+      domainSlug: course.domainSlug ?? null,
+      price: course.price,
+      tuitionCurrency: course.tuitionCurrency,
+      pricing: null as unknown,
+    };
+  }
+
+  return prisma.program.findFirst({
     where: {
       organizationId,
       slug: PERSONALITY_PROFILE_SLUG,
@@ -23,8 +54,15 @@ export async function loadPersonalityProgram(organizationId: string) {
       slug: true,
       sku: true,
       domainSlug: true,
+      price: true,
+      tuitionCurrency: true,
+      pricing: true,
     },
   });
+}
+
+export async function loadPersonalityProgram(organizationId: string) {
+  const program = await resolvePersonalityProgram(organizationId);
   if (!program || !isPersonalityProfileProgram(program)) {
     return { error: "Personality Profile is not available." as const };
   }
@@ -37,6 +75,19 @@ export async function loadPersonalityEnrollment(
 ) {
   const access = await loadPersonalityProgram(organizationId);
   if ("error" in access) return access;
+
+  if (isCompassDatabase()) {
+    const enrollment = await findCompassActiveEnrollment(
+      userId,
+      access.program.id,
+    );
+    if (!enrollment) {
+      return {
+        error: "You need an active enrollment to sit the exam." as const,
+      };
+    }
+    return { program: access.program, enrollment: { id: enrollment.id } };
+  }
 
   const enrollment = await prisma.enrollment.findFirst({
     where: { userId, programId: access.program.id, status: "ACTIVE" },

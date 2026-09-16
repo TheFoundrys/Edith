@@ -1,14 +1,16 @@
 import { AssignmentEditor } from "@/components/admin/assignment-editor";
 import { requireCapability } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
+import { listStaffProgramOptions } from "@/lib/compass/program-bridge";
 
 export default async function AdminNewAssignmentPage() {
   const session = await requireCapability("manageContent");
-  const programs = await prisma.program.findMany({
-    where: { organizationId: session.user.organizationId },
-    select: { id: true, title: true },
-    orderBy: { title: "asc" },
-  });
+  const programOptions = await listStaffProgramOptions(
+    session.user.organizationId,
+  );
+  const programs = programOptions.map((program) => ({
+    id: program.id,
+    title: program.title,
+  }));
 
   return <AssignmentEditor programs={programs} />;
 }

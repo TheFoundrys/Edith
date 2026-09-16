@@ -4,23 +4,26 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, Panel } from "@/components/ui/page";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 
 export default async function StudentSubmissionsPage() {
   const session = await requireStudent();
 
-  const submissions = await prisma.assignmentSubmission.findMany({
-    where: {
-      userId: session.user.id,
-      status: { in: ["SUBMITTED", "GRADED"] },
-      assignment: { organizationId: session.user.organizationId },
-    },
-    include: {
-      assignment: {
-        include: { program: { select: { title: true } } },
-      },
-    },
-    orderBy: { submittedAt: "desc" },
-  });
+  const submissions = isCompassDatabase()
+    ? []
+    : await prisma.assignmentSubmission.findMany({
+        where: {
+          userId: session.user.id,
+          status: { in: ["SUBMITTED", "GRADED"] },
+          assignment: { organizationId: session.user.organizationId },
+        },
+        include: {
+          assignment: {
+            include: { program: { select: { title: true } } },
+          },
+        },
+        orderBy: { submittedAt: "desc" },
+      });
 
   return (
     <div>
@@ -32,7 +35,11 @@ export default async function StudentSubmissionsPage() {
       {submissions.length === 0 ? (
         <EmptyState
           title="No submissions yet"
-          description="Submit an assignment from a course to see it here."
+          description={
+            isCompassDatabase()
+              ? "Assignment submissions are managed in Skill Compass on compass_dev."
+              : "Submit an assignment from a course to see it here."
+          }
           action={
             <Link href="/student/assignments" className="text-sm underline">
               View assignments

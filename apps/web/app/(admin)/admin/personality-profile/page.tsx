@@ -1,14 +1,23 @@
 import Link from "next/link";
 import { requireCapability } from "@/lib/auth/session";
 import { getPersonalityTrainerRoster } from "@/lib/actions/personality-profile";
-import { PageHeader, Panel } from "@/components/ui/page";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader, Panel } from "@/components/ui/page";
 import { Pagination } from "@/components/ui/pagination";
 import {
   paginateItems,
   parsePage,
   resolvePageSize,
 } from "@/lib/pagination";
+
+function intakeTone(
+  stage: string,
+): "success" | "warning" | "neutral" | "info" {
+  if (stage === "complete") return "success";
+  if (stage === "exam" || stage === "resume") return "info";
+  if (stage === "identity" || stage === "contact") return "warning";
+  return "neutral";
+}
 
 export default async function AdminPersonalityRosterPage({
   searchParams,
@@ -24,52 +33,94 @@ export default async function AdminPersonalityRosterPage({
   const slice = paginateItems(rows, page, pageSize);
   const path = "/admin/personality-profile";
 
+  const withContact = rows.filter((row) => row.phone && row.email).length;
+  const withResume = rows.filter((row) => row.hasResume).length;
+
   return (
     <div>
       <PageHeader
-        title="Personality Profile"
-        description="Ranked Edith Personality Profile sittings. Open a student for the trainer brief — no Aadhaar or PAN."
+        title="Personality Profile intake"
+        description="Contact details and resumes collected from the Edith Personality Profile wizard. Open a row for the full record and trainer brief."
       />
-      <Panel className="p-5 pb-0">
+
+      <div className="mb-4 flex flex-wrap gap-3 text-sm text-fg-muted">
+        <span>{rows.length} candidates</span>
+        <span>·</span>
+        <span>{withContact} with phone & email</span>
+        <span>·</span>
+        <span>{withResume} with resume</span>
+      </div>
+
+      <Panel className="overflow-x-auto p-0">
         {rows.length === 0 ? (
-          <p className="mb-5 text-sm text-fg-muted">No candidates yet.</p>
+          <p className="p-5 text-sm text-fg-muted">No intake records yet.</p>
         ) : (
-          <ul className="divide-y divide-border">
-            {slice.items.map((row) => (
-              <li
-                key={row.userId}
-                className="flex flex-wrap items-center justify-between gap-3 py-3"
-              >
-                <div>
-                  <Link
-                    href={`/admin/personality-profile/${row.userId}`}
-                    className="font-medium hover:underline"
-                  >
-                    {row.name}
-                  </Link>
-                  <p className="text-xs text-fg-muted">
-                    {row.email}
-                    {row.keywords.length ? ` · ${row.keywords.join(", ")}` : ""}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {row.rank ? (
-                    <Badge tone="success">
-                      #{row.rank}
-                      {row.percentile ? ` · ${row.percentile}th` : ""}
+          <table className="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-fg-muted">
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Phone</th>
+                <th className="px-4 py-3 font-medium">Resume</th>
+                <th className="px-4 py-3 font-medium">Intake</th>
+                <th className="px-4 py-3 font-medium text-right">Open</th>
+              </tr>
+            </thead>
+            <tbody>
+              {slice.items.map((row) => (
+                <tr
+                  key={row.userId}
+                  className="border-b border-border last:border-0 hover:bg-bg/40"
+                >
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/personality-profile/${row.userId}`}
+                      className="font-medium hover:underline"
+                    >
+                      {row.name}
+                    </Link>
+                    {row.rank ? (
+                      <p className="text-xs text-fg-muted mt-0.5">
+                        Rank #{row.rank}
+                        {row.percentile ? ` · ${row.percentile}th pct` : ""}
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-3 text-fg-muted">{row.email || "—"}</td>
+                  <td className="px-4 py-3 text-fg-muted whitespace-nowrap">
+                    {row.phone || "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {row.hasResume ? (
+                      <span className="text-fg" title={row.resumeFileName ?? undefined}>
+                        {row.resumeFileName}
+                      </span>
+                    ) : (
+                      <span className="text-fg-muted">—</span>
+                    )}
+                    {row.keywords.length ? (
+                      <p className="text-xs text-fg-muted mt-0.5 truncate max-w-[180px]">
+                        {row.keywords.join(", ")}
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge tone={intakeTone(row.intakeStage)}>
+                      {row.intakeLabel}
                     </Badge>
-                  ) : (
-                    <Badge>{row.status}</Badge>
-                  )}
-                  {row.aptitudeBand ? (
-                    <span className="text-xs text-fg-muted">
-                      {row.aptitudeBand} / {row.quantitativeBand} · {row.psycheLabel}
-                    </span>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/admin/personality-profile/${row.userId}`}
+                      className="text-xs underline text-fg-muted"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </Panel>
       {rows.length > 0 ? (

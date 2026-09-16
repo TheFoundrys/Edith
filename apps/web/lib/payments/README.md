@@ -11,7 +11,7 @@ Pluggable adapters for **course enrollment fees** (`COURSE_FEE` via `/checkout`)
 | `mock` | Local instant checkout; **blocked in production** unless `ALLOW_MOCK_PAYMENTS=true` |
 | `razorpay` | Razorpay order + Checkout.js + signature verify (webhook optional backup) |
 
-`completeMockCoursePayment` / `completeMockApplicationFee` refuse to run when mock is not allowed.
+`completeMockCoursePayment` refuses to run when mock is not allowed.
 
 ## Course fee flow (primary)
 

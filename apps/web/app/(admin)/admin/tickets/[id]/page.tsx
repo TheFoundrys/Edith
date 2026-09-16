@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { replyTicketAction } from "@/lib/actions/compass-modules";
 import { requireCapability } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
+import { loadAdminTicketDetail } from "@/lib/tickets/queries";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { PageHeader, Panel } from "@/components/ui/page";
@@ -13,25 +13,23 @@ export default async function AdminTicketDetailPage({
 }) {
   const { id } = await params;
   const session = await requireCapability("manageApplications");
-  const ticket = await prisma.ticket.findFirst({
-    where: { id, organizationId: session.user.organizationId },
-    include: {
-      user: { select: { name: true, email: true } },
-      messages: { orderBy: { createdAt: "asc" }, include: { user: { select: { name: true } } } },
-    },
-  });
+  const ticket = await loadAdminTicketDetail(session.user.organizationId, id);
   if (!ticket) notFound();
 
   return (
     <div>
-      <PageHeader title={ticket.subject} description={`${ticket.user.name} · ${ticket.status}`} />
+      <PageHeader
+        title={ticket.subject}
+        description={`${ticket.user?.name ?? "Student"} · ${ticket.status}`}
+      />
       <Panel className="p-5 space-y-4 mb-6">
-        {ticket.messages.map((m) => (
-          <div key={m.id} className="border-b border-border pb-3">
+        {ticket.messages.map((message) => (
+          <div key={message.id} className="border-b border-border pb-3">
             <p className="text-xs text-fg-muted">
-              {m.user.name} {m.isStaff ? "(staff)" : ""} · {m.createdAt.toISOString()}
+              {message.user.name} {message.isStaff ? "(staff)" : ""} ·{" "}
+              {message.createdAt.toISOString()}
             </p>
-            <p className="text-sm text-fg mt-1 whitespace-pre-wrap">{m.content}</p>
+            <p className="text-sm text-fg mt-1 whitespace-pre-wrap">{message.content}</p>
           </div>
         ))}
       </Panel>

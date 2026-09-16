@@ -1,12 +1,18 @@
 import "server-only";
 
+import { getCompassDefaultDomainId } from "@/lib/compass/domain";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 
 /**
  * Resolves the tenant used by public catalog routes.
  * Multi-tenant deployments must set DEFAULT_ORG_SLUG explicitly.
  */
 export async function getDefaultOrganizationId(): Promise<string> {
+  if (isCompassDatabase()) {
+    return getCompassDefaultDomainId();
+  }
+
   const configuredSlug = process.env.DEFAULT_ORG_SLUG?.trim();
   if (configuredSlug) {
     const organization = await prisma.organization.findUnique({

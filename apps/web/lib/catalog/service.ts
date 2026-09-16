@@ -17,7 +17,16 @@ import {
   catalogDurationKey,
   catalogExperienceKey,
 } from "@/lib/programs/catalog-meta";
+import { isContentProgram } from "@/lib/programs/categories";
+import {
+  getCompassPublishedProgramBySlug,
+  loadCompassPublishedPrograms,
+  loadCompassSyllabus,
+} from "@/lib/compass/catalog";
+import { getCompassCourseById } from "@/lib/compass/courses";
+import { getCompassCatalogDomainFilter } from "@/lib/compass/domain";
 import { getDefaultOrganizationId } from "@/lib/organizations/default";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { slugify } from "@/lib/utils";
 import type {
   CatalogCoursePatch,
@@ -129,6 +138,14 @@ export async function loadPublishedCatalogPrograms(options?: {
 }) {
   const organizationId =
     options?.organizationId ?? (await getDefaultOrganizationId());
+  if (isCompassDatabase()) {
+    const domainId =
+      options?.organizationId ?? (await getCompassCatalogDomainFilter());
+    return loadCompassPublishedPrograms({
+      domainId,
+      sort: options?.sort,
+    });
+  }
   return prisma.program.findMany({
     where: { organizationId, status: "PUBLISHED" },
     include: catalogListingInclude,
@@ -253,6 +270,14 @@ export async function getPublishedCatalogCourseBySlug(
 ) {
   const resolvedOrganizationId =
     organizationId ?? (await getDefaultOrganizationId());
+  if (isCompassDatabase()) {
+    const domainId = await getCompassCatalogDomainFilter();
+    const course = await getCompassPublishedProgramBySlug(slug, domainId);
+    if (!course) return null;
+    return serializeCatalogCourseDetail(
+      course as unknown as Parameters<typeof serializeCatalogCourseDetail>[0],
+    );
+  }
   const course = await prisma.program.findFirst({
     where: {
       organizationId: resolvedOrganizationId,
@@ -392,6 +417,24 @@ export async function listAdminCatalogCourses(
 }
 
 export async function getAdminCatalogCourse(user: SessionUser, id: string) {
+  if (isCompassDatabase()) {
+    const course = await getCompassCourseById(id);
+    if (!course || course.organizationId !== user.organizationId) return null;
+    const syllabus = await loadCompassSyllabus(id);
+    return serializeAdminCourseDetail({
+      ...course,
+      campus: null,
+      department: null,
+      intakes: [],
+      syllabus,
+      _count: { applications: 0, enrollments: 0 },
+      formDefinitionId: null,
+      crmCatalogId: null,
+      requiresCrmCallback: false,
+      capacity: null,
+    } as unknown as Parameters<typeof serializeAdminCourseDetail>[0]);
+  }
+
   const course = await prisma.program.findFirst({
     where: { id, organizationId: user.organizationId },
     include: {
@@ -633,7 +676,10 @@ export async function setAdminCatalogCourseStatus(
   if (!program) return { ok: false as const, error: "Course not found.", status: 404 as const };
 
   if (status === ProgramStatus.PUBLISHED) {
-    if (!program.formDefinitionId || !program.formDefinition?.versions.length) {
+    if (
+      !isContentProgram(program.category) &&
+      (!program.formDefinitionId || !program.formDefinition?.versions.length)
+    ) {
       return {
         ok: false as const,
         error: "Attach a published application form before publishing.",

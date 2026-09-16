@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CertificatePrintButton } from "@/components/student/certificate-print-button";
 import { PageHeader, Panel } from "@/components/ui/page";
+import { loadStudentCertificateDetail } from "@/lib/certificates/queries";
 import { requireStudent } from "@/lib/auth/session";
-import { prisma } from "@/lib/db";
 import { APP_LOCKUP } from "@/lib/brand";
 
 export default async function StudentCertificateDetailPage({
@@ -13,13 +14,10 @@ export default async function StudentCertificateDetailPage({
   const { "certificate-id": certificateId } = await params;
   const session = await requireStudent();
 
-  const certificate = await prisma.certificate.findFirst({
-    where: { id: certificateId, userId: session.user.id },
-    include: {
-      program: { select: { title: true } },
-      user: { select: { name: true } },
-    },
-  });
+  const certificate = await loadStudentCertificateDetail(
+    session.user.id,
+    certificateId,
+  );
   if (!certificate) notFound();
 
   return (
@@ -28,16 +26,19 @@ export default async function StudentCertificateDetailPage({
         title="Certificate"
         description={certificate.program.title}
         actions={
-          <Link
-            href="/student/certificates"
-            className="text-sm text-fg-muted underline"
-          >
-            All certificates
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <CertificatePrintButton />
+            <Link
+              href="/student/certificates"
+              className="text-sm text-fg-muted underline"
+            >
+              All certificates
+            </Link>
+          </div>
         }
       />
 
-      <Panel className="p-8 sm:p-10 text-center border-2 border-border">
+      <Panel className="certificate-print-panel p-8 sm:p-10 text-center border-2 border-border">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
           {APP_LOCKUP}
         </p>

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader, Panel } from "@/components/ui/page";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 
 export default async function StudentAssignmentDetailPage({
   params,
@@ -13,6 +14,7 @@ export default async function StudentAssignmentDetailPage({
 }) {
   const { "assignment-id": assignmentId } = await params;
   const session = await requireStudent();
+  if (isCompassDatabase()) notFound();
 
   const assignment = await prisma.assignment.findFirst({
     where: {

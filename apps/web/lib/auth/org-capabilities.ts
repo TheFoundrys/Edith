@@ -11,6 +11,7 @@ import {
   type Capability,
 } from "@/lib/auth/roles";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 
 function parseCapabilities(values: string[]): Capability[] {
   const allowed = new Set<string>(ALL_CAPABILITIES);
@@ -20,6 +21,10 @@ function parseCapabilities(values: string[]): Capability[] {
 /** Loads the org capability matrix from system PermissionRole rows. */
 export const loadOrgCapabilityMatrix = cache(
   async (organizationId: string): Promise<Record<AppRole, Capability[]>> => {
+    if (isCompassDatabase()) {
+      return { ...DEFAULT_ROLE_CAPABILITIES };
+    }
+
     const roles = await prisma.permissionRole.findMany({
       where: { organizationId, isSystem: true },
       select: { slug: true, permissions: true },

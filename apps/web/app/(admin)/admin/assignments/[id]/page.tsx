@@ -5,6 +5,7 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { Panel } from "@/components/ui/page";
 import { gradeAssignmentSubmissionAction } from "@/lib/actions/compass-modules";
 import { requireCapability } from "@/lib/auth/session";
+import { listStaffProgramOptions } from "@/lib/compass/program-bridge";
 import { prisma } from "@/lib/db";
 
 export default async function AdminEditAssignmentPage({
@@ -26,11 +27,13 @@ export default async function AdminEditAssignmentPage({
   });
   if (!assignment) notFound();
 
-  const programs = await prisma.program.findMany({
-    where: { organizationId: session.user.organizationId },
-    select: { id: true, title: true },
-    orderBy: { title: "asc" },
-  });
+  const programOptions = await listStaffProgramOptions(
+    session.user.organizationId,
+  );
+  const programs = programOptions.map((program) => ({
+    id: program.id,
+    title: program.title,
+  }));
 
   return (
     <div className="space-y-8">

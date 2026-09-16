@@ -92,7 +92,7 @@ export function CourseFinderFilters({
     finderFiltersActive(draft) || finderFiltersActive(initialFilters);
 
   return (
-    <div ref={rootRef} className="courses-finder-filters peak-rise-delay">
+    <div ref={rootRef} className="courses-finder-filters">
       <div className="courses-finder-grid">
         {groups.map((group) => (
           <FilterDropdown

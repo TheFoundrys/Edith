@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { displayProgramName } from "@/lib/programs/categories";
 import type { DashboardDeadline } from "@/components/student/dashboard-deadlines";
 
@@ -29,6 +30,8 @@ export async function getStudentDeadlines(
   userId: string,
   limit?: number,
 ): Promise<DashboardDeadline[]> {
+  if (isCompassDatabase()) return [];
+
   const enrollments = await prisma.enrollment.findMany({
     where: { userId, status: "ACTIVE" },
     select: { programId: true },

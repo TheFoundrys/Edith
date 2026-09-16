@@ -1,8 +1,10 @@
+import { formatDistanceToNow } from "date-fns";
 import { MembersAdminHeader } from "@/components/admin/members-admin-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Panel } from "@/components/ui/page";
 import { memberWorkspaceCounts } from "@/lib/admin/member-workspace";
 import { requireCapability } from "@/lib/auth/session";
+import { redirectIfCompassAdminRoute } from "@/lib/compass/require-edith";
 import { prisma } from "@/lib/db";
 
 const MEMBER_ACTION_LABELS: Record<string, string> = {
@@ -26,8 +28,27 @@ const MEMBER_ACTION_LABELS: Record<string, string> = {
   GROUP_MEMBERS_UPDATED: "Group members updated",
 };
 
+function activityTarget(log: {
+  entityType: string | null;
+  targetResource: string;
+  metadata: unknown;
+}) {
+  const meta =
+    log.metadata && typeof log.metadata === "object" && !Array.isArray(log.metadata)
+      ? (log.metadata as Record<string, unknown>)
+      : {};
+  if (typeof meta.email === "string" && meta.email.trim()) return meta.email;
+  if (typeof meta.name === "string" && meta.name.trim()) return meta.name;
+  if (log.targetResource && log.targetResource !== "-") return log.targetResource;
+  if (typeof meta.memberCount === "number") {
+    return `${meta.memberCount} member${meta.memberCount === 1 ? "" : "s"}`;
+  }
+  return log.entityType ?? "Organization";
+}
+
 export default async function AdminMembersActivityPage() {
   const session = await requireCapability("manageMembers");
+  redirectIfCompassAdminRoute();
   const orgId = session.user.organizationId;
   const isAdmin = session.user.role === "SUPER_ADMIN";
 
@@ -46,8 +67,7 @@ export default async function AdminMembersActivityPage() {
   return (
     <div>
       <MembersAdminHeader
-        title="Activity"
-        description="Immutable record of invitations, access changes, suspensions, and group updates."
+        description="A record of invitations, access changes, suspensions, and group updates."
         active="activity"
         counts={counts}
         showRolesLink={isAdmin}
@@ -58,34 +78,27 @@ export default async function AdminMembersActivityPage() {
           description="Invites, role changes, suspensions, and group updates will appear here."
         />
       ) : (
-        <Panel className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs text-fg-muted">
-                <th className="px-5 py-3 font-medium">When</th>
-                <th className="px-5 py-3 font-medium">Actor</th>
-                <th className="px-5 py-3 font-medium">Action</th>
-                <th className="px-5 py-3 font-medium">Target</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log) => (
-                <tr key={log.id} className="border-b border-border last:border-0">
-                  <td className="px-5 py-3 text-fg-muted">
-                    {log.createdAt.toLocaleString()}
-                  </td>
-                  <td className="px-5 py-3">{log.adminName}</td>
-                  <td className="px-5 py-3">
+        <Panel>
+          <ol className="divide-y divide-border">
+            {logs.map((log) => (
+              <li key={log.id} className="flex flex-wrap gap-3 px-4 py-3 sm:gap-6">
+                <p
+                  className="w-36 shrink-0 text-xs text-fg-muted tabular-nums"
+                  title={log.createdAt.toLocaleString()}
+                >
+                  {formatDistanceToNow(log.createdAt, { addSuffix: true })}
+                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
                     {MEMBER_ACTION_LABELS[log.action] ?? log.action}
-                  </td>
-                  <td className="px-5 py-3 text-fg-muted">
-                    {log.entityType ?? "—"}
-                    {log.entityId ? ` · ${log.entityId.slice(0, 8)}` : ""}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </p>
+                  <p className="mt-0.5 text-xs text-fg-muted">
+                    {log.adminName} · {activityTarget(log)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </Panel>
       )}
     </div>

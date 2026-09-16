@@ -18,6 +18,20 @@ export type InviteRow = {
   invitedBy: string;
 };
 
+function inviteTone(status: string) {
+  if (status === "PENDING") return "warning" as const;
+  if (status === "ACCEPTED") return "success" as const;
+  return "neutral" as const;
+}
+
+function inviteLabel(status: string) {
+  if (status === "PENDING") return "Pending";
+  if (status === "ACCEPTED") return "Accepted";
+  if (status === "REVOKED") return "Revoked";
+  if (status === "EXPIRED") return "Expired";
+  return status;
+}
+
 export function InvitesTable({ rows }: { rows: InviteRow[] }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -28,36 +42,44 @@ export function InvitesTable({ rows }: { rows: InviteRow[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs text-fg-muted">
-            <th className="px-5 py-3 font-medium">Invitee</th>
-            <th className="px-5 py-3 font-medium">Access</th>
-            <th className="px-5 py-3 font-medium">Status</th>
-            <th className="px-5 py-3 font-medium">Expires</th>
-            <th className="px-5 py-3 font-medium">Invited by</th>
-            <th className="px-5 py-3 font-medium"><span className="sr-only">Actions</span></th>
+            <th className="px-4 py-3 font-medium">Invitee</th>
+            <th className="px-4 py-3 font-medium">Access</th>
+            <th className="px-4 py-3 font-medium">Status</th>
+            <th className="px-4 py-3 font-medium">Expires</th>
+            <th className="px-4 py-3 font-medium">Invited by</th>
+            <th className="px-4 py-3 font-medium text-right">
+              <span className="sr-only">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.id} className="border-b border-border last:border-0">
-              <td className="px-5 py-3">
+              <td className="px-4 py-3">
                 <p className="font-medium">{row.name || row.email}</p>
-                <p className="text-xs text-fg-muted">{row.email}</p>
+                {row.name ? (
+                  <p className="text-xs text-fg-muted">{row.email}</p>
+                ) : null}
               </td>
-              <td className="px-5 py-3">{row.roleLabel}</td>
-              <td className="px-5 py-3">
-                <Badge tone={row.status === "PENDING" ? "warning" : "neutral"}>
-                  {row.status.toLowerCase()}
+              <td className="px-4 py-3 text-fg-muted">{row.roleLabel}</td>
+              <td className="px-4 py-3">
+                <Badge tone={inviteTone(row.status)}>
+                  {inviteLabel(row.status)}
                 </Badge>
               </td>
-              <td className="px-5 py-3 text-fg-muted">
-                {new Date(row.expiresAt).toLocaleDateString()}
+              <td className="px-4 py-3 text-fg-muted whitespace-nowrap">
+                {new Date(row.expiresAt).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
               </td>
-              <td className="px-5 py-3 text-fg-muted">{row.invitedBy}</td>
-              <td className="px-5 py-3 text-right">
+              <td className="px-4 py-3 text-fg-muted">{row.invitedBy}</td>
+              <td className="px-4 py-3 text-right">
                 {row.status === "PENDING" ? (
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="secondary"
                     disabled={pending}
                     onClick={() =>
                       startTransition(async () => {
@@ -77,7 +99,9 @@ export function InvitesTable({ rows }: { rows: InviteRow[] }) {
                   >
                     Revoke
                   </Button>
-                ) : null}
+                ) : (
+                  <span className="text-fg-muted">—</span>
+                )}
               </td>
             </tr>
           ))}

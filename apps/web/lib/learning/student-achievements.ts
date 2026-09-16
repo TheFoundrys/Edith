@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
+import { getUserCompletedLessonIds } from "@/lib/learning/progress";
 import { buildDashboardStudyStats } from "@/lib/learning/dashboard-stats";
 import type { DashboardAchievement } from "@/components/student/dashboard-achievements";
 
@@ -27,11 +29,32 @@ export async function getStudentAchievements(
   userId: string,
   limit?: number,
 ): Promise<DashboardAchievement[]> {
-  const [certificates, recentProgress, completions] = await Promise.all([
+  if (isCompassDatabase()) {
+    const completed = await getUserCompletedLessonIds(userId);
+    if (completed.size === 0) return [];
+    return [
+      {
+        id: "compass-lessons",
+        title: "Lessons completed",
+        subtitle: `${completed.size} lesson${completed.size === 1 ? "" : "s"} finished`,
+        whenLabel: "Recently",
+        kind: "performance" as const,
+        href: "/student/progress",
+      },
+    ].slice(0, limit ?? 50);
+  }
+
+  const [certificates, userBadges, recentProgress, completions] = await Promise.all([
     prisma.certificate.findMany({
       where: { userId },
       include: { program: { select: { title: true } } },
       orderBy: { issueDate: "desc" },
+      take: limit ?? 50,
+    }),
+    prisma.userBadge.findMany({
+      where: { userId },
+      include: { badge: { select: { name: true, description: true } } },
+      orderBy: { earnedAt: "desc" },
       take: limit ?? 50,
     }),
     prisma.lessonProgress.findMany({
@@ -69,6 +92,16 @@ export async function getStudentAchievements(
   );
 
   const items: DashboardAchievement[] = [
+    ...userBadges.map((entry) => ({
+      id: entry.id,
+      title: "Badge earned",
+      subtitle: entry.badge.description
+        ? `${entry.badge.name} · ${entry.badge.description}`
+        : entry.badge.name,
+      whenLabel: relativeWhen(entry.earnedAt),
+      kind: "badge" as const,
+      href: "/student/badges",
+    })),
     ...certificates.map((certificate) => ({
       id: certificate.id,
       title: "Certificate earned",

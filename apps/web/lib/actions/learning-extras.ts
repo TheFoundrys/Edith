@@ -3,12 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 
 export async function submitAssignment(
   assignmentId: string,
   contentBody: string,
 ) {
   const session = await requireStudent();
+  if (isCompassDatabase()) {
+    return {
+      error: "Assignment submissions are not available on compass_dev.",
+    };
+  }
   const body = contentBody.trim();
   if (body.length < 10) {
     return { error: "Submission must be at least 10 characters." };
@@ -114,6 +120,8 @@ export async function maybeIssueCertificate(opts: {
   organizationId: string;
   programName: string;
 }) {
+  if (isCompassDatabase()) return;
+
   const syllabus = await prisma.programSyllabus.findFirst({
     where: { programId: opts.programId, status: "PUBLISHED" },
     include: {

@@ -6,9 +6,11 @@ import { requireCapability, requireStudent } from "@/lib/auth/session";
 import {
   buildKryptonMcqPaper,
   kryptonSeed,
+} from "@/lib/assessments/krypton";
+import {
   originalOptionIndex,
   type KryptonMcqPaper,
-} from "@/lib/assessments/krypton";
+} from "@/lib/assessments/krypton-paper";
 import { loadPersonalityLeaderboard } from "@/lib/assessments/personality-board";
 import {
   extractResumeKeywords,
@@ -18,12 +20,16 @@ import {
   isIdentityComplete,
   isKycComplete,
   isResumeComplete,
+  parseIdentityContact,
   parsePan,
+  personalityIntakeLabel,
+  personalityIntakeStage,
   personalityWizardStep,
   recordEnteredAadhaar,
   unlinkAadhaarFromKyc,
   type PersonalityKyc,
 } from "@/lib/assessments/personality-kyc";
+import { hasPaidPersonalityExamAccess, getPersonalityPaymentAvailability } from "@/lib/assessments/personality-access";
 import {
   allExamQuestionIds,
   LIKERT_OPTIONS,
@@ -47,7 +53,11 @@ import {
   type PersonalityResponses,
 } from "@/lib/assessments/personality-profile";
 import { displayProgramName } from "@/lib/programs/categories";
+import { buildCourseQuote } from "@/lib/payments/quote";
+import { findCompassCliftonAssessment } from "@/lib/compass/clifton-assessment";
+import { findCompassActiveEnrollment } from "@/lib/compass/enrollment";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { jsonWithoutNul } from "@/lib/db/pg-json";
 import { groundedStudentGuidance, trainerBrief } from "@/lib/rag/advise";
 import {
@@ -62,7 +72,6 @@ import {
   loadPersonalityProgram,
   persistAadhaarRecord,
 } from "@/lib/digilocker/persist";
-import { digilockerConfigured } from "@/lib/digilocker/client";
 
 type AttemptMeta = {
   kyc?: PersonalityKyc;
@@ -128,10 +137,26 @@ async function loadProfileProgram(organizationId: string) {
 }
 
 async function loadEnrollment(userId: string, programId: string) {
+  if (isCompassDatabase()) {
+    const enrollment = await findCompassActiveEnrollment(userId, programId);
+    return enrollment ? { id: enrollment.id } : null;
+  }
+
   return prisma.enrollment.findFirst({
     where: { userId, programId, status: "ACTIVE" },
     select: { id: true },
   });
+}
+
+function addressFromBilling(value: unknown) {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  const raw = value as Record<string, unknown>;
+  for (const key of ["address", "line", "line1", "street"]) {
+    const entry = raw[key];
+    if (typeof entry === "string" && entry.trim()) return entry.trim();
+  }
+  return "";
 }
 
 async function loadOrCreateAttempt(organizationId: string, userId: string) {
@@ -171,14 +196,13 @@ async function hydrateRecs(
   recs: PersonalityRecommendation[],
 ) {
   if (!recs.length) return [];
-  const programs = await prisma.program.findMany({
-    where: {
-      organizationId,
-      slug: { in: recs.map((item) => item.slug) },
-      status: "PUBLISHED",
-    },
-    select: { slug: true, title: true, category: true },
-  });
+  const { loadPublishedProgramsBySlugs } = await import(
+    "@/lib/marketing/public-course-detail"
+  );
+  const programs = await loadPublishedProgramsBySlugs(
+    recs.map((item) => item.slug),
+    organizationId,
+  );
   const bySlug = new Map(programs.map((program) => [program.slug, program]));
   return recs.map((item) => {
     const program = bySlug.get(item.slug);
@@ -239,23 +263,67 @@ export async function getPersonalityProfileWorkspace() {
     return { ok: false as const, error: "Personality Profile is not available." };
   }
 
-  const enrollment = await loadEnrollment(session.user.id, program.id);
-  const attempt = await prisma.cliftonAssessment.findFirst({
-    where: {
-      organizationId: session.user.organizationId,
+  const compass = isCompassDatabase();
+  const [enrollment, examUnlocked, attempt, account, paymentAvailability] =
+    await Promise.all([
+    loadEnrollment(session.user.id, program.id),
+    hasPaidPersonalityExamAccess({
       userId: session.user.id,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      programId: program.id,
+    }),
+    compass
+      ? findCompassCliftonAssessment(session.user.id)
+      : prisma.cliftonAssessment.findFirst({
+          where: {
+            organizationId: session.user.organizationId,
+            userId: session.user.id,
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+    compass
+      ? prisma.$queryRaw<
+          {
+            name: string;
+            email: string;
+            phoneNumber: string | null;
+            billingAddress: unknown;
+          }[]
+        >`
+          SELECT name, email, "phoneNumber", "billingAddress"
+          FROM "User"
+          WHERE id = ${session.user.id}
+          LIMIT 1
+        `.then((rows) => rows[0] ?? null)
+      : prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: {
+            name: true,
+            email: true,
+            phoneNumber: true,
+            billingAddress: true,
+          },
+        }),
+    getPersonalityPaymentAvailability(session.user.organizationId),
+  ]);
   const responses = parseResponses(attempt?.responses);
   const meta = parseMeta(attempt?.aiMetadata);
   const progress = personalityProgress(responses);
   const examComplete = isPersonalityExamComplete(responses);
   const identity = isIdentityComplete(meta.kyc);
   const resume = isResumeComplete(meta.kyc);
+  const quoteResult =
+    resume && !examUnlocked
+      ? await buildCourseQuote({
+          organizationId: session.user.organizationId,
+          userId: session.user.id,
+          program,
+        })
+      : null;
+  const quote =
+    quoteResult && !("error" in quoteResult) ? quoteResult : null;
   const keywords = meta.kyc?.resumeKeywords ?? [];
   const report =
-    attempt?.status === "COMPLETED" && examComplete
+    attempt && examComplete
       ? buildPersonalityReport(responses, {
           resumeKeywords: keywords,
         })
@@ -271,7 +339,11 @@ export async function getPersonalityProfileWorkspace() {
   return {
     ok: true as const,
     programTitle: program.title,
+    programSlug: program.slug,
     enrolled: Boolean(enrollment),
+    examUnlocked: examUnlocked === true,
+    payment: paymentAvailability,
+    quote,
     progress,
     report,
     ragGuidance: insights.ragGuidance ?? [],
@@ -312,9 +384,25 @@ export async function getPersonalityProfileWorkspace() {
     pan: hasPanOnFile(meta.kyc) && meta.kyc
       ? { mask: meta.kyc.panMask as string }
       : null,
-    canUnlinkAadhaar: Boolean(isAadhaarVerified(meta.kyc) && !examComplete),
+    identityDefaults: {
+      name: meta.kyc?.name?.trim() || account?.name || session.user.name || "",
+      fullName:
+        meta.kyc?.fullName?.trim() ||
+        account?.name ||
+        session.user.name ||
+        "",
+      phone: meta.kyc?.phone?.trim() || account?.phoneNumber || "",
+      email:
+        meta.kyc?.email?.trim() ||
+        account?.email ||
+        session.user.email ||
+        "",
+      address:
+        meta.kyc?.address?.trim() ||
+        addressFromBilling(account?.billingAddress),
+    },
+    identityLocked: examComplete,
     resumeOnFile: hasResumeOnFile(meta.kyc),
-    digilockerAvailable: digilockerConfigured(),
     kyc: isKycComplete(meta.kyc)
       ? {
           panMask: meta.kyc.panMask,
@@ -372,16 +460,17 @@ export async function getPersonalityExam() {
   const session = await requireStudent();
   const workspace = await getPersonalityProfileWorkspace();
   if (!workspace.ok) return workspace;
-  if (!workspace.enrolled) {
+  if (!workspace.examUnlocked) {
     return {
       ok: false as const,
-      error: "Enroll for ₹3,500 + GST before sitting the exam.",
+      reason: "unpaid" as const,
+      error: "Pay the assessment fee before sitting the exam.",
     };
   }
   if (!workspace.kyc) {
     return {
       ok: false as const,
-      error: "Complete Aadhaar, PAN and resume before the exam.",
+      error: "Save identity details and resume before the exam.",
     };
   }
 
@@ -517,19 +606,38 @@ export async function savePersonalityIdentity(formData: FormData) {
     };
   }
 
-  const meta = parseMeta(existing?.aiMetadata);
-  if (!isAadhaarVerified(meta.kyc)) {
-    const recorded = recordEnteredAadhaar(String(formData.get("aadhaar") ?? ""));
-    if ("error" in recorded) return { ok: false as const, error: recorded.error };
-    const saved = await persistAadhaarRecord({
-      userId: session.user.id,
-      organizationId: session.user.organizationId,
-      recorded,
-    });
-    if ("error" in saved) return { ok: false as const, error: saved.error };
-  }
+  const contact = parseIdentityContact({
+    name: String(formData.get("name") ?? ""),
+    fullName: String(formData.get("fullName") ?? ""),
+    phone: String(formData.get("phone") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    address: String(formData.get("address") ?? ""),
+  });
+  if ("error" in contact) return { ok: false as const, error: contact.error };
 
-  const pan = parsePan(String(formData.get("pan") ?? ""));
+  const meta = parseMeta(existing?.aiMetadata);
+  const existingKyc = meta.kyc;
+  const aadhaarRaw = String(formData.get("aadhaar") ?? "").trim();
+  const aadhaar = aadhaarRaw
+    ? recordEnteredAadhaar(aadhaarRaw)
+    : isAadhaarVerified(existingKyc)
+      ? {
+          aadhaarLast4: existingKyc.aadhaarLast4,
+          aadhaarMask: existingKyc.aadhaarMask,
+          aadhaarHash: existingKyc.aadhaarHash,
+          aadhaarSource: existingKyc.aadhaarSource,
+          aadhaarName: existingKyc.aadhaarName,
+          aadhaarVerifiedAt: existingKyc.aadhaarVerifiedAt,
+        }
+      : { error: "Enter your Aadhaar number." };
+  if ("error" in aadhaar) return { ok: false as const, error: aadhaar.error };
+
+  const panRaw = String(formData.get("pan") ?? "").trim();
+  const pan = panRaw
+    ? parsePan(panRaw)
+    : existingKyc && existingKyc.panMask && existingKyc.panHash
+      ? { panMask: existingKyc.panMask, panHash: existingKyc.panHash }
+      : { error: "Enter your PAN." };
   if ("error" in pan) return { ok: false as const, error: pan.error };
 
   const attempt = await loadOrCreateAttempt(
@@ -537,23 +645,31 @@ export async function savePersonalityIdentity(formData: FormData) {
     session.user.id,
   );
   const nextMeta = parseMeta(attempt.aiMetadata);
-  if (!isAadhaarVerified(nextMeta.kyc)) {
-    return { ok: false as const, error: "Verify Aadhaar before saving PAN." };
-  }
-
   const kyc: PersonalityKyc = {
     ...nextMeta.kyc,
+    ...contact,
+    ...aadhaar,
     panMask: pan.panMask,
     panHash: pan.panHash,
   };
 
-  await prisma.cliftonAssessment.update({
-    where: { id: attempt.id },
-    data: {
-      status: attempt.status === "PENDING" ? "IN_PROGRESS" : attempt.status,
-      aiMetadata: jsonWithoutNul({ ...nextMeta, kyc }) as Prisma.InputJsonValue,
-    },
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        name: contact.name,
+        phoneNumber: contact.phone,
+        billingAddress: { address: contact.address },
+      },
+    }),
+    prisma.cliftonAssessment.update({
+      where: { id: attempt.id },
+      data: {
+        status: attempt.status === "PENDING" ? "IN_PROGRESS" : attempt.status,
+        aiMetadata: jsonWithoutNul({ ...nextMeta, kyc }) as Prisma.InputJsonValue,
+      },
+    }),
+  ]);
 
   revalidatePersonality();
   return { ok: true as const };
@@ -591,7 +707,7 @@ export async function savePersonalityKyc(formData: FormData) {
   if (!isIdentityComplete(meta.kyc)) {
     return {
       ok: false as const,
-      error: "Complete Aadhaar and PAN before uploading a resume.",
+      error: "Save your details before uploading a resume.",
     };
   }
 
@@ -637,11 +753,14 @@ export async function submitPersonalityExam(answers: Record<string, number>) {
   if (!program) {
     return { ok: false as const, error: "Personality Profile is not available." };
   }
-  const enrollment = await loadEnrollment(session.user.id, program.id);
-  if (!enrollment) {
+  const examUnlocked = await hasPaidPersonalityExamAccess({
+    userId: session.user.id,
+    programId: program.id,
+  });
+  if (!examUnlocked) {
     return {
       ok: false as const,
-      error: "Enroll for ₹3,500 + GST before sitting the exam.",
+      error: "Pay the assessment fee before sitting the exam.",
     };
   }
 
@@ -653,7 +772,7 @@ export async function submitPersonalityExam(answers: Record<string, number>) {
   if (!isKycComplete(meta.kyc)) {
     return {
       ok: false as const,
-      error: "Complete Aadhaar, PAN and resume before the exam.",
+      error: "Save identity details and resume before the exam.",
     };
   }
 
@@ -809,55 +928,57 @@ export async function submitPersonalitySection(
 export async function getPersonalityTrainerRoster() {
   const session = await requireCapability("manageApplications");
   const board = await loadPersonalityLeaderboard(session.user.organizationId);
+  const rankByUser = new Map(board.map((row) => [row.userId, row]));
   const attempts = await prisma.cliftonAssessment.findMany({
     where: { organizationId: session.user.organizationId },
+    orderBy: { updatedAt: "desc" },
     select: {
       userId: true,
       status: true,
       aiMetadata: true,
-      user: { select: { name: true, email: true } },
+      responses: true,
+      updatedAt: true,
+      user: { select: { name: true, email: true, phoneNumber: true } },
     },
   });
-  const byUser = new Map(attempts.map((attempt) => [attempt.userId, attempt]));
-  const rankedIds = new Set(board.map((row) => row.userId));
-  const pending = attempts
-    .filter((attempt) => !rankedIds.has(attempt.userId))
+
+  const latestByUser = new Map<string, (typeof attempts)[number]>();
+  for (const attempt of attempts) {
+    if (!latestByUser.has(attempt.userId)) {
+      latestByUser.set(attempt.userId, attempt);
+    }
+  }
+
+  const rows = [...latestByUser.values()]
     .map((attempt) => {
       const meta = parseMeta(attempt.aiMetadata);
+      const kyc = meta.kyc;
+      const responses = parseResponses(attempt.responses);
+      const examComplete = isPersonalityExamComplete(responses);
+      const rank = rankByUser.get(attempt.userId);
       return {
         userId: attempt.userId,
-        name: attempt.user.name,
-        email: attempt.user.email,
+        name: kyc?.fullName || kyc?.name || attempt.user.name,
+        email: kyc?.email || attempt.user.email,
+        phone: kyc?.phone || attempt.user.phoneNumber || null,
+        resumeFileName: kyc?.resumeFileName ?? null,
+        hasResume: Boolean(kyc?.resumePath && kyc?.resumeFileName),
+        intakeLabel: personalityIntakeLabel(kyc, examComplete),
+        intakeStage: personalityIntakeStage(kyc, examComplete),
+        updatedAt: attempt.updatedAt.toISOString(),
         status: attempt.status,
-        keywords: meta.kyc?.resumeKeywords ?? [],
-        rank: null as number | null,
-        percentile: null as number | null,
-        aptitudeBand: null as string | null,
-        quantitativeBand: null as string | null,
-        psycheLabel: null as string | null,
-        composite: null as number | null,
+        keywords: kyc?.resumeKeywords ?? [],
+        rank: rank?.rank ?? null,
+        percentile: rank?.percentile ?? null,
+        aptitudeBand: rank ? String(rank.aptitudeBand) : null,
+        quantitativeBand: rank ? String(rank.quantitativeBand) : null,
+        psycheLabel: rank?.psycheLabel ?? null,
+        composite: rank?.composite ?? null,
       };
-    });
+    })
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
-  const ranked = board.map((row) => {
-    const attempt = byUser.get(row.userId);
-    const meta = parseMeta(attempt?.aiMetadata);
-    return {
-      userId: row.userId,
-      name: row.name,
-      email: attempt?.user.email ?? "",
-      status: "COMPLETED",
-      keywords: meta.kyc?.resumeKeywords ?? [],
-      rank: row.rank,
-      percentile: row.percentile,
-      aptitudeBand: String(row.aptitudeBand),
-      quantitativeBand: String(row.quantitativeBand),
-      psycheLabel: row.psycheLabel,
-      composite: row.composite,
-    };
-  });
-
-  return { ok: true as const, rows: [...ranked, ...pending] };
+  return { ok: true as const, rows };
 }
 
 export async function getPersonalityTrainerDetail(userId: string) {
@@ -902,20 +1023,34 @@ export async function getPersonalityTrainerDetail(userId: string) {
     retrieved,
   });
 
+  const kyc = meta.kyc;
+  const examComplete = Boolean(report);
+  const resumeSkills = resumeSkillLabels(kyc?.resumeKeywords ?? []);
+
   return {
     ok: true as const,
     student: {
-      name: attempt.user.name,
-      email: attempt.user.email,
+      name: kyc?.name || attempt.user.name,
+      email: kyc?.email || attempt.user.email,
       headline: attempt.user.headline,
+      fullName: kyc?.fullName ?? null,
+      phone: kyc?.phone ?? null,
+      address: kyc?.address ?? null,
     },
-    kyc:
-      isKycComplete(meta.kyc) || isAadhaarVerified(meta.kyc)
-        ? {
-            resumeFileName: meta.kyc.resumeFileName,
-            keywords: meta.kyc.resumeKeywords ?? [],
-          }
-        : null,
+    intake: {
+      stage: personalityIntakeStage(kyc, examComplete),
+      label: personalityIntakeLabel(kyc, examComplete),
+      updatedAt: attempt.updatedAt.toISOString(),
+    },
+    resume: kyc?.resumePath && kyc?.resumeFileName
+      ? {
+          fileName: kyc.resumeFileName,
+          storagePath: kyc.resumePath,
+          keywords: kyc.resumeKeywords ?? [],
+          skills: resumeSkills,
+          uploadedAt: kyc.completedAt ?? null,
+        }
+      : null,
     rank: rank
       ? {
           place: rank.rank,

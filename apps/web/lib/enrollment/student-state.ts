@@ -1,4 +1,7 @@
+import { findCompassEnrollment } from "@/lib/compass/enrollment";
+import { listCompassTransactionsForUser } from "@/lib/compass/transactions";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 
 export type StudentCourseEnrollmentState =
   | { kind: "active"; enrollmentId: string; programId: string }
@@ -10,6 +13,31 @@ export async function getStudentCourseEnrollmentState(
   userId: string,
   program: { id: string; requiresCrmCallback: boolean },
 ): Promise<StudentCourseEnrollmentState> {
+  if (isCompassDatabase()) {
+    const enrollment = await findCompassEnrollment(userId, program.id);
+    if (!enrollment) return { kind: "none" };
+    if (enrollment.status === "ACTIVE" || enrollment.status === "COMPLETED") {
+      return {
+        kind: "active",
+        enrollmentId: enrollment.id,
+        programId: program.id,
+      };
+    }
+    if (enrollment.status !== "PENDING") return { kind: "none" };
+    const payments = await listCompassTransactionsForUser(userId, program.id);
+    const hasPaid = payments.some((p) =>
+      ["PAID", "SUCCESS", "COMPLETED"].includes(p.status),
+    );
+    if (!hasPaid) {
+      return {
+        kind: "pending_payment",
+        enrollmentId: enrollment.id,
+        programId: program.id,
+      };
+    }
+    return { kind: "none" };
+  }
+
   const enrollment = await prisma.enrollment.findUnique({
     where: {
       userId_programId: { userId, programId: program.id },

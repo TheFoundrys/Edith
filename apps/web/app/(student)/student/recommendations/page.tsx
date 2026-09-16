@@ -16,7 +16,7 @@ export default async function StudentRecommendationsPage() {
     <div>
       <PageHeader
         title="Recommended for you"
-        description="Programmes picked from your learning history and interests."
+        description="Programmes picked from your learning history, resume skills, and catalogue fit."
         actions={
           <Link href="/student/dashboard" className="text-sm text-fg-muted underline">
             Back to dashboard

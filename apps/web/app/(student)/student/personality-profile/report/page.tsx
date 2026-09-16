@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page";
 import { getPersonalityProfileWorkspace } from "@/lib/actions/personality-profile";
 import { PERSONALITY_PROFILE_HREF, PERSONALITY_STUDENT_RANK_HREF } from "@/lib/assessments/personality-profile";
-import { prisma } from "@/lib/db";
 import { requireStudent } from "@/lib/auth/session";
+import { loadPublishedProgramsBySlugs } from "@/lib/marketing/public-course-detail";
 import { displayProgramName } from "@/lib/programs/categories";
 
 export default async function PersonalityReportPage() {
@@ -21,14 +21,7 @@ export default async function PersonalityReportPage() {
 
   const slugs = workspace.report.recommendations.map((item) => item.slug);
   const programs = slugs.length
-    ? await prisma.program.findMany({
-        where: {
-          organizationId: session.user.organizationId,
-          slug: { in: slugs },
-          status: "PUBLISHED",
-        },
-        select: { slug: true, title: true, category: true },
-      })
+    ? await loadPublishedProgramsBySlugs(slugs, session.user.organizationId)
     : [];
   const titles = Object.fromEntries(
     programs.map((program) => [

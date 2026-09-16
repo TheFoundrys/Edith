@@ -4,12 +4,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel } from "@/components/ui/page";
 import { requireStudent } from "@/lib/auth/session";
+import {
+  loadStudentPublishedSyllabus,
+  requireActiveEnrollment,
+} from "@/lib/enrollment/queries";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
+import { getUserCompletedLessonIds } from "@/lib/learning/progress";
 import {
   findContinueActivityId,
   flattenPublishedActivities,
 } from "@/lib/learning/outline";
-import { activityTypeLabel } from "@/lib/learning/standards";
+import { LessonTypeBadge } from "@/components/learning/lesson-type-badge";
+import { renderSimpleMarkdown } from "@/lib/learning/markdown";
+import { lessonContentTypeMeta } from "@/lib/learning/lesson-content-type";
+import { filterVisibleModules } from "@/lib/learning/syllabus-visible";
 import { cn } from "@/lib/utils";
 
 export default async function StudentLearningCoursePage({
@@ -20,48 +29,38 @@ export default async function StudentLearningCoursePage({
   const { "course-id": courseId } = await params;
   const session = await requireStudent();
 
-  const enrollment = await prisma.enrollment.findFirst({
-    where: {
-      programId: courseId,
-      userId: session.user.id,
-      status: "ACTIVE",
-    },
-  });
+  const enrollment = await requireActiveEnrollment(session.user.id, courseId);
   if (!enrollment) notFound();
 
-  const syllabus = await prisma.programSyllabus.findFirst({
-    where: { programId: courseId, status: "PUBLISHED" },
-    include: {
-      program: { select: { title: true } },
-      modules: {
-        orderBy: { order: "asc" },
-        include: {
-          lessons: {
-            where: { isPublished: true },
-            orderBy: { order: "asc" },
-          },
-        },
-      },
-    },
-  });
-  if (!syllabus) notFound();
+  const syllabusView = await loadStudentPublishedSyllabus(courseId);
+  if (!syllabusView) notFound();
+  const syllabus = {
+    title: syllabusView.title,
+    description: syllabusView.description,
+    program: { title: syllabusView.programTitle },
+    modules: syllabusView.modules,
+  };
 
-  const modulesWithActivities = syllabus.modules.filter(
-    (m) => m.lessons.length > 0,
-  );
-  const activities = flattenPublishedActivities(modulesWithActivities);
+  const visibleModules = filterVisibleModules(syllabus.modules);
+  const activities = flattenPublishedActivities(visibleModules);
   const lessonIds = activities.map((a) => a.id);
 
-  const progress = lessonIds.length
-    ? await prisma.lessonProgress.findMany({
-        where: {
-          userId: session.user.id,
-          lessonId: { in: lessonIds },
-          completedAt: { not: null },
-        },
-      })
-    : [];
-  const completedSet = new Set(progress.map((p) => p.lessonId));
+  const [completedSet, lessonQuizzes] = await Promise.all([
+    getUserCompletedLessonIds(session.user.id, [courseId]),
+    !isCompassDatabase() && lessonIds.length
+      ? prisma.lessonMcq.findMany({
+          where: {
+            programId: courseId,
+            lessonId: { in: lessonIds },
+            organizationId: session.user.organizationId,
+            isActive: true,
+            status: "READY",
+          },
+          select: { lessonId: true },
+        })
+      : Promise.resolve([] as { lessonId: string }[]),
+  ]);
+  const quizLessonIds = new Set(lessonQuizzes.map((q) => q.lessonId));
   const done = completedSet.size;
   const total = lessonIds.length;
   const pct = total === 0 ? 0 : Math.round((done / total) * 100);
@@ -106,17 +105,25 @@ export default async function StudentLearningCoursePage({
       </Panel>
 
       <div className="space-y-4">
-        {modulesWithActivities.map((mod, index) => (
+        {visibleModules.map((mod, index) => (
           <Panel key={mod.id}>
-            <div className="border-b border-border px-4 py-4 sm:px-5">
+            <div
+              className={cn(
+                "px-4 py-4 sm:px-5",
+                mod.lessons.length > 0 && "border-b border-border",
+              )}
+            >
               <p className="text-xs font-medium uppercase tracking-wide text-fg-muted">
                 Section {index + 1}
               </p>
               <h2 className="mt-1 font-medium">{mod.title}</h2>
               {mod.summary ? (
-                <p className="mt-1 text-sm text-fg-muted">{mod.summary}</p>
+                <div className="mt-3 text-sm text-fg leading-relaxed">
+                  {renderSimpleMarkdown(mod.summary)}
+                </div>
               ) : null}
             </div>
+            {mod.lessons.length > 0 ? (
             <ul className="divide-y divide-border">
               {mod.lessons.map((lesson) => {
                 const complete = completedSet.has(lesson.id);
@@ -141,32 +148,50 @@ export default async function StudentLearningCoursePage({
                           {isContinue ? (
                             <Badge tone="info">Up next</Badge>
                           ) : null}
+                          {quizLessonIds.has(lesson.id) ? (
+                            <Badge tone="neutral">Quiz</Badge>
+                          ) : null}
                         </div>
-                        <p className="mt-1 text-xs text-fg-muted">
-                          {activityTypeLabel(lesson.contentType)}
-                          {lesson.durationMin != null
-                            ? ` · ${lesson.durationMin} min`
-                            : ""}
-                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <LessonTypeBadge
+                            contentType={lesson.contentType ?? "RICH_TEXT"}
+                          />
+                          <span className="text-xs text-fg-muted">
+                            {lessonContentTypeMeta(lesson.contentType).studentAction}
+                            {lesson.durationMin != null
+                              ? ` · ${lesson.durationMin} min`
+                              : ""}
+                          </span>
+                        </div>
+                        {lesson.summary ? (
+                          <p className="mt-1.5 text-sm text-fg-muted leading-relaxed line-clamp-2">
+                            {lesson.summary}
+                          </p>
+                        ) : null}
                       </div>
                       <span
                         className={cn(
                           "shrink-0 text-xs sm:self-center",
-                          complete
-                            ? "font-medium text-fg"
-                            : "text-fg-muted",
+                          complete ? "font-medium text-fg" : "text-fg-muted",
                         )}
                       >
-                        {complete ? "Completed" : "Not started"}
+                        {quizLessonIds.has(lesson.id)
+                          ? complete
+                            ? "Completed · Quiz"
+                            : "Quiz available"
+                          : complete
+                            ? "Completed"
+                            : "Not started"}
                       </span>
                     </Link>
                   </li>
                 );
               })}
             </ul>
+            ) : null}
           </Panel>
         ))}
-        {modulesWithActivities.length === 0 ? (
+        {visibleModules.length === 0 ? (
           <p className="text-sm text-fg-muted">
             No published activities in this course yet.
           </p>

@@ -1,4 +1,7 @@
+import { ProgramCategory } from "@prisma/client";
+import { listCompassEnrollmentsForStats } from "@/lib/compass/platform-stats";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
 import { displayProgramName, programCategoryLabel } from "@/lib/programs/categories";
 import type { AdminRecentEnrollment } from "@/lib/admin/dashboard-data";
 
@@ -18,6 +21,27 @@ function formatTime(date: Date) {
 }
 
 export async function getAdminEnrollments(orgId: string): Promise<AdminRecentEnrollment[]> {
+  if (isCompassDatabase()) {
+    const rows = await listCompassEnrollmentsForStats();
+    return rows.map((row) => {
+      const when = row.createdAt;
+      const completed = row.status === "COMPLETED" || row.completedAt != null;
+      const category = ProgramCategory.CERTIFICATION;
+      return {
+        id: row.id,
+        userName: row.userName,
+        userEmail: row.userEmail,
+        courseTitle: displayProgramName(row.courseTitle ?? "Course", category),
+        categoryLabel: programCategoryLabel(category),
+        dateLabel: formatShortDate(when),
+        timeLabel: formatTime(when),
+        status: completed ? "Completed" : "In Progress",
+        userHref: `/admin/members?q=${encodeURIComponent(row.userEmail)}`,
+        courseHref: row.courseId ? `/admin/programs/${row.courseId}` : "/admin/programs",
+      };
+    });
+  }
+
   const rows = await prisma.enrollment.findMany({
     where: { organizationId: orgId },
     include: {

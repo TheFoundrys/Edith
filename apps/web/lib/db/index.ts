@@ -1,4 +1,8 @@
 import { PrismaClient } from "@prisma/client";
+import { prismaDatasourceUrl } from "@/lib/db/datasource";
+import { isCompassDatabase } from "@/lib/db/profile";
+
+export { isCompassDatabase } from "@/lib/db/profile";
 
 // Bump when models/fields change so a long-lived Next.js process
 // does not keep a PrismaClient generated against an older schema.
@@ -27,22 +31,7 @@ export function isPrismaUnreachable(error: unknown) {
   );
 }
 
-function datasourceUrl() {
-  const raw = process.env.DATABASE_URL?.trim();
-  if (!raw) return undefined;
-  try {
-    const url = new URL(raw);
-    if (!url.searchParams.has("connect_timeout")) {
-      url.searchParams.set("connect_timeout", "5");
-    }
-    if (!url.searchParams.has("pool_timeout")) {
-      url.searchParams.set("pool_timeout", "8");
-    }
-    return url.toString();
-  } catch {
-    return raw;
-  }
-}
+const datasourceUrl = prismaDatasourceUrl;
 
 let reconnecting = false;
 
@@ -80,6 +69,16 @@ function createPrismaClient(): PrismaClient {
   return client.$extends({
     query: {
       async $allOperations({ model, operation, args, query }) {
+        if (isCompassDatabase() && model === "Enrollment") {
+          throw new Error(
+            `[compass_dev] prisma.enrollment.${operation}() is unsupported — use lib/compass/enrollment or lib/enrollment/queries instead.`,
+          );
+        }
+        if (isCompassDatabase() && model === "FormDefinition") {
+          throw new Error(
+            `[compass_dev] prisma.formDefinition.${operation}() is unsupported — application forms are edith_dev only.`,
+          );
+        }
         try {
           return await query(args);
         } catch (error) {
