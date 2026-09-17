@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page";
 import { requireCapability } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { parseIntegrityReport } from "@/lib/learning/assignment-integrity";
 
 export default async function AdminAssignmentsPage() {
   const session = await requireCapability("manageContent");
@@ -12,7 +13,10 @@ export default async function AdminAssignmentsPage() {
     where: { organizationId: session.user.organizationId },
     include: {
       program: { select: { title: true } },
-      _count: { select: { submissions: true } },
+      submissions: {
+        where: { status: { in: ["SUBMITTED", "GRADED"] } },
+        select: { integrityReport: true },
+      },
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -80,9 +84,29 @@ export default async function AdminAssignmentsPage() {
                 <div className="flex justify-between gap-3">
                   <dt className="text-fg-muted">Submissions</dt>
                   <dd className="font-medium tabular-nums">
-                    {a._count.submissions}
+                    {a.submissions.length}
                   </dd>
                 </div>
+                {a.submissions.filter((submission) => {
+                  const report = parseIntegrityReport(submission.integrityReport);
+                  return report?.risk === "high" || report?.risk === "medium";
+                }).length > 0 ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-fg-muted">Needs review</dt>
+                    <dd className="font-medium tabular-nums">
+                      {
+                        a.submissions.filter((submission) => {
+                          const report = parseIntegrityReport(
+                            submission.integrityReport,
+                          );
+                          return (
+                            report?.risk === "high" || report?.risk === "medium"
+                          );
+                        }).length
+                      }
+                    </dd>
+                  </div>
+                ) : null}
               </dl>
 
               <div className="mt-auto pt-[var(--grid-pad)]">

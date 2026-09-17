@@ -978,6 +978,8 @@ model AssignmentSubmission {
   textAnswer   String?
   grade        Float?
   feedback     String?
+  /** Faculty-only peer similarity scan. Never shown to students. */
+  integrityReport Json?
   createdAt    DateTime                   @default(now())
   updatedAt    DateTime                   @updatedAt
   assignment Assignment? @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
