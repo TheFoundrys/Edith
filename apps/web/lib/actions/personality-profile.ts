@@ -970,6 +970,8 @@ export async function getPersonalityTrainerRoster() {
         name: kyc?.fullName || kyc?.name || attempt.user.name,
         email: kyc?.email || attempt.user.email,
         phone: kyc?.phone || attempt.user.phoneNumber || null,
+        aadhaarMask: kyc?.aadhaarMask ?? null,
+        panMask: kyc?.panMask ?? null,
         resumeFileName: kyc?.resumeFileName ?? null,
         hasResume: Boolean(kyc?.resumePath && kyc?.resumeFileName),
         intakeLabel: personalityIntakeLabel(kyc, examComplete),
@@ -1045,6 +1047,8 @@ export async function getPersonalityTrainerDetail(userId: string) {
       fullName: kyc?.fullName ?? null,
       phone: kyc?.phone ?? null,
       address: kyc?.address ?? null,
+      aadhaarMask: kyc?.aadhaarMask ?? null,
+      panMask: kyc?.panMask ?? null,
     },
     intake: {
       stage: personalityIntakeStage(kyc, examComplete),

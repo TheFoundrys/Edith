@@ -86,3 +86,13 @@ export function readLessonMcqPaper(answers: unknown): KryptonMcqPaper | null {
   if (!isPaperPayload(answers)) return null;
   return answers.paper;
 }
+
+export function parseLessonMcqUserAnswers(value: unknown): Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: Record<string, number> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    const n = Number(raw);
+    if (Number.isFinite(n)) out[key] = n;
+  }
+  return out;
+}

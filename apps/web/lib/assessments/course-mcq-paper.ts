@@ -91,3 +91,43 @@ export function scorePaperAnswers(
     passed: percentage >= passingScore,
   };
 }
+
+export type McqReviewQuestion = McqDisplayQuestion & {
+  selectedIndex: number | null;
+  correctIndex: number;
+  isCorrect: boolean;
+};
+
+/** Rebuild the shuffled paper with selected vs correct options for results. */
+export function reviewQuestionsForPaper(
+  bank: McqQuestion[],
+  paper: KryptonMcqPaper,
+  answers: Record<string, number>,
+): McqReviewQuestion[] {
+  const byId = new Map(bank.map((q) => [q.id, q]));
+  return paper.questionIds
+    .map((id) => {
+      const question = byId.get(id);
+      if (!question) return null;
+      const options = applyOptionMap(question.options, paper.optionMaps[id]);
+      const correctIndex = options.findIndex(
+        (_option, index) =>
+          originalOptionIndex(paper, id, index) === question.correctIndex,
+      );
+      const raw = answers[id];
+      const selectedIndex =
+        raw == null || Number.isNaN(raw) ? null : Number(raw);
+      return {
+        id: question.id,
+        prompt: question.prompt,
+        options,
+        selectedIndex,
+        correctIndex,
+        isCorrect:
+          selectedIndex != null &&
+          originalOptionIndex(paper, id, selectedIndex) ===
+            question.correctIndex,
+      };
+    })
+    .filter((q): q is McqReviewQuestion => q != null);
+}

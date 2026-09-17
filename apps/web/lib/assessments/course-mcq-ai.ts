@@ -41,3 +41,12 @@ export function topicForMcqSet(input: {
   const base = input.baseTopic?.trim() || input.programTitle;
   return `${base} — Set ${input.setNumber} of ${input.setCount}. Focus on ${input.focus}. Questions must be unique to this set and suitable for a randomized MCQ bank.`;
 }
+
+export function lessonMcqAiTopic(input: {
+  lessonTitle: string;
+  extraTopic?: string;
+}) {
+  const extra = input.extraTopic?.trim();
+  const focus = extra ? ` Focus: ${extra}.` : "";
+  return `${input.lessonTitle} — short lesson-check quiz for students who just watched or read this activity.${focus} Test the ideas in the lesson content, not trivia about the platform.`;
+}

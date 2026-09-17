@@ -7,6 +7,7 @@ import {
   publishLessonMcqAction,
   updateLessonMcqSettingsAction,
 } from "@/lib/actions/admin-lesson-mcq";
+import { LessonMcqAiPanel } from "@/components/admin/lesson-mcq-ai-panel";
 import { McqJsonImportPanel } from "@/components/admin/mcq-json-import-panel";
 import { requireCapability } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
@@ -74,6 +75,10 @@ export default async function AdminLessonMcqDetailPage({
               {mcq.status === "READY" ? "Republish" : "Publish for students"}
             </Button>
           </form>
+          <p className="text-xs text-fg-muted">
+            Adding or appending questions publishes the quiz for enrolled
+            students. Replacing the bank via JSON needs republish.
+          </p>
           <Badge tone={mcq.status === "READY" ? "success" : "neutral"}>
             {mcq.status}
           </Badge>
@@ -123,6 +128,8 @@ export default async function AdminLessonMcqDetailPage({
           </form>
         </Panel>
       </div>
+
+      <LessonMcqAiPanel mcqId={mcq.id} lessonTitle={mcq.lesson.title} />
 
       <McqJsonImportPanel
         mcqId={mcq.id}

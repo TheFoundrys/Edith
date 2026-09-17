@@ -2,11 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { McqGenerationStatus } from "@prisma/client";
+import { McqGenerationStatus, McqSource } from "@prisma/client";
 import { requireCapability } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { isCompassDatabase } from "@/lib/db/profile";
+import {
+  generateMcqQuestionsWithAi,
+} from "@/lib/assessments/mcq-ai-generate";
+import { lessonMcqAiTopic } from "@/lib/assessments/course-mcq-ai";
+import { programOutline } from "@/lib/assessments/syllabus-outline";
 import { importMcqQuestionsFromJson } from "@/lib/assessments/mcq-import";
 import { resolveMcqStatusAfterImport } from "@/lib/assessments/mcq-publish";
+import { stripYouTubeUrls } from "@/lib/learning/youtube-content";
 import {
   normalizeMcqQuestion,
   parseMcqQuestions,
@@ -22,6 +29,8 @@ function revalidateLessonMcqPaths(
   if (mcqId) revalidatePath(`/admin/lesson-mcqs/${mcqId}`);
   revalidatePath(`/student/learning/${programId}/lessons/${lessonId}`);
   revalidatePath(`/student/learning/${programId}/lessons/${lessonId}/mcq`);
+  revalidatePath("/student/assessments");
+  revalidatePath(`/student/learning/${programId}`);
 }
 
 function readOptions(formData: FormData) {
@@ -108,12 +117,13 @@ export async function addLessonMcqQuestion(formData: FormData) {
   });
   if (!mcq) return { error: "Lesson quiz not found." };
 
-  const bank = parseMcqQuestions(mcq.questions);
+  const bank = [...parseMcqQuestions(mcq.questions), question];
   await prisma.lessonMcq.update({
     where: { id: mcq.id },
     data: {
-      questions: [...bank, question] as unknown as McqQuestion[],
-      status: McqGenerationStatus.PENDING,
+      questions: bank as unknown as McqQuestion[],
+      status: McqGenerationStatus.READY,
+      isActive: true,
     },
   });
 
@@ -230,12 +240,19 @@ export async function importLessonMcqJson(formData: FormData) {
     wasReady,
     replace,
   });
+  const nextStatus =
+    result.questions.length === 0
+      ? McqGenerationStatus.PENDING
+      : replace
+        ? status
+        : McqGenerationStatus.READY;
 
   await prisma.lessonMcq.update({
     where: { id: mcq.id },
     data: {
       questions: result.questions as unknown as McqQuestion[],
-      status,
+      status: nextStatus,
+      isActive: result.questions.length > 0,
     },
   });
 
@@ -245,6 +262,178 @@ export async function importLessonMcqJson(formData: FormData) {
     imported: result.imported,
     skipped: result.skipped,
     total: result.questions.length,
-    needsRepublish,
+    needsRepublish: replace && result.questions.length > 0,
   };
 }
+
+async function lessonQuizOutline(programId: string, lesson: {
+  title: string;
+  summary: string | null;
+  content: string;
+  moduleTitle: string;
+  moduleSummary: string | null;
+}) {
+  const modules = await prisma.syllabusModule.findMany({
+    where: { syllabus: { programId } },
+    orderBy: { order: "asc" },
+    include: {
+      lessons: {
+        orderBy: { order: "asc" },
+        select: { title: true, summary: true },
+      },
+    },
+  });
+  const reading = stripYouTubeUrls(lesson.content ?? "").slice(0, 3500);
+  const lessonBlock = [
+    `Module: ${lesson.moduleTitle}`,
+    lesson.moduleSummary ? `Module summary: ${lesson.moduleSummary}` : null,
+    `Lesson: ${lesson.title}`,
+    lesson.summary ? `Lesson summary: ${lesson.summary}` : null,
+    reading ? `Lesson reading:\n${reading}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const course = programOutline(
+    modules.map((mod) => ({
+      title: mod.title,
+      summary: mod.summary,
+      lessons: mod.lessons,
+    })),
+  );
+  return [lessonBlock, course].filter(Boolean).join("\n\n");
+}
+
+export async function generateLessonMcqWithAi(input: {
+  mcqId: string;
+  topic?: string;
+  questionCount?: number;
+  replace?: boolean;
+}) {
+  if (isCompassDatabase()) {
+    return { error: "AI lesson quizzes are not available on compass_dev." };
+  }
+
+  const session = await requireCapability("manageContent");
+  const mcq = await prisma.lessonMcq.findFirst({
+    where: { id: input.mcqId, organizationId: session.user.organizationId },
+    include: {
+      lesson: {
+        select: {
+          title: true,
+          summary: true,
+          content: true,
+          module: { select: { title: true, summary: true } },
+        },
+      },
+      program: { select: { title: true, description: true } },
+    },
+  });
+  if (!mcq) return { error: "Lesson quiz not found." };
+
+  const questionCount = Math.min(Math.max(input.questionCount ?? 5, 3), 15);
+  const replace = input.replace !== false;
+  const outline = await lessonQuizOutline(mcq.programId, {
+    title: mcq.lesson.title,
+    summary: mcq.lesson.summary,
+    content: mcq.lesson.content,
+    moduleTitle: mcq.lesson.module.title,
+    moduleSummary: mcq.lesson.module.summary,
+  });
+
+  try {
+    const generated = await generateMcqQuestionsWithAi({
+      organizationId: session.user.organizationId,
+      programName: mcq.program.title,
+      programSummary: mcq.program.description,
+      syllabusOutline: outline,
+      topic: lessonMcqAiTopic({
+        lessonTitle: mcq.lesson.title,
+        extraTopic: input.topic,
+      }),
+      questionCount,
+      difficulty: "intro",
+    });
+    const existing = parseMcqQuestions(mcq.questions);
+    const questions = replace
+      ? generated.questions
+      : [...existing, ...generated.questions];
+
+    await prisma.lessonMcq.update({
+      where: { id: mcq.id },
+      data: {
+        questions: questions as unknown as McqQuestion[],
+        status: McqGenerationStatus.READY,
+        source: McqSource.AI_GENERATED,
+        isActive: true,
+      },
+    });
+    revalidateLessonMcqPaths(mcq.programId, mcq.lessonId, mcq.id);
+    revalidatePath(`/admin/syllabus/${mcq.programId}`);
+    return {
+      ok: true as const,
+      provider: generated.provider,
+      imported: generated.questions.length,
+      total: questions.length,
+    };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "AI generation failed.",
+    };
+  }
+}
+
+/** Create the lesson quiz if needed, then fill it from AI and publish. */
+export async function generateLessonMcqForLessonWithAi(input: {
+  lessonId: string;
+  topic?: string;
+  questionCount?: number;
+}) {
+  if (isCompassDatabase()) {
+    return { error: "AI lesson quizzes are not available on compass_dev." };
+  }
+
+  const session = await requireCapability("manageContent");
+  const lesson = await prisma.syllabusLesson.findFirst({
+    where: {
+      id: input.lessonId,
+      module: {
+        syllabus: {
+          program: { organizationId: session.user.organizationId },
+        },
+      },
+    },
+    include: {
+      module: {
+        select: { syllabus: { select: { programId: true } } },
+      },
+    },
+  });
+  if (!lesson) return { error: "Lesson not found." };
+
+  const programId = lesson.module.syllabus.programId;
+  let mcq = await prisma.lessonMcq.findFirst({
+    where: { lessonId: lesson.id, programId },
+  });
+  if (!mcq) {
+    mcq = await prisma.lessonMcq.create({
+      data: {
+        organizationId: session.user.organizationId,
+        lessonId: lesson.id,
+        programId,
+        questions: [],
+        passingScore: 70,
+        status: McqGenerationStatus.PENDING,
+        source: McqSource.AI_GENERATED,
+        isActive: true,
+      },
+    });
+  }
+
+  return generateLessonMcqWithAi({
+    mcqId: mcq.id,
+    topic: input.topic,
+    questionCount: input.questionCount,
+    replace: true,
+  });
+}
+

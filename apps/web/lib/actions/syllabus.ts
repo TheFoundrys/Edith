@@ -24,7 +24,11 @@ import { inferLessonContentType } from "@/lib/learning/video-embed";
 import { parsePublishedFlag } from "@/lib/learning/outline";
 import { saveLessonPdf, saveLessonVideo } from "@/lib/storage";
 
-function revalidateSyllabus(programId: string, programSlug?: string | null) {
+function revalidateSyllabus(
+  programId: string,
+  programSlug?: string | null,
+  lessonId?: string,
+) {
   revalidatePath("/admin/syllabus");
   revalidatePath(`/admin/syllabus/${programId}`);
   revalidatePath(`/admin/programs/${programId}`);
@@ -38,19 +42,26 @@ function revalidateSyllabus(programId: string, programSlug?: string | null) {
   revalidatePath("/student/my-courses");
   revalidatePath(`/student/my-courses/${programId}`);
   revalidatePath("/student/dashboard");
+  if (lessonId) {
+    revalidatePath(`/student/learning/${programId}/lessons/${lessonId}`);
+    revalidatePath(`/student/learn/${programId}/lessons/${lessonId}`);
+  }
 }
 
-async function revalidateSyllabusForProgram(programId: string) {
+async function revalidateSyllabusForProgram(
+  programId: string,
+  lessonId?: string,
+) {
   if (isCompassDatabase()) {
     const course = await getCompassCourseById(programId);
-    revalidateSyllabus(programId, course?.slug);
+    revalidateSyllabus(programId, course?.slug, lessonId);
     return;
   }
   const program = await prisma.program.findUnique({
     where: { id: programId },
     select: { slug: true },
   });
-  revalidateSyllabus(programId, program?.slug);
+  revalidateSyllabus(programId, program?.slug, lessonId);
 }
 
 async function staffOwnedProgram(programId: string, organizationId: string) {
@@ -402,7 +413,7 @@ export async function createLesson(
     _max: { order: true },
   });
 
-  await prisma.syllabusLesson.create({
+  const created = await prisma.syllabusLesson.create({
     data: {
       moduleId,
       title: parsed.data.title.trim(),
@@ -415,7 +426,7 @@ export async function createLesson(
     },
   });
 
-  revalidateSyllabusForProgram(programId);
+  revalidateSyllabusForProgram(programId, created.id);
   return { ok: true as const };
 }
 
@@ -475,7 +486,7 @@ export async function updateLesson(
     },
   });
 
-  revalidateSyllabusForProgram(programId);
+  revalidateSyllabusForProgram(programId, lessonId);
   return { ok: true as const };
 }
 

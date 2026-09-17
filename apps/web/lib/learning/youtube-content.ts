@@ -39,3 +39,30 @@ export function mergeLessonReadingAndVideo(
   if (body.includes(url)) return body;
   return body ? `${body}\n\n${url}` : url;
 }
+
+/** Primary video URL for VIDEO_URL lessons (handles markdown + URL in one field). */
+export function resolveLessonVideoUrl(contentBody: string): string {
+  const urls = extractYouTubeUrls(contentBody);
+  if (urls[0]) return urls[0];
+  const trimmed = contentBody.trim();
+  const firstToken = trimmed.split(/\s+/)[0] ?? "";
+  if (/^https?:\/\//i.test(firstToken)) return firstToken;
+  return trimmed;
+}
+
+/**
+ * Reading text for the student panel.
+ * VIDEO_URL stores prose in `summary`, but prod/local mismatches often leave it in `content`.
+ */
+export function resolveLessonReadingText(
+  contentType: string,
+  contentBody: string,
+  summary: string | null | undefined,
+): string {
+  const fromContent = stripYouTubeUrls(contentBody);
+  const fromSummary = summary?.trim() ?? "";
+  if (contentType === "VIDEO_URL") {
+    return fromSummary || fromContent;
+  }
+  return fromContent || fromSummary;
+}

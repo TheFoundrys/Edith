@@ -20,7 +20,8 @@ import { lessonPdfFileName } from "@/lib/learning/lesson-pdf";
 import { LessonTypeBadge } from "@/components/learning/lesson-type-badge";
 import {
   extractYouTubeUrls,
-  stripYouTubeUrls,
+  resolveLessonReadingText,
+  resolveLessonVideoUrl,
 } from "@/lib/learning/youtube-content";
 import { lessonContentTypeMeta } from "@/lib/learning/lesson-content-type";
 import { uploadUrl } from "@/lib/urls";
@@ -43,12 +44,23 @@ function LessonBody({
   }
 
   if (contentType === "VIDEO_URL") {
-    const videoUrl = contentBody.trim();
-    const video = videoUrl ? parseLessonVideo(videoUrl) : null;
+    const reading = resolveLessonReadingText(contentType, contentBody, summary);
+    const embedUrls = extractYouTubeUrls(contentBody);
+    const videoUrl = resolveLessonVideoUrl(contentBody);
+    const video =
+      embedUrls.length === 0 && videoUrl
+        ? parseLessonVideo(videoUrl)
+        : null;
     return (
       <div className="space-y-6">
-        <LessonReadingPanel content={summary ?? ""} />
-        {video && video.kind !== "link" ? (
+        <LessonReadingPanel content={reading} />
+        {embedUrls.length > 0 ? (
+          <LessonVideoEmbeds
+            urls={embedUrls}
+            lessonId={lessonId}
+            completed={completed}
+          />
+        ) : video && video.kind !== "link" ? (
           <LessonVideo
             video={video}
             lessonId={lessonId}
@@ -108,7 +120,7 @@ function LessonBody({
   }
 
   const embedUrls = extractYouTubeUrls(contentBody);
-  const reading = stripYouTubeUrls(contentBody);
+  const reading = resolveLessonReadingText(contentType, contentBody, summary);
 
   return (
     <div className="space-y-6">
@@ -263,7 +275,7 @@ export default async function StudentLearningLessonPage({
           <div>
             <p className="text-sm font-medium">Lesson quiz</p>
             <p className="text-xs text-fg-muted">
-              Randomized questions — retake anytime for a new order.
+              Randomized questions. Passing marks this lesson complete.
             </p>
           </div>
           <Link href={`/student/learning/${courseId}/lessons/${lessonId}/mcq`}>

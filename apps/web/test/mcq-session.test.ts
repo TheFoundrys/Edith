@@ -6,6 +6,7 @@ import { readLessonMcqPaper } from "../lib/actions/lesson-mcq-session";
 import {
   buildCourseMcqPaper,
   displayQuestionsForPaper,
+  reviewQuestionsForPaper,
   scorePaperAnswers,
 } from "../lib/assessments/course-mcq-paper";
 import { resolveMcqStatusAfterImport } from "../lib/assessments/mcq-publish";
@@ -80,6 +81,35 @@ describe("MCQ session scoring round-trip", () => {
     assert.equal(result.total, 2);
     assert.equal(result.correct, 2);
     assert.equal(result.passed, true);
+  });
+});
+
+describe("reviewQuestionsForPaper", () => {
+  it("marks selected vs correct displayed options", () => {
+    const paper = buildCourseMcqPaper(bank, {
+      attemptId: "review-1",
+      questionCount: 2,
+      shuffleOptions: true,
+    });
+    const display = displayQuestionsForPaper(bank, paper);
+    const answers: Record<string, number> = {};
+    const first = display[0]!;
+    answers[first.id] = first.options.findIndex(
+      (option) => option === bank.find((q) => q.id === first.id)!.options[
+        bank.find((q) => q.id === first.id)!.correctIndex
+      ],
+    );
+    const second = display[1]!;
+    answers[second.id] = (second.options.findIndex(
+      (option) => option === bank.find((q) => q.id === second.id)!.options[
+        bank.find((q) => q.id === second.id)!.correctIndex
+      ],
+    ) + 1) % second.options.length;
+
+    const review = reviewQuestionsForPaper(bank, paper, answers);
+    assert.equal(review[0]?.isCorrect, true);
+    assert.equal(review[1]?.isCorrect, false);
+    assert.equal(review[0]?.options[review[0].correctIndex], "4");
   });
 });
 

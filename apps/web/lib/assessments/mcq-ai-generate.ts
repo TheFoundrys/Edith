@@ -1,6 +1,5 @@
 import { getAiAdapterForOrg } from "@/lib/ai";
 import { quizDraftToMcqQuestions } from "@/lib/assessments/course-mcq-ai";
-import type { McqQuestion } from "@/lib/assessments/mcq-types";
 
 export async function generateMcqQuestionsWithAi(input: {
   organizationId: string;
