@@ -65,11 +65,19 @@ export async function submitLessonMcqAttempt(formData: FormData) {
       maxScore: 100,
       passed: result.passed,
       submittedAt: new Date(),
-      answers: Prisma.DbNull,
+      answers: { paper } as Prisma.InputJsonValue,
     },
   });
 
+  if (result.passed) {
+    const { markLessonComplete } = await import("@/lib/actions/syllabus");
+    await markLessonComplete(lessonId);
+  }
+
+  revalidatePath(`/student/learning/${programId}/lessons/${lessonId}`);
   revalidatePath(`/student/learning/${programId}/lessons/${lessonId}/mcq`);
+  revalidatePath("/student/assessments");
+  revalidatePath(`/student/learning/${programId}`);
   redirect(
     `/student/learning/${programId}/lessons/${lessonId}/mcq?result=submitted`,
   );

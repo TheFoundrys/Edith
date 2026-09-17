@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  lessonMcqAiTopic,
   quizDraftToMcqQuestions,
   topicForMcqSet,
 } from "@/lib/assessments/course-mcq-ai";
@@ -30,4 +31,13 @@ test("topicForMcqSet includes set focus", () => {
   });
   assert.match(topic, /Set 2 of 3/);
   assert.match(topic, /application scenarios/);
+});
+
+test("lessonMcqAiTopic includes lesson title", () => {
+  const topic = lessonMcqAiTopic({
+    lessonTitle: "Prompting basics",
+    extraTopic: "few-shot examples",
+  });
+  assert.match(topic, /Prompting basics/);
+  assert.match(topic, /few-shot examples/);
 });

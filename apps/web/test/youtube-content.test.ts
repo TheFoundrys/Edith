@@ -3,6 +3,8 @@ import { test } from "node:test";
 import {
   extractYouTubeUrls,
   mergeLessonReadingAndVideo,
+  resolveLessonReadingText,
+  resolveLessonVideoUrl,
   splitLessonContentForEdit,
   stripYouTubeUrls,
 } from "../lib/learning/youtube-content";
@@ -30,4 +32,26 @@ test("stripYouTubeUrls keeps non-video paragraphs", () => {
   assert.match(text, /Intro paragraph/);
   assert.match(text, /Outro/);
   assert.equal(text.includes("youtube"), false);
+});
+
+test("resolveLessonReadingText prefers summary for VIDEO_URL", () => {
+  const content =
+    "# Notes\n\nBody copy.\n\nhttps://www.youtube.com/watch?v=abc123";
+  assert.equal(
+    resolveLessonReadingText("VIDEO_URL", content, "From summary"),
+    "From summary",
+  );
+  assert.match(
+    resolveLessonReadingText("VIDEO_URL", content, null),
+    /Body copy/,
+  );
+});
+
+test("resolveLessonVideoUrl extracts youtube from mixed content", () => {
+  const content =
+    "# Notes\n\nhttps://www.youtube.com/watch?v=abc123";
+  assert.equal(
+    resolveLessonVideoUrl(content),
+    "https://www.youtube.com/watch?v=abc123",
+  );
 });

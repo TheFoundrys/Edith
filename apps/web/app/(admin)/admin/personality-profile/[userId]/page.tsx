@@ -58,7 +58,7 @@ export default async function AdminPersonalityDetailPage({
 
       <Panel className="mb-6 p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-xl">Contact & resume</h2>
+          <h2 className="font-display text-xl">Identity</h2>
           <Badge tone={intakeTone(detail.intake.stage)}>
             {detail.intake.label}
           </Badge>
@@ -108,6 +108,22 @@ export default async function AdminPersonalityDetailPage({
               ) : (
                 "—"
               )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-fg-muted">
+              Aadhaar
+            </dt>
+            <dd className="mt-1 font-mono text-sm">
+              {detail.student.aadhaarMask || "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-fg-muted">
+              PAN
+            </dt>
+            <dd className="mt-1 font-mono text-sm">
+              {detail.student.panMask || "—"}
             </dd>
           </div>
           <div className="sm:col-span-2">

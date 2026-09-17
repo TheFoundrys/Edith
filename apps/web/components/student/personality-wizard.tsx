@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { id: 1, label: "Identity", detail: "Your details" },
-  { id: 2, label: "Resume", detail: "Skills match" },
+  { id: 1, label: "Identity", detail: "Contact & IDs" },
+  { id: 2, label: "Resume", detail: "Upload skills" },
   { id: 3, label: "Exam", detail: "Pay, then sit" },
 ] as const;
 

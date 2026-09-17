@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CreditCard, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 import {
   savePersonalityIdentity,
   savePersonalityKyc,
@@ -59,25 +59,19 @@ export function PersonalityIdentityStep({
     return (
       <div className="personality-identity-summary">
         <div className="personality-identity-summary-block">
-          <h3>Contact</h3>
+          <h3>Identity</h3>
           <dl className="personality-identity-summary-grid">
             <SummaryRow label="Name" value={defaults.name} />
             <SummaryRow label="Full name" value={defaults.fullName} />
             <SummaryRow label="Phone" value={defaults.phone} />
             <SummaryRow label="Email" value={defaults.email} />
+            <SummaryRow label="Aadhaar" value={aadhaarMask ?? "—"} />
+            <SummaryRow label="PAN" value={panMask ?? "—"} />
             <SummaryRow
               label="Address"
               value={defaults.address}
               className="sm:col-span-2"
             />
-          </dl>
-        </div>
-
-        <div className="personality-identity-summary-block">
-          <h3>Government IDs</h3>
-          <dl className="personality-identity-summary-grid">
-            <SummaryRow label="Aadhaar" value={aadhaarMask ?? "—"} />
-            <SummaryRow label="PAN" value={panMask ?? "—"} />
           </dl>
         </div>
 
@@ -129,7 +123,7 @@ export function PersonalityIdentityStep({
         <section className="personality-identity-section" aria-labelledby="identity-contact">
           <div className="personality-identity-section-head" id="identity-contact">
             <UserRound className="size-4" aria-hidden />
-            <span>Contact information</span>
+            <span>Identity</span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
@@ -176,38 +170,6 @@ export function PersonalityIdentityStep({
                 autoComplete="email"
               />
             </div>
-          </div>
-          <div>
-            <Label htmlFor="address">Address</Label>
-            <Textarea
-              id="address"
-              name="address"
-              required
-              rows={3}
-              defaultValue={defaults.address}
-              autoComplete="street-address"
-            />
-          </div>
-        </section>
-
-        <section className="personality-id-section" aria-labelledby="identity-ids">
-          <div className="personality-id-section-head">
-            <span className="personality-id-section-icon" aria-hidden>
-              <CreditCard className="size-4" />
-            </span>
-            <div>
-              <p className="personality-id-section-title" id="identity-ids">
-                Aadhaar &amp; PAN
-              </p>
-              <p className="personality-id-section-lead">
-                Type the numbers exactly as printed on your physical cards — including
-                spaces or dashes if shown. We store a masked copy only; nothing is
-                verified with UIDAI or the Income Tax Department.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="aadhaar">Aadhaar number</Label>
               <Input
@@ -222,7 +184,7 @@ export function PersonalityIdentityStep({
                 <p className="personality-id-on-file">On file · {aadhaarMask}</p>
               ) : (
                 <p className="personality-field-hint">
-                  Any format on your card is accepted — not limited to 12 digits.
+                  Type it as printed on the card. We store a masked copy only.
                 </p>
               )}
             </div>
@@ -240,10 +202,21 @@ export function PersonalityIdentityStep({
                 <p className="personality-id-on-file">On file · {panMask}</p>
               ) : (
                 <p className="personality-field-hint">
-                  Enter the full PAN as printed — letters, numbers, and spacing as shown.
+                  Enter the PAN as printed — letters, numbers, and spacing as shown.
                 </p>
               )}
             </div>
+          </div>
+          <div>
+            <Label htmlFor="address">Address</Label>
+            <Textarea
+              id="address"
+              name="address"
+              required
+              rows={3}
+              defaultValue={defaults.address}
+              autoComplete="street-address"
+            />
           </div>
         </section>
 

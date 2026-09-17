@@ -40,7 +40,7 @@ export default async function AdminPersonalityRosterPage({
     <div>
       <PageHeader
         title="Personality Profile intake"
-        description="Contact details and resumes collected from the Edith Personality Profile wizard. Open a row for the full record and trainer brief."
+        description="Identity, Aadhaar, PAN, and resumes from the Edith Personality Profile wizard. Open a row for the full record."
       />
 
       <div className="mb-4 flex flex-wrap gap-3 text-sm text-fg-muted">
@@ -61,6 +61,8 @@ export default async function AdminPersonalityRosterPage({
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Phone</th>
+                <th className="px-4 py-3 font-medium">Aadhaar</th>
+                <th className="px-4 py-3 font-medium">PAN</th>
                 <th className="px-4 py-3 font-medium">Resume</th>
                 <th className="px-4 py-3 font-medium">Intake</th>
                 <th className="px-4 py-3 font-medium text-right">Open</th>
@@ -89,6 +91,12 @@ export default async function AdminPersonalityRosterPage({
                   <td className="px-4 py-3 text-fg-muted">{row.email || "—"}</td>
                   <td className="px-4 py-3 text-fg-muted whitespace-nowrap">
                     {row.phone || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-fg-muted whitespace-nowrap font-mono text-xs">
+                    {row.aadhaarMask || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-fg-muted whitespace-nowrap font-mono text-xs">
+                    {row.panMask || "—"}
                   </td>
                   <td className="px-4 py-3">
                     {row.hasResume ? (

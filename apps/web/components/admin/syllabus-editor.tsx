@@ -8,6 +8,7 @@ import {
   createCourseMcqFromSyllabusAction,
   createLessonMcqFromSyllabusAction,
 } from "@/lib/actions/syllabus-content";
+import { generateLessonMcqForLessonWithAi } from "@/lib/actions/admin-lesson-mcq";
 import {
   createLesson,
   createModule,
@@ -20,6 +21,7 @@ import {
   updateModule,
   upsertSyllabus,
 } from "@/lib/actions/syllabus";
+import { LessonMcqAiButton } from "@/components/admin/lesson-mcq-ai-button";
 import { LessonTypeBadge } from "@/components/learning/lesson-type-badge";
 import {
   lessonContentPreview,
@@ -32,6 +34,7 @@ import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/inpu
 import { isStoredLessonFile } from "@/lib/learning/lesson-file";
 import { splitLessonContentForEdit } from "@/lib/learning/youtube-content";
 import { PageHeader, Panel } from "@/components/ui/page";
+import { useToast } from "@/components/ui/toast";
 import type {
   LessonContentType,
   SyllabusStatus,
@@ -457,6 +460,10 @@ export function SyllabusEditor({
                               Add quiz
                             </Button>
                           )}
+                          <LessonMcqAiButton
+                            lessonId={lesson.id}
+                            hasQuiz={Boolean(lessonMcqByLessonId[lesson.id])}
+                          />
                           <Button
                             type="button"
                             variant="ghost"
@@ -655,6 +662,8 @@ function ContentAddPanel({
   const [kind, setKind] = useState<ContentAddKind>("section");
   const [moduleId, setModuleId] = useState(modules[0]?.id ?? "");
   const [localPending, startTransition] = useTransition();
+  const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!moduleId && modules[0]?.id) setModuleId(modules[0].id);
@@ -947,13 +956,57 @@ function ContentAddPanel({
               </div>
               {lessonsWithoutQuiz.length === 0 ? (
                 <p className="text-xs text-fg-muted">
-                  Every lesson already has a quiz. Open an existing quiz from the
-                  lesson row below.
+                  Every lesson already has a quiz. Use AI quiz on the lesson row
+                  to regenerate questions.
                 </p>
               ) : (
-                <Button type="submit" loading={busy} disabled={busy}>
-                  Create lesson quiz
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    loading={busy}
+                    disabled={busy}
+                    onClick={(event) => {
+                      const form = event.currentTarget.form;
+                      if (!form) return;
+                      const lessonId = String(
+                        new FormData(form).get("lessonId") || "",
+                      ).trim();
+                      if (!lessonId) {
+                        setError("Select a lesson first.");
+                        return;
+                      }
+                      startTransition(async () => {
+                        setError(null);
+                        const result = await generateLessonMcqForLessonWithAi({
+                          lessonId,
+                          questionCount: 5,
+                        });
+                        if ("error" in result && result.error) {
+                          setError(result.error);
+                          toast({
+                            title: "AI quiz failed",
+                            description: result.error,
+                            tone: "danger",
+                          });
+                          return;
+                        }
+                        if ("ok" in result && result.ok) {
+                          toast({
+                            title: "AI quiz ready",
+                            description: `${result.imported} questions published.`,
+                            tone: "success",
+                          });
+                        }
+                        router.refresh();
+                      });
+                    }}
+                  >
+                    Generate quiz with AI
+                  </Button>
+                  <Button type="submit" variant="secondary" loading={busy} disabled={busy}>
+                    Empty quiz (manual)
+                  </Button>
+                </div>
               )}
             </form>
           )
@@ -1172,12 +1225,34 @@ function SimpleLessonForm({
       ) : (
         <div className="space-y-3">
           <div>
+            <Label>Reading content (markdown, optional)</Label>
+            <Textarea
+              name="summary"
+              rows={6}
+              placeholder="# Lesson title&#10;&#10;Explain what students should learn before watching the video."
+              defaultValue={
+                defaults?.summary?.trim() ||
+                (defaults?.contentType === "VIDEO_URL"
+                  ? splitLessonContentForEdit(defaults.content ?? "").reading
+                  : "")
+              }
+            />
+          </div>
+          <div>
             <Label>YouTube or Vimeo URL</Label>
             <Textarea
               name="contentBody"
               rows={3}
               placeholder="https://www.youtube.com/watch?v=…"
-              defaultValue={existingPrivateVideo ? "" : defaults?.content ?? ""}
+              defaultValue={
+                existingPrivateVideo
+                  ? ""
+                  : defaults?.contentType === "VIDEO_URL"
+                    ? (splitLessonContentForEdit(defaults.content ?? "").videoUrl ||
+                      defaults.content ||
+                      "")
+                    : (defaults?.content ?? "")
+              }
             />
             <p className="mt-1 text-xs text-fg-muted">
               Embeds as a watchable video. Public or unlisted YouTube links can
