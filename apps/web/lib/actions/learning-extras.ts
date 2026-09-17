@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireStudent } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { isCompassDatabase } from "@/lib/db/profile";
+import { refreshAssignmentIntegritySafe } from "@/lib/learning/assignment-integrity-store";
 
 export async function submitAssignment(
   assignmentId: string,
@@ -85,6 +86,8 @@ export async function submitAssignment(
       actionUrl: `/student/assignments/${assignment.id}`,
     },
   });
+
+  await refreshAssignmentIntegritySafe(assignmentId);
 
   revalidatePath("/student/assignments");
   revalidatePath(`/student/assignments/${assignmentId}`);

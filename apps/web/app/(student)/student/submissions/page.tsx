@@ -22,6 +22,7 @@ export default async function StudentSubmissionsPage() {
             include: { program: { select: { title: true } } },
           },
         },
+        omit: { integrityReport: true },
         orderBy: { submittedAt: "desc" },
       });
 

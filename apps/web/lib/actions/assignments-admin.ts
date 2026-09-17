@@ -185,3 +185,19 @@ export async function generateAssignmentDraft(input: {
     };
   }
 }
+
+export async function rescanAssignmentIntegrityAction(assignmentId: string) {
+  const session = await requireCapability("manageContent");
+  if (isCompassDatabase()) return;
+  const assignment = await prisma.assignment.findFirst({
+    where: { id: assignmentId, organizationId: session.user.organizationId },
+    select: { id: true },
+  });
+  if (!assignment) return;
+  const { refreshAssignmentIntegrity } = await import(
+    "@/lib/learning/assignment-integrity-store"
+  );
+  await refreshAssignmentIntegrity(assignment.id);
+  revalidatePath(`/admin/assignments/${assignment.id}`);
+  revalidatePath("/admin/assignments");
+}

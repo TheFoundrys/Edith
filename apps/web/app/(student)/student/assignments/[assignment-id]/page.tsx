@@ -40,6 +40,7 @@ export default async function StudentAssignmentDetailPage({
       assignmentId,
       userId: session.user.id,
     },
+    omit: { integrityReport: true },
   });
 
   return (
