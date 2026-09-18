@@ -23,6 +23,12 @@ const SECONDS = Math.max(
   Number(process.env.DURATION || process.env.LOAD_SECONDS || 30),
 );
 const THINK_MS = Math.max(50, Number(process.env.LOAD_THINK_MS || 350));
+const PUBLIC_ONLY =
+  process.env.PUBLIC_ONLY === "1" || process.env.LOAD_PUBLIC_ONLY === "1";
+const PLACEHOLDER_LOGIN =
+  /your-prod-student|your-prod-password|your-host|@email$/i.test(
+    `${EMAIL} ${PASSWORD} ${BASE}`,
+  );
 
 const PUBLIC_PATHS = [
   "/api/health",
@@ -137,7 +143,7 @@ async function login() {
   );
   if (!hasSession) {
     throw new Error(
-      `Student login failed (HTTP ${loginRes.status}). Check credentials and the 10-login / 15min rate limit.`,
+      `Student login failed (HTTP ${loginRes.status}). Use a real student that exists on this server — not the placeholder your-prod-student@email — or run PUBLIC_ONLY=1 for catalogue/health pages only.`,
     );
   }
   return cookies;
@@ -177,7 +183,7 @@ async function hit(path, cookies) {
 
 async function worker(endAt, cookies, results) {
   while (Date.now() < endAt) {
-    const student = Math.random() >= 0.65;
+    const student = !PUBLIC_ONLY && cookies && Math.random() >= 0.65;
     const pool = student ? STUDENT_PATHS : PUBLIC_PATHS;
     const path = pool[Math.floor(Math.random() * pool.length)];
     results.push(await hit(path, student ? cookies : undefined));
@@ -186,9 +192,9 @@ async function worker(endAt, cookies, results) {
 }
 
 async function main() {
-  if (BASE.includes("your-host") || EMAIL.includes("...")) {
+  if (BASE.includes("your-host")) {
     throw new Error(
-      "Replace BASE_URL / STUDENT_EMAIL / STUDENT_PASSWORD with real values. For local: npm run load:test",
+      "Replace BASE_URL with the real origin, e.g. https://edith.thefoundrys.com",
     );
   }
   let health;
@@ -201,11 +207,23 @@ async function main() {
     throw new Error(`Health check failed (${health.status}) at ${BASE}/api/health`);
   }
   console.log(`Target ${BASE}`);
-  console.log(`Logging in as ${EMAIL} once (avoids login rate limit)…`);
-  const cookies = await login();
-  console.log(
-    `Running ${VUS} users for ${SECONDS}s with ${THINK_MS}ms pause between requests (65% public / 35% student, GET only)`,
-  );
+  let cookies = null;
+  if (PUBLIC_ONLY || PLACEHOLDER_LOGIN) {
+    if (PLACEHOLDER_LOGIN && !PUBLIC_ONLY) {
+      console.log(
+        "Skipping student login: STUDENT_EMAIL/PASSWORD are still placeholders.",
+      );
+    }
+    console.log(
+      `Running ${VUS} users for ${SECONDS}s with ${THINK_MS}ms pause (public pages only, GET)`,
+    );
+  } else {
+    console.log(`Logging in as ${EMAIL} once (avoids login rate limit)…`);
+    cookies = await login();
+    console.log(
+      `Running ${VUS} users for ${SECONDS}s with ${THINK_MS}ms pause between requests (65% public / 35% student, GET only)`,
+    );
+  }
 
   const results = [];
   const endAt = Date.now() + SECONDS * 1000;
