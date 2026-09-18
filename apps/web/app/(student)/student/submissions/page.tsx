@@ -17,12 +17,20 @@ export default async function StudentSubmissionsPage() {
           status: { in: ["SUBMITTED", "GRADED"] },
           assignment: { organizationId: session.user.organizationId },
         },
-        include: {
+        select: {
+          id: true,
+          assignmentId: true,
+          status: true,
+          submittedAt: true,
+          grade: true,
+          feedback: true,
           assignment: {
-            include: { program: { select: { title: true } } },
+            select: {
+              title: true,
+              program: { select: { title: true } },
+            },
           },
         },
-        omit: { integrityReport: true },
         orderBy: { submittedAt: "desc" },
       });
 
