@@ -9,6 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/**/*.test.ts",
+    "load:test": "node load/run.mjs",
+    "load:k6": "k6 run load/k6.js",
     "db:check": "tsx scripts/check-db-connection.ts",
     "db:verify-migrations": "tsx scripts/verify-migrations.ts",
     "db:generate": "prisma generate",

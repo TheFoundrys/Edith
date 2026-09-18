@@ -8,6 +8,8 @@
     "lint": "npm run lint --prefix apps/web",
     "typecheck": "npm run typecheck --prefix apps/web",
     "test": "npm run test --prefix apps/web",
+    "load:test": "npm run load:test --prefix apps/web",
+    "load:k6": "npm run load:k6 --prefix apps/web",
     "db:verify-migrations": "npm run db:verify-migrations --prefix apps/web",
     "db:generate": "npm run db:generate --prefix apps/web",
     "db:push": "npm run db:push --prefix apps/web",

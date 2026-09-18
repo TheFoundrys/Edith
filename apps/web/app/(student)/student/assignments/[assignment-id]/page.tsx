@@ -40,7 +40,13 @@ export default async function StudentAssignmentDetailPage({
       assignmentId,
       userId: session.user.id,
     },
-    omit: { integrityReport: true },
+    select: {
+      contentBody: true,
+      status: true,
+      submittedAt: true,
+      grade: true,
+      feedback: true,
+    },
   });
 
   return (
